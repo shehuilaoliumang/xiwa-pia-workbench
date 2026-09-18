@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ bootstrap.csrf_token }}">
+  <title>{% block title %}喜娃微 PIA · 选本工作台{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='navigation.css') }}">
+  <script id="bootstrap" type="application/json">{{ bootstrap|tojson }}</script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='navigation.js') }}" defer></script>
+</head>
+<body data-page="{% block page %}catalog{% endblock %}">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<header class="site-header">
+  <a class="brand" href="/" aria-label="喜娃微 PIA 选本首页"><span class="brand-mark">喜</span><span><strong>喜娃微 PIA</strong><small>把故事，交给声音</small></span></a>
+  <nav class="main-nav" aria-label="主要导航"><a href="/" data-nav="catalog">选本工作台</a><a href="/control" data-nav="control">播控台</a><a href="/manage" data-nav="manage">内容管理</a></nav>
+  <div class="local-badge"><span></span>本地工作台</div>
+</header>
+<main id="main" class="workspace">{% block content %}{% endblock %}</main>
+<footer class="site-footer"><span>喜娃微 PIA 剧场</span><span>内容源自已归档 PPT · 原稿疑点保留待核</span></footer>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="confirm-dialog" class="dialog confirm-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="confirm-title">确认操作</h2></div><p id="confirm-message"></p><div id="confirm-extra"></div><div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button value="confirm" class="button primary" id="confirm-yes">确认</button></div></form></dialog>
+{% block dialogs %}{% endblock %}
+</body>
+</html>

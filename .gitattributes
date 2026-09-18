@@ -1,0 +1,2 @@
+# Preserve launcher CRLF bytes in GitHub source archives.
+*.cmd -text

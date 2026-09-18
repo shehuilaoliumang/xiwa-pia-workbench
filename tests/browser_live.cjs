@@ -1,0 +1,53 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const {spawn,execFileSync}=require('node:child_process');
+const path=require('node:path');
+const fs=require('node:fs/promises');
+const root=path.resolve(__dirname,'..'),python=path.join(root,'runtime','python.exe');
+const data=path.join(root,'.qa','live-'+Date.now()),base='http://127.0.0.1:8890';
+let child,browser;
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+const start=async()=>{child=spawn(python,['-X','utf8','run.py','--no-browser','--port','8890','--data-dir',data],{cwd:root,windowsHide:true,stdio:'ignore'});for(let i=0;i<100;i++){try{const h=await(await fetch(base+'/api/health')).json();if(h.data_dir===data)return;}catch{}await delay(100)}throw Error('test server not ready')};
+const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',data],{cwd:root,windowsHide:true});
+(async()=>{
+ await start();browser=await chromium.launch({channel:'msedge',headless:true});
+ const context=await browser.newContext({viewport:{width:1440,height:1000}}),external=[],errors=[];
+ await context.route('**/*',route=>{if(new URL(route.request().url()).hostname!=='127.0.0.1'){external.push(route.request().url());return route.abort()}return route.continue()});
+ context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
+ const page=await context.newPage();await page.goto(base+'/control?script=script-01');
+ await page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);
+ await page.locator('#layout-body-mode').selectOption('scroll');
+ await page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);
+ await page.locator('#apply-display').click();
+ await page.waitForFunction(()=>document.querySelector('#live-description').textContent.includes('万有引力'));
+ const popupPromise=context.waitForEvent('page');await page.locator('#open-display').click();const display=await popupPromise;
+ await display.waitForLoadState();await display.locator('#stage-content h1').first().waitFor();
+ const api=async(route,body)=>{const library=await(await context.request.get(base+'/api/library')).json();const r=await context.request.post(base+route,{data:body,headers:{'X-CSRF-Token':library.csrf_token}});assert(r.ok(),await r.text());return r.json()};
+ await api('/api/command',{action:'play'});await display.waitForTimeout(1500);
+ let state=await(await context.request.get(base+'/api/state')).json();const revision=state.revision;
+ assert(state.playing);const count=context.pages().length;
+ await page.locator('#open-display').click();await page.waitForTimeout(300);
+ assert.equal(context.pages().length,count,'display must reuse named window');
+ state=await(await context.request.get(base+'/api/state')).json();assert.equal(state.revision,revision);assert(state.playing);
+ const before=await display.locator('#stage-scroll').evaluate(e=>e.scrollTop);
+ await api('/api/command',{action:'pause'});await display.waitForTimeout(900);
+ const paused=await display.locator('#stage-scroll').evaluate(e=>e.scrollTop);
+ assert(paused>=before,'pause must not pull position backwards');await display.waitForTimeout(1000);
+ assert.equal(await display.locator('#stage-scroll').evaluate(e=>e.scrollTop),paused);
+ await page.locator('[data-orientation=landscape]').click();
+ assert(await page.locator('#apply-display').isDisabled(),'new draft must wait for preview');
+ await page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);
+ assert.equal((await(await context.request.get(base+'/api/state')).json()).orientation,'portrait');
+
+ // Restart with the same browser window open: the display must refresh CSRF
+ // credentials and continue saving positions after the user resumes playback.
+ stop();await delay(900);await start();await display.waitForTimeout(2000);
+ assert(!(await(await context.request.get(base+'/api/state')).json()).playing);
+ await api('/api/command',{action:'speed',speed:180});await api('/api/command',{action:'play'});
+ await display.waitForTimeout(5500);state=await(await context.request.get(base+'/api/state')).json();
+ assert(state.anchor!==null,'display checkpoints must recover after service restart');
+ assert.deepEqual(external,[],'application must not require remote resources');assert.deepEqual(errors,[]);
+ await fs.mkdir(path.join(root,'.qa','browser'),{recursive:true});
+ await fs.writeFile(path.join(root,'.qa','browser','live-result.json'),JSON.stringify({passed:true,externalRequests:external,browserErrors:errors,checks:['named window reuse','pause preserves position','draft isolation','service restart','CSRF recovery','local resources only']},null,2));
+ console.log('Live browser acceptance passed: named window, pause, draft isolation, restart and CSRF recovery, local-only resources.');
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();try{stop()}catch{}if(child&&child.exitCode===null)child.kill()});

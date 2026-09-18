@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+instance/
+runtime/
+vendor/
+.qa/
+.venv/
+*.log
+
+# Local delivery bundles and credentials are not source files.
+/交付包/
+.env
+.env.*
+!.env.example
+
+# Microsoft Office temporary owner files.
+~$*

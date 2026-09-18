@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "archived_at_utc": "2026-09-17T10:19:57.0658903+00:00",
+  "purpose": "User-supplied screenshot supporting future video and manually controlled script-display upgrade planning; no implementation authorization",
+  "hash_algorithm": "SHA-256",
+  "files": [
+    {
+      "original_file_name": "codex-clipboard-eda45ff6-89b6-4fc0-9666-d24c946014de.png",
+      "source_path": "C:\\Users\\Lu\\AppData\\Local\\Temp\\codex-clipboard-eda45ff6-89b6-4fc0-9666-d24c946014de.png",
+      "project_path": "evidence/requirements/2026-09-17-video-and-manual-cues.png",
+      "size_bytes": 102304,
+      "sha256": "11720ea834c1c300390c9a5dad94b9261cd2d3de9c191dbc90f78b762b6bfcf0",
+      "copy_verified": true
+    }
+  ]
+}

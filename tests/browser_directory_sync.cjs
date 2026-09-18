@@ -1,0 +1,100 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const {spawn,execFileSync}=require('node:child_process');
+const path=require('node:path');
+const fs=require('node:fs/promises');
+const root=path.resolve(__dirname,'..'),python=path.join(root,'runtime','python.exe');
+const data=path.join(root,'.qa','directory-sync-'+Date.now()),base='http://127.0.0.1:8893';
+let browser,child;
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+async function until(check,label){for(let i=0;i<120;i++){if(await check())return;await delay(100)}throw Error('Timed out: '+label)}
+const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',data],{cwd:root,windowsHide:true});
+(async()=>{
+ child=spawn(python,['-X','utf8','run.py','--no-browser','--port','8893','--data-dir',data],{cwd:root,windowsHide:true,stdio:'ignore'});
+ await until(async()=>{try{return(await(await fetch(base+'/api/health')).json()).data_dir===data}catch{return false}},'server');
+ browser=await chromium.launch({channel:'msedge',headless:true,args:['--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']});
+ const context=await browser.newContext({viewport:{width:1600,height:1100}}),errors=[],writes=[];
+ context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
+ const lib=async()=> (await context.request.get(base+'/api/library')).json();
+ const state=async()=> (await context.request.get(base+'/api/state')).json();
+ const send=async(p,body,method='POST')=>{const l=await lib();const r=await context.request.fetch(base+p,{method,data:body,headers:{'X-CSRF-Token':l.csrf_token}});assert(r.ok(),await r.text());return r.json()};
+ const initial=await lib();
+ const category=await send('/api/categories',{name:'层级验收分类',description:'分类介绍与完整剧本列表验证',color:'#775544'});
+ const fixture=[];
+ for(let i=0;i<8;i++)fixture.push(await send('/api/scripts',{title:'层级剧本'+(i+1),category_id:category.id,author:'验收作者',synopsis:'第'+(i+1)+'篇的简要内容',cast_note:'两位角色',tags:['测试标签','情感'],blocks:Array.from({length:i===0?65:2},(_,j)=>({kind:'text',role:j%2?'乙':'甲',text:`第${j+1}段：这是用于连续滚动检查的正文。窗外灯光亮着，我们继续讲述这个故事。`.repeat(3)}))}));
+ const page=await context.newPage();await page.goto(base+'/');
+ await page.locator(`[data-open-category="${category.id}"]`).waitFor();
+ assert.equal(await page.locator('.script-card').count(),0,'root catalog should show categories');
+ const rootCard=page.locator(`[data-open-category="${category.id}"]`);assert((await rootCard.innerText()).includes('8'));
+ await rootCard.click();await page.locator('.script-card').first().waitFor();assert.equal(await page.locator('.script-card').count(),8);
+ const detail=await page.locator('#script-grid').innerText();for(const text of ['验收作者','两位角色','第1篇的简要内容','测试标签'])assert(detail.includes(text));
+ await page.locator('.card-title a').first().click();await page.waitForURL('**/script/*');
+ await page.locator('.breadcrumb a').click();await page.waitForURL('**/?category=*');assert.equal(await page.locator('.script-card').count(),8);
+ await page.locator('#catalog-back').click();await rootCard.waitFor();
+ await fs.mkdir(path.join(root,'.qa','browser'),{recursive:true});
+ await page.screenshot({path:path.join(root,'.qa','browser','category-home-desktop.png'),fullPage:true});
+ await page.locator('#catalog-search').fill('层级剧本8');await until(async()=> (await page.locator('.script-card').count())===1,'global search');
+
+ await page.goto(base+'/control');
+ const ready=()=>page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);
+ await ready();const frame=page.frames().find(f=>f.url().includes('preview=1'));
+ const ext=a=>page.locator(`[data-preview-external="${a}"]`);
+ await page.locator('#preview-toolbar-placement').selectOption('outside');
+ await frame.locator(`[data-preview-category="${category.id}"]`).waitFor();
+ assert.equal(await frame.locator('[data-preview-script]').count(),0);
+ await frame.locator(`[data-preview-category="${category.id}"]`).click();await frame.locator('.stage-list').waitFor();await ready();
+ assert.equal(await frame.locator('[data-preview-script]').count(),8,'all category scripts in second level');
+ assert((await frame.locator('.stage-list').innerText()).includes('测试标签'));
+ await frame.locator(`[data-preview-script="${fixture[0].id}"]`).click();await frame.locator('.stage-body').waitFor();await ready();
+ await ext('return-list').click();await frame.locator('.stage-list').waitFor();await ready();assert.equal(await frame.locator('[data-preview-script]').count(),8);
+ await ext('return-list').click();await frame.locator('[data-preview-category]').first().waitFor();await ready();
+ await page.locator('.preview-panel').screenshot({path:path.join(root,'.qa','browser','category-preview-portrait.png')});
+ const emptyCategory=initial.categories.find(c=>c.name==='动漫影视本');
+ if(emptyCategory){await frame.locator(`[data-preview-category="${emptyCategory.id}"]`).click();await frame.locator('.stage-empty').waitFor();await ready();assert.equal(await frame.locator('[data-preview-script]').count(),0);await ext('return-list').click();await frame.locator('[data-preview-category]').first().waitFor();await ready()}
+ await page.locator('[data-orientation=landscape]').click();await ready();await page.locator('.preview-panel').screenshot({path:path.join(root,'.qa','browser','category-preview-landscape.png')});
+ await frame.locator(`[data-preview-category="${category.id}"]`).click();await frame.locator('.stage-list').waitFor();await ready();
+ await frame.locator(`[data-preview-script="${fixture[0].id}"]`).click();await frame.locator('.stage-body').waitFor();await ready();
+ await page.locator('#preview-feedback-mode').selectOption('realtime');await until(async()=> (await state()).snapshot?.scripts[0]?.id===fixture[0].id,'initial realtime apply');await ready();
+ const popup=context.waitForEvent('page');await page.locator('#open-display').click();const display=await popup;await display.waitForLoadState();await display.locator('.stage-body').waitFor();
+ await page.bringToFront();await delay(900);
+ assert.equal(await display.locator('.preview-toolbar').count(),0);
+ const size=await ext('next').evaluate(e=>({font:parseFloat(getComputedStyle(e).fontSize),height:e.getBoundingClientRect().height}));assert(size.font>=15&&size.height>=44,'outside controls need readable type and touch size');
+ page.on('request',r=>{if(r.method()==='POST')writes.push(r.url())});
+ await page.locator('#live-speed').fill('100');await page.locator('#live-speed').dispatchEvent('change');
+ await ext('top').click();await ready();await ext('play').click();await until(async()=> (await state()).playing,'play');
+ await frame.waitForFunction(()=>document.querySelector('#stage-scroll').scrollTop>70);
+ const samples=[];
+ for(let i=0;i<18;i++){const [a,b]=await Promise.all([frame.locator('#stage-scroll').evaluate(e=>e.scrollTop),display.locator('#stage-scroll').evaluate(e=>e.scrollTop)]);samples.push({preview:a,audience:b,error:Math.abs(a-b)});await delay(80)}
+ const maxError=Math.max(...samples.map(s=>s.error));assert(maxError<35,'continuous auto-scroll drift: '+maxError);
+ assert(writes.filter(u=>u.endsWith('/api/apply')).length<6,'motion must not make an apply request each frame');
+ // Dispatch visibility lifecycle events in a real browser; the independent audience keeps running.
+ await page.evaluate(()=>{window.resumeReports=[];window.resumeMonitor=new BroadcastChannel('pia-live-display-v1');window.resumeMonitor.onmessage=e=>{if(e.data?.type==='position-report')window.resumeReports.push(e.data)}});
+ await frame.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'))});
+ const hiddenPosition=await frame.locator('#stage-scroll').evaluate(e=>e.scrollTop);await delay(1000);
+ const advanced=await display.locator('#stage-scroll').evaluate(e=>e.scrollTop);assert(advanced>hiddenPosition+8,'audience must continue when preview is hidden');
+ assert.equal(await frame.locator('#stage-scroll').evaluate(e=>e.scrollTop),hiddenPosition);
+ await frame.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'visible'});document.dispatchEvent(new Event('visibilitychange'))});
+ await until(async()=>{const [a,b]=await Promise.all([frame.locator('#stage-scroll').evaluate(e=>e.scrollTop),display.locator('#stage-scroll').evaluate(e=>e.scrollTop)]);return a>=advanced-5&&Math.abs(a-b)<10},'resume from audience current pixels');
+ assert((await page.evaluate(()=>window.resumeReports.length))>0,'resume must obtain audience position');
+ await page.evaluate(()=>window.resumeMonitor.close());await frame.evaluate(()=>{delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'))});
+ // Bottom live controls must also change the preview without jumping to an old checkpoint.
+ await page.locator('#live-pause').click();await until(async()=> !(await state()).playing,'live pause');
+ const paused=await frame.locator('#stage-scroll').evaluate(e=>e.scrollTop);await delay(450);assert.equal(await frame.locator('#stage-scroll').evaluate(e=>e.scrollTop),paused);
+ await frame.locator('#stage-scroll').hover({position:{x:150,y:220}});await page.mouse.wheel(0,387);
+ await delay(70);const manual=[];
+ for(let i=0;i<14;i++){const [a,b]=await Promise.all([frame.locator('#stage-scroll').evaluate(e=>e.scrollTop),display.locator('#stage-scroll').evaluate(e=>e.scrollTop)]);manual.push(Math.abs(a-b));await delay(70)}
+ assert(Math.max(...manual)<35,'manual scrolling must continuously track without paragraph snaps: '+Math.max(...manual));
+ const stateBefore=await state();await page.locator('#preview-feedback-mode').selectOption('confirm');
+ const audienceBefore=await display.locator('#stage-scroll').evaluate(e=>e.scrollTop);
+ await frame.locator('#stage-scroll').hover({position:{x:150,y:220}});await page.mouse.wheel(0,250);await delay(600);
+ assert.equal((await state()).revision,stateBefore.revision);assert.equal(await display.locator('#stage-scroll').evaluate(e=>e.scrollTop),audienceBefore);
+ await display.close();
+ await page.setViewportSize({width:390,height:844});await page.locator('#preview-external-tools').scrollIntoViewIfNeeded();
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ for(const b of await page.locator('#preview-external-tools button:visible').all()){const r=await b.boundingBox();assert(r.width>=40&&r.height>=44&&r.x>=0&&r.x+r.width<=390)}
+ await page.locator('.preview-panel').screenshot({path:path.join(root,'.qa','browser','large-controls-mobile.png')});
+ await page.goto(base+'/');await page.locator(`[data-open-category="${category.id}"]`).waitFor();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.deepEqual(errors,[]);
+ await fs.writeFile(path.join(root,'.qa','browser','directory-sync-result.json'),JSON.stringify({passed:true,browserErrors:errors,maxLogicalScrollError:maxError,manualMaxError:Math.max(...manual),samples,checks:['category home and complete detail','key metadata','reader returns to category','control three-level navigation','empty category','portrait and landscape','large controls desktop and mobile','live pixel motion with no apply storm','visibility lifecycle resumes from audience pixels','live pause reflected in preview','confirmation disconnects continuous motion']},null,2));
+ console.log('Directory and continuous-sync acceptance passed. Maximum logical scroll drift:',maxError);
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();try{stop()}catch{}if(child&&child.exitCode===null)child.kill()});

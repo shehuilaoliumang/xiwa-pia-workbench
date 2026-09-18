@@ -1,0 +1,58 @@
+{
+  "python": {
+    "version": "3.14.7",
+    "source": "https://www.python.org/ftp/python/3.14.7/python-3.14.7-embed-amd64.zip",
+    "release_page": "https://www.python.org/downloads/release/python-3147/",
+    "sha256": "d297e5ff019966817ad8502465176139f2d3d840fa4ed84b13bed399a6ab1f15",
+    "bytes": 12673227
+  },
+  "wheels": [
+    {
+      "file": "blinker-1.9.0-py3-none-any.whl",
+      "sha256": "ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc",
+      "bytes": 8458
+    },
+    {
+      "file": "click-8.5.0-py3-none-any.whl",
+      "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+      "bytes": 125251
+    },
+    {
+      "file": "flask-3.1.3-py3-none-any.whl",
+      "sha256": "f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c",
+      "bytes": 103424
+    },
+    {
+      "file": "itsdangerous-2.2.0-py3-none-any.whl",
+      "sha256": "c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef",
+      "bytes": 16234
+    },
+    {
+      "file": "jinja2-3.1.6-py3-none-any.whl",
+      "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "bytes": 134899
+    },
+    {
+      "file": "markupsafe-3.0.3-cp314-cp314-win_amd64.whl",
+      "sha256": "bdc919ead48f234740ad807933cdf545180bfbe9342c2bb451556db2ed958581",
+      "bytes": 15341
+    },
+    {
+      "file": "waitress-3.0.2-py3-none-any.whl",
+      "sha256": "c56d67fd6e87c2ee598b76abdd4e96cfad1f24cacdea5078d382b1f9d7b5ed2e",
+      "bytes": 56232
+    },
+    {
+      "file": "werkzeug-3.1.8-py3-none-any.whl",
+      "sha256": "63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50",
+      "bytes": 226459
+    },
+    {
+      "file": "pillow-12.3.0-cp314-cp314-win_amd64.whl",
+      "sha256": "fdafc9cce40277e0f7a0feabce0ee50dd2fa1800f3b38015e51296b5e814048d",
+      "bytes": 7237707,
+      "source": "https://files.pythonhosted.org/packages/f1/e0/492879f69d94f91f60fc8cd05ba03650e9520afebb2fb7aa12777d7c7f38/pillow-12.3.0-cp314-cp314-win_amd64.whl",
+      "project": "https://pypi.org/project/pillow/12.3.0/"
+    }
+  ]
+}

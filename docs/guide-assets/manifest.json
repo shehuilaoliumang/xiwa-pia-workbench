@@ -1,0 +1,549 @@
+{
+  "version": 1,
+  "source": "正式 instance 的只读 SQLite backup 演示副本；截图仅操作 8910",
+  "images": [
+    {
+      "id": "01-home",
+      "title": "从分类总览选本",
+      "raw": "docs/guide-assets/01-home-raw.png",
+      "annotated": "docs/guide-assets/01-home.png",
+      "description": "首页从分类开始；分类数量会随资料维护自动调整。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 952,
+      "height": 650,
+      "pixel_width": 1904,
+      "pixel_height": 1300,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "点击一个分类，进入该分类的全部剧本。",
+          "selector": "[data-open-category]"
+        },
+        {
+          "number": 2,
+          "meaning": "本场待展示列表在右侧，加入后可供播控台选择。",
+          "selector": ".queue-panel"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "02-catalog",
+      "title": "查看简介并加入本场",
+      "raw": "docs/guide-assets/02-catalog-raw.png",
+      "annotated": "docs/guide-assets/02-catalog.png",
+      "description": "以“爱情公寓”为例，简介和配音备注来自实际资料；没有简介时保留页面原提示。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 952,
+      "height": 587,
+      "pixel_width": 1904,
+      "pixel_height": 1174,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "点击剧本名，进入正文阅读。",
+          "selector": ".script-card .card-title a"
+        },
+        {
+          "number": 2,
+          "meaning": "加入本场后会显示“已加入”。",
+          "selector": ".script-card .add-queue"
+        },
+        {
+          "number": 3,
+          "meaning": "本场列表可排序、移除，并进入播控台。",
+          "selector": ".queue-panel"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "03-reader",
+      "title": "阅读与调整显示",
+      "raw": "docs/guide-assets/03-reader-raw.png",
+      "annotated": "docs/guide-assets/03-reader.png",
+      "description": "阅读页用于检查正文；阅读字号与播控展示字号分别控制。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 1000,
+      "height": 670,
+      "pixel_width": 2000,
+      "pixel_height": 1340,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "调整本阅读页的文字大小。",
+          "selector": "#reader-font"
+        },
+        {
+          "number": 2,
+          "meaning": "将此篇带入播控预览。",
+          "selector": "#reader-control"
+        },
+        {
+          "number": 3,
+          "meaning": "进入此篇的音视频与暂停点管理。",
+          "selector": "#reader-media"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "04-prepare",
+      "title": "准备展示内容与全选分类",
+      "raw": "docs/guide-assets/04-prepare-raw.png",
+      "annotated": "docs/guide-assets/04-prepare.png",
+      "description": "全选入口与复选框分开，当前范围在预览中确认。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 952,
+      "height": 444,
+      "pixel_width": 1904,
+      "pixel_height": 888,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "选择展示剧本目录，或切换到剧本正文。",
+          "selector": "[data-mode=\"list\"]"
+        },
+        {
+          "number": 2,
+          "meaning": "按分类选择，或使用本场待展示列表。",
+          "selector": "#list-source"
+        },
+        {
+          "number": 3,
+          "meaning": "一键勾选全部可见分类，并回到分类总览。",
+          "selector": "#control-select-all-categories"
+        },
+        {
+          "number": 4,
+          "meaning": "核对当前已选分类数量；未勾选仍表示默认全部。",
+          "selector": "#control-category-count"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "05-preview",
+      "title": "预览、反馈方式与正式应用",
+      "raw": "docs/guide-assets/05-preview-raw.png",
+      "annotated": "docs/guide-assets/05-preview.png",
+      "description": "预览与观众展示分开；放大不会重载画布或改变正在展示的内容。",
+      "viewport": {
+        "width": 1240,
+        "height": 1032
+      },
+      "device_scale_factor": 2,
+      "width": 811,
+      "height": 952,
+      "pixel_width": 1622,
+      "pixel_height": 1904,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "放大预览；再次点击或在画布中按 Esc 恢复工作台。",
+          "selector": "#toggle-preview-focus"
+        },
+        {
+          "number": 2,
+          "meaning": "逐步应用需点应用；实时同步会把后续预览操作同步到展示。",
+          "selector": "#preview-feedback-mode"
+        },
+        {
+          "number": 3,
+          "meaning": "把已核对的当前预览应用到展示。",
+          "selector": "#apply-display"
+        },
+        {
+          "number": 4,
+          "meaning": "可将操作按钮放在画面外，便于随时点击。",
+          "selector": "#preview-toolbar-placement"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "06-layout",
+      "title": "设置分页、字号与画幅",
+      "raw": "docs/guide-assets/06-layout-raw.png",
+      "annotated": "docs/guide-assets/06-layout.png",
+      "description": "调整画幅、阅读方式、字号与行距；桌面中间区域可滚动，窄屏自然展开。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 952,
+      "height": 540,
+      "pixel_width": 1904,
+      "pixel_height": 1080,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "横屏与竖屏分别保存排版。",
+          "selector": "button[data-orientation=\"portrait\"]"
+        },
+        {
+          "number": 2,
+          "meaning": "普通正文可选自动分页或连续滚动；关联媒体后可选音视频配本。",
+          "selector": "#layout-body-mode"
+        },
+        {
+          "number": 3,
+          "meaning": "调整展示文字大小；分页会按排版自动重新计算。",
+          "selector": "#layout-font"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "07-presets",
+      "title": "保存和载入展示方案",
+      "raw": "docs/guide-assets/07-presets-raw.png",
+      "annotated": "docs/guide-assets/07-presets.png",
+      "description": "保存方案本身不改变当前展示；载入方案和保存当前画幅是不同操作。",
+      "viewport": {
+        "width": 1000,
+        "height": 940
+      },
+      "device_scale_factor": 2,
+      "width": 914,
+      "height": 431,
+      "pixel_width": 1828,
+      "pixel_height": 862,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "选择系统默认设置或已有自定义方案。",
+          "selector": "#layout-preset"
+        },
+        {
+          "number": 2,
+          "meaning": "载入到预览草稿；按当前反馈方式决定是否同步。",
+          "selector": "#load-layout-preset"
+        },
+        {
+          "number": 3,
+          "meaning": "填写容易辨认的方案名称。",
+          "selector": "#layout-preset-name"
+        },
+        {
+          "number": 4,
+          "meaning": "另存为一套含横屏、竖屏的方案，最多10套。",
+          "selector": "#new-layout-preset"
+        },
+        {
+          "number": 5,
+          "meaning": "保存当前画幅设置；这是另外一个保存入口。",
+          "selector": "#save-layout"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "08-editor",
+      "title": "编辑剧本资料",
+      "raw": "docs/guide-assets/08-editor-raw.png",
+      "annotated": "docs/guide-assets/08-editor.png",
+      "description": "管理页修改资料不会直接替换已经上屏的冻结内容。",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "device_scale_factor": 2,
+      "width": 820,
+      "height": 866,
+      "pixel_width": 1640,
+      "pixel_height": 1732,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "修改名称；分类、作者与配音备注也在此编辑。",
+          "selector": "#edit-title"
+        },
+        {
+          "number": 2,
+          "meaning": "展开“编辑正文段落”，可导入正文、修改台词或复用本剧本的角色标签。",
+          "selector": "#body-editor-details summary"
+        },
+        {
+          "number": 3,
+          "meaning": "检查后点击保存剧本，草稿才会正式入库。",
+          "selector": "#script-form button[type=\"submit\"]"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "09-import",
+      "title": "识别后核对原文，再填入草稿",
+      "raw": "docs/guide-assets/09-import-raw.png",
+      "annotated": "docs/guide-assets/09-import.png",
+      "description": "示例粘贴现有《爱情公寓》原文。也可选择本地TXT/DOCX；DOCX仅提取文字。",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "device_scale_factor": 2,
+      "width": 962,
+      "height": 889,
+      "pixel_width": 1924,
+      "pixel_height": 1778,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "左右对照识别段落和原文，检查角色、换行和内容。",
+          "selector": ".import-review-grid"
+        },
+        {
+          "number": 2,
+          "meaning": "默认追加；也可选替换文字，原插图保留在末尾。",
+          "selector": "#import-mode-append"
+        },
+        {
+          "number": 3,
+          "meaning": "填入编辑器后仍是草稿；最后还需保存剧本。",
+          "selector": "#import-fill-editor"
+        }
+      ],
+      "annotations_visually_verified": true,
+      "crop_note": "上缘从完整“3个段落·粘贴文本”提示块开始；不含被截断的上一行。三个编号完整。"
+    },
+    {
+      "id": "10-category",
+      "title": "管理分类与背景",
+      "raw": "docs/guide-assets/10-category-raw.png",
+      "annotated": "docs/guide-assets/10-category.png",
+      "description": "分类背景在演示副本中展示，未改正式资料。",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "device_scale_factor": 2,
+      "width": 540,
+      "height": 831,
+      "pixel_width": 1080,
+      "pixel_height": 1662,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "增改分类名称；分类列表还支持排序、隐藏与删除转移。",
+          "selector": "#category-name"
+        },
+        {
+          "number": 2,
+          "meaning": "从素材库选择背景；通用素色可清除当前背景。",
+          "selector": "#category-background"
+        },
+        {
+          "number": 3,
+          "meaning": "选择PNG/JPEG/WebP后点“上传并选用”。",
+          "selector": "#category-upload-file"
+        },
+        {
+          "number": 4,
+          "meaning": "保存分类后，新选本与预览使用更改后的资料。",
+          "selector": "#category-form button[type=\"submit\"]"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "11-media",
+      "title": "关联本地媒体并标记时间",
+      "raw": "docs/guide-assets/11-media-raw.png",
+      "annotated": "docs/guide-assets/11-media.png",
+      "description": "真实已关联媒体暂停在55.124秒；为展示选文件步骤只选择同一文件，未执行替换上传。",
+      "viewport": {
+        "width": 1240,
+        "height": 1040
+      },
+      "device_scale_factor": 2,
+      "width": 461,
+      "height": 634,
+      "pixel_width": 922,
+      "pixel_height": 1268,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "选择本机视频或音频文件；此例沿用已关联的“爱情公寓.mp4”。",
+          "selector": "#media-upload-file"
+        },
+        {
+          "number": 2,
+          "meaning": "已有媒体时按钮为“替换并关联”；首次为“上传并关联”。替换会重建时间点，请先备份。",
+          "selector": "#media-upload"
+        },
+        {
+          "number": 3,
+          "meaning": "拖动上方进度条找到位置，点击“暂停并标记当前时间”。",
+          "selector": "#media-mark-cue"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "12-cues",
+      "title": "为时间点勾选台词并保存",
+      "raw": "docs/guide-assets/12-cues-raw.png",
+      "annotated": "docs/guide-assets/12-cues.png",
+      "description": "使用正式资料已有的第4个时间点55.124秒与原有4段勾选；演示仅取消后重新勾选同一段。",
+      "viewport": {
+        "width": 1240,
+        "height": 800
+      },
+      "device_scale_factor": 2,
+      "width": 692,
+      "height": 790,
+      "pixel_width": 1384,
+      "pixel_height": 1580,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "点击左侧已有时间点后，可以精确修改这里的时间。",
+          "selector": "#media-cue-time"
+        },
+        {
+          "number": 2,
+          "meaning": "同一时间点可勾选多段文字或图片，本例为第4个时间点的4段。",
+          "selector": "#media-block-choices input:checked"
+        },
+        {
+          "number": 3,
+          "meaning": "核对已选段数。",
+          "selector": "#media-selected-count"
+        },
+        {
+          "number": 4,
+          "meaning": "点击“保存全部时间点”才正式保存；离开前请检查状态。",
+          "selector": "#media-save-cues"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "13-media-preview",
+      "title": "媒体配本：暂停、继续与台词翻页",
+      "raw": "docs/guide-assets/13-media-preview-raw.png",
+      "annotated": "docs/guide-assets/13-media-preview.png",
+      "description": "真实视频第4个时间点暂停。观众与主播使用同组同页；逐步应用时预览操作须点应用后才上屏。",
+      "viewport": {
+        "width": 1240,
+        "height": 1080
+      },
+      "device_scale_factor": 2,
+      "width": 413,
+      "height": 683,
+      "pixel_width": 826,
+      "pixel_height": 1366,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "到时间点自动暂停；读完本组台词后点“读完继续”。",
+          "selector": "iframe [data-media-action=\"play\"]"
+        },
+        {
+          "number": 2,
+          "meaning": "拖动媒体进度可重新定位；不等同于台词翻页。",
+          "selector": "iframe .pia-media-progress"
+        },
+        {
+          "number": 3,
+          "meaning": "长台词在本组内翻页；翻页不改变媒体时间。",
+          "selector": "iframe [data-media-action=\"next-caption-page\"]"
+        },
+        {
+          "number": 4,
+          "meaning": "上一组、下一组切换整个台词组；与组内翻页分开。",
+          "selector": "iframe [data-media-action=\"next-caption\"]"
+        }
+      ],
+      "annotations_visually_verified": true
+    },
+    {
+      "id": "14-backup",
+      "title": "先备份，再恢复",
+      "raw": "docs/guide-assets/14-backup-raw.png",
+      "annotated": "docs/guide-assets/14-backup.png",
+      "description": "这里只展示入口，不执行恢复；恢复前先备份当前资料。",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "device_scale_factor": 2,
+      "width": 952,
+      "height": 353,
+      "pixel_width": 1904,
+      "pixel_height": 706,
+      "annotations": [
+        {
+          "number": 1,
+          "meaning": "下载完整ZIP备份，建议在大量编辑前保存一份。",
+          "selector": "#manage-backup a[download]"
+        },
+        {
+          "number": 2,
+          "meaning": "选择本项目导出的ZIP文件。",
+          "selector": "#restore-file"
+        },
+        {
+          "number": 3,
+          "meaning": "检查并恢复备份；确认后会替换当前资料并暂停展示。",
+          "selector": "#restore-backup"
+        }
+      ],
+      "annotations_visually_verified": true
+    }
+  ],
+  "updated_at": "2026-09-17T18:15:44.823Z",
+  "cover": {
+    "file": "docs/guide-assets/cover-home.png",
+    "description": "真实首页分类卡片的近方形局部，无编号，供手册封面使用。",
+    "pixel_width": 1384,
+    "pixel_height": 1384
+  },
+  "extras": [
+    {
+      "file": "docs/guide-assets/display-example.png",
+      "description": "独立展示窗口的实际音视频配本画面；仅演示副本上屏，540×960 CSS像素，DPR2，无编号。",
+      "width": 540,
+      "height": 960,
+      "pixel_width": 1080,
+      "pixel_height": 1920
+    }
+  ],
+  "verified_at": "2026-09-17T18:16:27.683355+00:00",
+  "verification": "14张标注图与14张无标注原图逐项匹配PNG尺寸；全部编号对应实际可见控件；8910演示副本操作，正式资料只读备份。",
+  "example": {
+    "script_id": "script-08",
+    "title": "爱情公寓",
+    "media_name": "爱情公寓.mp4",
+    "cues_seconds": [
+      0,
+      46.003,
+      50.491,
+      55.124
+    ],
+    "cue_block_counts": [
+      1,
+      1,
+      1,
+      4
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}音视频配本 · 喜娃微 PIA{% endblock %}
+{% block page %}media-editor{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='media-editor.css') }}">
+<script src="{{ url_for('static', filename='media-editor.js') }}" defer></script>
+<div id="media-editor" data-script-id="{{ script_id }}">
+  <div class="breadcrumb"><a id="media-back" href="/script/{{ script_id }}">← 返回剧本</a><span>音视频配本</span></div>
+  <section class="media-editor-heading"><div><div class="eyebrow">让声音与台词相遇</div><h1 id="media-script-title">音视频配本</h1><p>播放到需要的位置，标记时间，再选择对应台词。</p></div><a id="media-control-link" class="button secondary" href="/control?script={{ script_id }}&body=media" hidden>去播控预览 ↗</a></section>
+  <div id="media-editor-error" class="media-editor-error" role="alert" hidden></div>
+  <div class="media-editor-grid">
+    <div class="media-left-column">
+      <section class="panel media-source-panel" aria-labelledby="media-source-title">
+        <div class="section-heading"><h2 id="media-source-title">1 · 关联音视频</h2><span id="media-file-kind" class="status-tag">尚未关联</span></div>
+        <div id="media-player-wrap" class="media-player-wrap"><div class="media-player-empty"><span>♫</span><strong>先选择一段音频或视频</strong><p>文件会保存在本机。拖动播放器进度条，找到要配台词的位置。</p></div></div>
+        <p id="media-file-name" class="media-file-name">支持选择本地音频或视频文件。</p>
+        <label class="field media-upload-field">选择文件<input id="media-upload-file" type="file" accept="audio/*,video/*,.mp4,.webm,.mp3,.wav,.ogg,.m4a"></label>
+        <div class="media-upload-actions"><button id="media-upload" class="button secondary" type="button" disabled>上传并关联</button><button id="media-remove" class="button secondary" type="button" hidden>解除关联</button></div>
+        <p id="media-upload-status" class="help" role="status" aria-live="polite">上传后可开始标记时间。</p>
+        <div class="media-mark-row"><div><span class="media-small-label">当前位置</span><output id="media-current-time">00:00.000</output><span id="media-duration" class="media-small-label">总时长待载入</span></div><button id="media-mark-cue" class="button primary" type="button" disabled>暂停并标记当前时间</button></div>
+      </section>
+      <section class="panel media-cues-panel" aria-labelledby="media-cues-title">
+        <div class="section-heading"><h2 id="media-cues-title">2 · 时间点</h2><span id="media-cue-count" class="status-tag">0 个</span></div>
+        <p class="help">点击时间点编辑；“试听”会从该位置开始播放。</p>
+        <ol id="media-cue-list" class="media-cue-list"></ol>
+        <p id="media-cue-empty" class="media-cue-empty">还没有时间点。用上方播放器找到位置，再点击“暂停并标记当前时间”。</p>
+      </section>
+    </div>
+    <section class="panel media-selection-panel" aria-labelledby="media-selection-title">
+      <div class="section-heading"><h2 id="media-selection-title">3 · 为时间点选择台词</h2><span id="media-selected-count" class="status-tag">未选择时间点</span></div>
+      <p id="media-select-guide" class="media-select-guide">先创建或选中左侧的一个时间点。</p>
+      <fieldset id="media-cue-fields" disabled>
+        <div class="media-cue-fields-grid"><label class="field">时间（分:秒或秒数）<input id="media-cue-time" type="text" placeholder="例如 01:23.500 或 83.5" autocomplete="off"></label><label class="field">时间点名称（可选）<input id="media-cue-label" type="text" maxlength="200" placeholder="例如：第一次停顿"></label></div>
+        <p id="media-time-error" class="media-field-error" role="status" hidden></p>
+        <div class="media-select-toolbar"><label class="field">查找台词<input id="media-block-search" type="search" placeholder="按角色或正文查找"></label><button id="media-clear-selection" class="button secondary" type="button">清空本点选择</button></div>
+        <div id="media-block-choices" class="media-block-choices" aria-label="勾选此时间点对应的台词或图片"></div>
+      </fieldset>
+      <section class="media-selection-preview" aria-labelledby="media-preview-title"><h3 id="media-preview-title">所选内容预览</h3><div id="media-selected-preview"><p class="muted">选择时间点后，勾选对应的文字或图片段落。</p></div></section>
+    </section>
+  </div>
+  <div class="media-save-bar"><div><strong id="media-save-state" role="status" aria-live="polite">时间点已保存</strong><p id="media-save-help">勾选与编辑只保留在当前页面，点击保存后生效。</p></div><div class="media-save-actions"><button id="media-reset-cues" class="button secondary" type="button" disabled>放弃未保存修改</button><button id="media-save-cues" class="button primary" type="button" disabled>保存全部时间点</button></div></div>
+</div>
+{% endblock %}
+{% block dialogs %}
+<dialog id="media-confirm-dialog" class="dialog media-confirm-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="media-confirm-title">确认操作</h2></div><p id="media-confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel">取消</button><button id="media-confirm-yes" class="button primary" value="confirm">确认</button></div></form></dialog>
+{% endblock %}

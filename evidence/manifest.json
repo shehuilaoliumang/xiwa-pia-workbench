@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "archived_at_utc": "2026-09-17T10:01:53.7082644+00:00",
+  "purpose": "User-provided original PPT evidence for local PIA script selection and Douyin display project",
+  "hash_algorithm": "SHA-256",
+  "method": "Byte-preserving filesystem copy; compared source before and after copy and destination",
+  "files": [
+    {
+      "file_name": "喜娃微pia剧场.pptx",
+      "source_path": "C:\\Users\\Lu\\Downloads\\喜娃微pia剧场.pptx",
+      "project_path": "evidence/originals/喜娃微pia剧场.pptx",
+      "size_bytes": 64310849,
+      "sha256": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
+      "source_last_write_time_utc": "2026-09-17T09:36:23.1678431Z",
+      "copy_verified": true
+    },
+    {
+      "file_name": "直播间滚屏.pptx",
+      "source_path": "C:\\Users\\Lu\\Downloads\\直播间滚屏.pptx",
+      "project_path": "evidence/originals/直播间滚屏.pptx",
+      "size_bytes": 45332305,
+      "sha256": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9",
+      "source_last_write_time_utc": "2026-09-17T09:36:23.3219436Z",
+      "copy_verified": true
+    }
+  ]
+}

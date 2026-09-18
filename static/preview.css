@@ -1,0 +1,36 @@
+/* Preview tools are outside the scaled audience canvas, in viewport pixels. */
+.preview-toolbar{position:fixed;z-index:50;left:12px;right:12px;bottom:12px;max-width:840px;margin:0 auto;padding:12px;border:1px solid rgba(163,144,115,.45);border-radius:14px;background:rgba(255,253,248,.96);box-shadow:0 8px 30px rgba(39,30,17,.2);backdrop-filter:blur(12px);opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease;color:#51432f;font-family:"Microsoft YaHei",system-ui,sans-serif;line-height:1.5}
+.preview-mode:hover .preview-toolbar,.preview-mode:focus-within .preview-toolbar,.preview-toolbar:focus-within{opacity:1;transform:translateY(0);pointer-events:auto}
+.preview-toolbar-heading{display:flex;gap:10px;align-items:baseline;justify-content:space-between;padding:0 2px 9px;font-size:12px}
+.preview-toolbar-heading strong{font-size:12px;white-space:nowrap;font-weight:650;letter-spacing:.5px}
+.preview-toolbar-status{font-size:10px;color:#8d7a60;text-align:right;overflow-wrap:anywhere}
+.preview-toolbar-actions{display:flex;flex-wrap:wrap;gap:7px}
+.preview-tool{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 11px;border:1px solid #dfd4c1;border-radius:8px;background:#fff;color:#68543a;font:500 12px/1.5 "Microsoft YaHei",system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}
+.preview-tool:hover:not(:disabled){background:#f2e9da;border-color:#b89e78}
+.preview-tool:focus-visible{outline:2px solid #966d38;outline-offset:2px}
+.preview-tool:disabled{opacity:.42;cursor:not-allowed}
+.preview-tool-primary{margin-left:auto;background:#997342;border-color:#997342;color:#fff}
+.preview-tool-primary:hover:not(:disabled){background:#805d32;border-color:#805d32}
+.preview-tool[aria-pressed=true]{background:#e4edde;border-color:#95a987;color:#4b6641}
+.preview-mode #stage-content{padding-bottom:var(--preview-tool-space,0px)}
+.preview-mode .preview-open-script{cursor:pointer;transition:border-color .16s,box-shadow .16s,background .16s}
+.preview-mode .preview-selectable-block{cursor:pointer;border-radius:8px;transition:background .14s,box-shadow .14s}
+.preview-mode .preview-selected{background:rgba(195,162,102,.14);box-shadow:0 0 0 4px rgba(151,112,56,.48)}
+.preview-mode .preview-selected .block-text{position:relative}
+@media(hover:none),(pointer:coarse){.preview-toolbar{opacity:1;transform:none;pointer-events:auto}.preview-tool{min-height:40px}}
+@media(max-width:420px){.preview-toolbar{left:8px;right:8px;bottom:8px;padding:10px;border-radius:11px}.preview-toolbar-actions{gap:6px}.preview-tool{padding:7px 9px;font-size:11px}.preview-toolbar-heading{gap:8px}.preview-toolbar-status{font-size:9px}.preview-tool-primary{margin-left:0;flex:1}}
+@media(prefers-reduced-motion:reduce){.preview-toolbar,.preview-tool,.preview-mode .preview-open-script,.preview-mode .preview-selectable-block{transition:none!important}}
+
+.preview-mode.preview-tools-outside .preview-toolbar{display:none!important}
+.preview-mode.preview-tools-outside #stage-content{padding-bottom:0}
+
+.preview-mode.preview-realtime #stage-content{padding-bottom:0}
+.preview-mode .preview-open-category{cursor:pointer;transition:box-shadow .16s,border-color .16s}
+
+.preview-mode .stage-category-peek:focus-visible{outline:3px solid #9b783f;outline-offset:4px}
+
+/* Keep category summaries unobstructed; keyboard focus can reveal the tools. */
+.preview-mode.preview-category-peek-open:not(.preview-tools-outside) .preview-toolbar:not(:focus-within){opacity:0;pointer-events:none;transform:translateY(8px)}
+
+.preview-mode .body-pages #stage-content{padding-bottom:0!important}
+.preview-tool[hidden]{display:none!important}

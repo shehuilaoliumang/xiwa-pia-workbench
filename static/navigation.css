@@ -1,0 +1,17 @@
+/* Transition the content, keeping the navigation and browser history usable. */
+.workspace.page-leaving {
+  pointer-events: none;
+  animation: pia-page-leave 140ms ease-in both;
+}
+.workspace.page-entering { animation: pia-page-enter 240ms ease-out both; }
+@keyframes pia-page-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes pia-page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace.page-leaving, .workspace.page-entering { animation: none; }
+}
