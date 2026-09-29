@@ -132,6 +132,7 @@ async function openWorkspace(id) {
     document.getElementById('fVisible').checked = script.visible !== false;
     renderBlocks();
     renderMedia();
+    loadPlayer();
     document.getElementById('editorTitle').textContent = (script.title || '未命名') + '　·　编辑中';
     document.getElementById('editorPanel').hidden = false;
     document.getElementById('welcome').hidden = true;
