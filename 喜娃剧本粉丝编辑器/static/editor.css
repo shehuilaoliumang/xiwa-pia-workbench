@@ -84,10 +84,10 @@ body.hide-list aside { display: none; }
 
 section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #b7a68d #f3efe7; }
 
-/* 编辑页双栏 */
-#editorPanel { padding: 0; }
+/* 编辑页双栏：仅中部滚动，右侧配本固定不动 */
+#editorPanel { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
 .editor-head {
-  position: sticky; top: 0; z-index: 20;
+  flex: none; z-index: 20;
   display: flex; align-items: center; gap: 10px;
   padding: 14px 24px 12px; margin-bottom: 18px;
   background: rgba(247,246,242,.97);
@@ -95,9 +95,15 @@ section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; 
   border-bottom: 1px solid var(--line);
 }
 .editor-head h2 { font-size: 21px; color: #4a3b28; flex: 1; letter-spacing: .5px; }
-.editor-body { display: flex; gap: 18px; align-items: flex-start; padding: 0 24px 24px; }
-.editor-main { flex: 1; min-width: 0; }
-.media-side { width: 400px; min-width: 400px; position: sticky; top: 70px; }
+.editor-body { flex: 1; min-height: 0; display: flex; gap: 18px; padding: 0 24px 24px; }
+.editor-main {
+  flex: 1; min-width: 0; min-height: 0; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #b7a68d #f3efe7;
+}
+.media-side {
+  width: 400px; min-width: 400px; min-height: 0; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #b7a68d #f3efe7;
+}
 .welcome-body .media-side { position: sticky; top: 0; }
 
 .panel, .card {
@@ -279,8 +285,9 @@ section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; 
 
 /* 窄屏：右侧栏降级为普通块 */
 @media (max-width: 1180px) {
-  .editor-body { flex-direction: column; }
-  .media-side { position: static; width: 100%; min-width: 0; }
+  .editor-body { flex-direction: column; overflow-y: auto; }
+  .editor-main { overflow: visible; }
+  .media-side { position: static; width: 100%; min-width: 0; overflow: visible; }
   .welcome-body { flex-direction: column; }
   .welcome-body .media-side .panel { width: 100%; }
   .welcome-main { min-height: 0; }
