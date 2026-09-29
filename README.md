@@ -12,6 +12,8 @@
 
 本地运行的选本、内容管理与展示工作台，使用 Python + Flask + Jinja + SQLite，在一个服务中提供全部页面。默认只允许本机访问，日常使用无需联网或打开 Codex。
 
+**粉丝端工具（独立交付）：** 仓库另含 [喜娃剧本粉丝编辑器](喜娃剧本粉丝编辑器/README.md) —— 一个可单独发给粉丝使用的桌面 exe（Python Flask 本地服务 + Electron 桌面窗口，PyInstaller 单文件打包）。粉丝可用它从零新建剧本（粘贴正文 / TXT / DOCX 自动解析成台词段落），或导入主播工作台导出的单篇剧本 ZIP，编辑台词、插图与音视频配本后重新导出 ZIP 交还主播导入。与主播端完全隔离：只编辑剧本、不碰主播后台，资料只保存在本机；编辑能力（新建、正文、时间点校验、导出包格式）与工作台保持一致。
+
 本地音视频配本已完成并更新到日常工作台：Python 83 项、媒体编辑/播放/同步及相关浏览器回归通过。《爱情公寓》样片已关联，初次导入不预填时间点，后续标记以当前资料库为准；具体证据和正式页面核验见[实施与验收记录](docs/实施与验收记录.md)。
 
 此前调整：普通正文和音视频的每组台词均默认自动分页，保留滚动阅读；竖屏可放大，媒体模式左右键翻组内页、上下键换组；准备区支持全选分类。本次已更新到日常工作台，91 项 Python 测试及相关浏览器验收通过；证据见[实施与验收记录](docs/实施与验收记录.md)，既有资料与自定义方案保留。
@@ -78,6 +80,7 @@ runtime\python.exe -X utf8 tools/prepare_desktop_runtime.py
 - [实施与验收记录](docs/实施与验收记录.md)
 - [运行环境](docs/运行环境.md)
 - [维护与文件索引](docs/维护与文件索引.md)
+- [粉丝编辑器（独立桌面工具）](喜娃剧本粉丝编辑器/README.md)
 - [项目上下文](PROJECT_CONTEXT.md)
 - [项目计划书 v0.6](docs/项目计划书.md)
 - [开工审查（历史记录）](docs/开工审查.md)
@@ -88,6 +91,6 @@ runtime\python.exe -X utf8 tools/prepare_desktop_runtime.py
 
 ## 维护入口
 
-`app.py` 定义同源网页/API，`storage.py` 管理 SQLite 与状态规则，`templates/` 和 `static/` 提供页面。`data/seed.json` 仅用于首次建库；重建种子数据不会覆盖已编辑数据库。个人工作资料位于 `instance/`，原件位于 `evidence/`。
+`app.py` 定义同源网页/API，`storage.py` 管理 SQLite 与状态规则，`templates/` 和 `static/` 提供页面。`data/seed.json` 仅用于首次建库；重建种子数据不会覆盖已编辑数据库。个人工作资料位于 `instance/`，原件位于 `evidence/`。粉丝端独立工具位于 [喜娃剧本粉丝编辑器](喜娃剧本粉丝编辑器/README.md)（`fan_app.py` / `fan_entry.py`，构建与测试见其 README 的「开发者：构建与测试」）。
 
 Python检查命令：`runtime\python.exe -X utf8 -m unittest discover -s tests -p "test_*.py" -v`。浏览器验收脚本位于 `tests/browser_*.cjs`，只对独立测试资料目录运行，不可对日常资料库执行。当前验证结果和正式更新记录以[实施与验收记录](docs/实施与验收记录.md)为准。运行环境与个人资料不进入 Git，但保留在本地交付文件夹。
