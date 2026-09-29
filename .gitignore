@@ -17,3 +17,8 @@ vendor/
 ~$*
 
 /desktop/.runtime-*/
+
+# Build outputs of the packaging tools (single-file exe bundles).
+tools/exe-build/dist/
+tools/__pycache__/
+tools/exe-build/__pycache__/
