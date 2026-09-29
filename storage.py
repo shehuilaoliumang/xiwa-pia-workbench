@@ -586,11 +586,11 @@ def legacy_backgrounds(categories):
     return result
 
 
-def decode_background(content, filename=None, sanitize=False):
+def decode_background(content, filename=None, sanitize=False, label="背景图片"):
     """Decode the complete raster before persistence; ignore client MIME claims."""
-    from PIL import Image, UnidentifiedImageError
+    from PIL import Image, ImageOps, UnidentifiedImageError
     if not content or len(content) > BACKGROUND_MAX_BYTES:
-        raise DomainError("背景图片须为不超过 12 MB 的 PNG、JPEG 或 WebP。", 400, "invalid_image")
+        raise DomainError(f"{label}须为不超过 12 MB 的 PNG、JPEG 或 WebP。", 400, "invalid_image")
     formats = {"PNG": (".png", "image/png"), "JPEG": (".jpg", "image/jpeg"), "WEBP": (".webp", "image/webp")}
     try:
         with warnings.catch_warnings():
@@ -598,12 +598,12 @@ def decode_background(content, filename=None, sanitize=False):
             with Image.open(io.BytesIO(content)) as probe:
                 image_format = probe.format
                 if image_format not in formats:
-                    raise DomainError("只支持 PNG、JPEG 或 WebP 背景图片。", 400, "invalid_image")
+                    raise DomainError(f"只支持 PNG、JPEG 或 WebP {label}。", 400, "invalid_image")
                 width, height = probe.size
                 if width > 12000 or height > 12000 or width * height > BACKGROUND_MAX_PIXELS:
-                    raise DomainError("背景图片单边不能超过 12000 像素，总像素不能超过 2500 万。", 400, "invalid_image")
+                    raise DomainError(f"{label}单边不能超过 12000 像素，总像素不能超过 2500 万。", 400, "invalid_image")
                 if getattr(probe, "n_frames", 1) != 1:
-                    raise DomainError("背景素材请使用静态图片。", 400, "invalid_image")
+                    raise DomainError(f"{label}请使用静态图片。", 400, "invalid_image")
                 if filename is not None:
                     suffix = Path(filename).suffix.lower()
                     allowed = {".jpg", ".jpeg"} if image_format == "JPEG" else {formats[image_format][0]}
@@ -615,7 +615,11 @@ def decode_background(content, filename=None, sanitize=False):
                 if sanitize:
                     # Re-encoding strips unrelated trailing content and source metadata.
                     output = io.BytesIO()
-                    image = decoded.convert("RGB" if image_format == "JPEG" else "RGBA")
+                    # Honor phone/camera orientation before removing metadata.
+                    oriented = ImageOps.exif_transpose(decoded)
+                    image = oriented.convert("RGB" if image_format == "JPEG" else "RGBA")
+                    image.info.clear()
+                    width, height = image.size
                     image.save(output, format=image_format, **({"quality": 95} if image_format in {"JPEG", "WEBP"} else {}))
                     content = output.getvalue()
                     if len(content) > BACKGROUND_MAX_BYTES:
@@ -830,6 +834,35 @@ class Store:
     def backgrounds(self):
         with self.transaction() as connection:
             return self._background_entries(connection)
+
+    def upload_script_image(self, stream, filename):
+        """Store a draft image without changing documents, history or live state."""
+        try:
+            content, details, extension = decode_background(
+                stream.read(BACKGROUND_MAX_BYTES + 1), filename, sanitize=True, label="正文图片")
+            digest = hashlib.sha256(content).hexdigest()
+            path = "/media/" + digest + extension
+            with self.lock:
+                destination = self.resource_file(path)
+                if destination.exists():
+                    if destination.read_bytes() != content:
+                        raise DomainError("本地同名图片校验失败，请联系维护者。", 409, "resource_conflict")
+                else:
+                    # Publish only the completed file; the same store lock also
+                    # guards background deletion, script saves and backups.
+                    temporary = self.media_dir / (".image-upload-" + uuid.uuid4().hex)
+                    created = False
+                    try:
+                        self._write_new_resource(temporary, content)
+                        created = True
+                        temporary.rename(destination)
+                    finally:
+                        if created:
+                            temporary.unlink(missing_ok=True)
+            return {"path": path, "sha256": digest, **details}
+        except OSError as error:
+            raise DomainError("图片保存失败，原资料未改变；请检查存储空间后重试。", 503,
+                              "resource_write_failed") from error
 
     def upload_background(self, stream, filename, name):
         name = text(name or Path(filename or "").stem, "素材名称", 80, True, True)

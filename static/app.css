@@ -112,3 +112,31 @@
 
 /* Category range actions stay separate from the checkbox query region. */
 .control-category-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:12px 0 8px}.control-category-actions .button{min-height:38px;padding:7px 11px}.control-category-actions [role=status]{font-size:11px;color:#88755a;overflow-wrap:anywhere;min-width:0}
+
+/* Mixed text and image paragraphs in the script editor. */
+.body-editor-heading{flex-wrap:wrap;font-size:12px}
+.body-editor-row-actions,.body-editor-add-actions,.body-image-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.body-editor-row .body-editor-row-actions .icon-button{min-height:34px;padding:4px 9px;font-size:12px}
+.script-image-thumbnail{display:block;width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:zoom-in}
+.body-editor-row .script-image-thumbnail img{max-height:240px;margin:0 auto 8px}
+.script-image-thumbnail span{font-size:12px;color:var(--muted)}
+.body-image-actions{margin-top:10px}
+.body-insert-image{display:block;margin-top:12px;padding:7px 0;color:var(--accent);font-size:12px;text-align:left}
+.script-image-status{font-size:13px;color:#456044;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.script-image-status:empty{display:none}
+.script-image-status.error{color:var(--red)}
+.script-image-preview-dialog{width:min(1000px,calc(100vw - 32px))}
+.script-image-preview-dialog img{display:block;max-width:100%;height:auto;margin:auto}
+@media(max-width:520px){.body-editor-row-actions{width:100%;justify-content:flex-end;gap:5px}.body-editor-add-actions .button{flex:1 1 150px;min-height:42px}.body-editor-row .body-editor-row-actions .icon-button{min-height:40px}.body-insert-image{min-height:40px}.body-editor-row .script-image-thumbnail img{max-height:200px}}
+
+/* This compact strip reports the webpage window, never capture success. */
+.display-health{display:flex;align-items:flex-start;gap:10px;margin:-16px 0 22px;padding:10px 14px;border:1px solid #ddd8cd;border-radius:8px;background:#f3f1eb;color:#645c4f;font-size:12px;min-width:0}
+.display-health-dot{width:8px;height:8px;flex:none;margin-top:6px;border-radius:50%;background:#a29b8d}
+.display-health-copy{flex:1;min-width:0}.display-health-copy p{margin:0;line-height:1.65;overflow-wrap:anywhere}.display-health-copy #display-health-status{font-weight:600}.display-health-copy #display-health-detail{margin-top:2px;color:#807462;font-size:11px}
+.display-health[data-state=visible] .display-health-dot{background:#708865}.display-health[data-state=hidden],.display-health[data-state=multiple],.display-health[data-state=stale]{border-color:#d9c39f;background:#faf2e5}.display-health[data-state=hidden] .display-health-dot,.display-health[data-state=multiple] .display-health-dot,.display-health[data-state=stale] .display-health-dot{background:#b38340}
+.display-health-help{position:relative;flex:none;margin-left:auto;font-size:11px;color:#8a7352}.display-health-help summary{cursor:pointer;padding:2px 0;white-space:nowrap}.display-health-help>p{position:absolute;right:0;top:22px;z-index:8;width:min(440px,calc(100vw - 64px));padding:13px 15px;margin:0;line-height:1.85;background:#fffdf8;border:1px solid #ddd0bc;border-radius:8px;box-shadow:0 6px 22px #55402718;color:#746550;overflow-wrap:anywhere}
+.preview-focus .display-health{display:none}
+@media(max-width:520px){.display-health{padding:9px 10px;gap:8px}.display-health-copy #display-health-status{font-size:12px}.display-health-help>p{width:calc(100vw - 48px)}}
+
+/* Sync rates describe the local state channel, never the capture compositor. */
+.sync-rate-info{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:#786951}.sync-rate-info>p{margin:0;flex:1;min-width:180px;line-height:1.8}.sync-rate-info details{font-size:11px;max-width:100%;line-height:1.8}.sync-rate-info summary{cursor:pointer;color:#806846}.sync-rate-info details[open]{flex-basis:100%}.sync-rate-info details p{margin:6px 0;padding:9px 12px;border-radius:6px;background:#f8f3e9}.display-health[data-state=minimized]{border-color:#c6cfda;background:#f0f4f8}.display-health[data-state=minimized] .display-health-dot{background:#667f9b}

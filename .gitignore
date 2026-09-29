@@ -15,3 +15,5 @@ vendor/
 
 # Microsoft Office temporary owner files.
 ~$*
+
+/desktop/.runtime-*/

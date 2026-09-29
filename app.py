@@ -12,8 +12,9 @@ from urllib.parse import urlsplit
 from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import HTTPException
 
-from storage import DomainError, Store, MEDIA_FORMATS
+from storage import DomainError, Store, MEDIA_FORMATS, BACKGROUND_MAX_BYTES
 from import_parser import parse_text, parse_upload
+from script_package import export_package, preview_package, import_package, PACKAGE_MAX_BYTES
 
 
 def create_app(test_config=None):
@@ -79,6 +80,10 @@ def create_app(test_config=None):
 
     @application.errorhandler(HTTPException)
     def http_error(error):
+        if error.code == 413 and request.path == "/api/script-images":
+            return jsonify(error="正文图片须为不超过 12 MB 的 PNG、JPEG 或 WebP。", code="invalid_image"), 413
+        if error.code == 413 and request.path.startswith("/api/script-packages/"):
+            return jsonify(error="单篇剧本 ZIP 须在 512 MB 内（插图单张 12 MB；音视频 200 MB）。", code="script_package_too_large"), 413
         messages = {404: "页面或资源不存在。", 413: "文件超过上传限制（音视频 200 MB；备份解压总量 512 MB）。", 400: "请求格式无效。", 405: "不支持此请求方法。"}
         return jsonify(error=messages.get(error.code, "请求无法完成。"), code="http_error"), error.code
 
@@ -178,6 +183,14 @@ def create_app(test_config=None):
     def reorder_categories():
         return jsonify(categories=store.reorder_categories(body().get("ids")))
 
+    @application.post("/api/script-images")
+    def upload_script_image():
+        request.max_content_length = BACKGROUND_MAX_BYTES + 1024 * 1024
+        uploaded = request.files.get("file")
+        if not uploaded or not uploaded.filename:
+            raise DomainError("请选择要添加到正文的图片。", 400, "invalid_image")
+        return jsonify(store.upload_script_image(uploaded.stream, uploaded.filename)), 201
+
     @application.post("/api/scripts")
     def create_script():
         return jsonify(store.save_script(body())), 201
@@ -185,6 +198,31 @@ def create_app(test_config=None):
     @application.patch("/api/scripts/<item_id>")
     def update_script(item_id):
         return jsonify(store.save_script(body(), item_id))
+
+    @application.get("/api/scripts/<item_id>/export")
+    def export_script_package(item_id):
+        stream, filename = export_package(store, item_id)
+        response = send_file(stream, mimetype="application/zip", as_attachment=True, download_name=filename)
+        response.call_on_close(stream.close)
+        return response
+
+    def script_package_upload():
+        request.max_content_length = PACKAGE_MAX_BYTES + 1024 * 1024
+        uploaded = request.files.get("file")
+        if not uploaded or not uploaded.filename or Path(uploaded.filename).suffix.lower() != ".zip":
+            raise DomainError("请选择由工作台导出的单篇剧本 ZIP 文件。", 400, "invalid_script_package")
+        return uploaded
+
+    @application.post("/api/script-packages/preview")
+    def preview_script_package():
+        uploaded = script_package_upload()
+        return jsonify(preview_package(store, uploaded.stream))
+
+    @application.post("/api/script-packages/import")
+    def import_script_package():
+        uploaded = script_package_upload()
+        return jsonify(import_package(store, uploaded.stream, request.form.get("category_id"),
+                                      request.form.get("expected_sha256"))), 201
 
     @application.post("/api/scripts/<item_id>/media")
     def upload_script_media(item_id):

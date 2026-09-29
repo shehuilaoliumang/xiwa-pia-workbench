@@ -1,0 +1,10 @@
+{
+  "name": "xiwa-pia-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local desktop host for the XiWa PIA workbench; uses the separately supplied Electron runtime.",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  }
+}

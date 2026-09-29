@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import subprocess
 import threading
 import time
 import urllib.error
@@ -16,7 +17,33 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parent
 
 
-def acquire_instance(data_dir, no_browser):
+def open_interface(url, data_dir, browser=False):
+    """Prefer the bundled desktop host; preserve a browser-only fallback."""
+    executable = ROOT / "desktop/runtime/electron.exe"
+    entry = ROOT / "desktop/main.cjs"
+    if not browser and executable.is_file() and entry.is_file():
+        environment = os.environ.copy()
+        # An Electron-based parent (for example an editor) may export this.
+        # The workbench must run the desktop host, not Electron's Node CLI.
+        environment.pop("ELECTRON_RUN_AS_NODE", None)
+        environment.pop("NODE_OPTIONS", None)
+        try:
+            with (data_dir / "desktop.log").open("ab") as log:
+                process = subprocess.Popen([str(executable), str(entry), "--url=" + url,
+                    "--data-dir=" + str(data_dir)], cwd=ROOT, env=environment,
+                    stdout=log, stderr=subprocess.STDOUT,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            print("正在启动桌面工作台；请在其中打开独立展示窗口。", flush=True)
+            return process
+        except OSError as error:
+            print(f"桌面组件无法启动（{error}），正在打开浏览器版。", flush=True)
+    elif not browser:
+        print("未附带桌面组件，使用浏览器版。独立展示器准备方法见 docs/独立展示器.md。", flush=True)
+    webbrowser.open(url)
+    return None
+
+
+def acquire_instance(data_dir, no_browser, browser=False):
     """Hold a kernel lock before create_app can reset playback on startup."""
     import msvcrt
     lock = (data_dir / "server.lock").open("a+b")
@@ -40,7 +67,7 @@ def acquire_instance(data_dir, no_browser):
             if info.get("app") == "xiwa-workbench" and Path(info.get("data_dir", "")).resolve() == data_dir:
                 print(f"工作台已在运行：{record['url']}", flush=True)
                 if not no_browser:
-                    webbrowser.open(record["url"])
+                    open_interface(record["url"], data_dir, browser)
                 return None
         except (OSError, ValueError, KeyError):
             pass
@@ -52,7 +79,8 @@ def acquire_instance(data_dir, no_browser):
 def main():
     parser = argparse.ArgumentParser(description="喜娃微 PIA 本地工作台")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--no-browser", action="store_true", help="只运行本地服务，不打开界面")
+    parser.add_argument("--browser", action="store_true", help="使用原浏览器界面，不启动桌面组件")
     parser.add_argument("--data-dir", type=Path, help="独立资料目录，供迁移与测试使用")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65525:
@@ -64,7 +92,7 @@ def main():
 
     data_dir = (args.data_dir or ROOT / "instance").resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
-    instance_lock = acquire_instance(data_dir, args.no_browser)
+    instance_lock = acquire_instance(data_dir, args.no_browser, args.browser)
     if instance_lock is None:
         return
     config = {"DATABASE": str(data_dir / "workbench.sqlite3"), "INSTANCE_PATH": str(data_dir)}
@@ -98,7 +126,7 @@ def main():
     print(f"喜娃微 PIA 工作台已启动：{url}", flush=True)
     print("仅本机可访问。关闭时按 Ctrl+C，或双击“停止工作台.cmd”。", flush=True)
     if not args.no_browser:
-        webbrowser.open(url)
+        open_interface(url, data_dir, args.browser)
     try:
         while not stop_event.wait(0.5):
             if not worker.is_alive():

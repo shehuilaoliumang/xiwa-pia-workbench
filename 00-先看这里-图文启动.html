@@ -9,13 +9,13 @@
 <main>
 <p class="meta">喜娃微 PIA 选本与直播工作台 · 零基础启动说明</p>
 <h1>先解压，再双击。<br>3 步打开你的工作台。</h1>
-<p class="intro">程序已自带运行环境。<strong>不用安装 Python，不用打开 Codex，日常使用不用联网。</strong>适用 Windows 10 / 11 的 64 位电脑，使用电脑已有的网页浏览器。</p>
+<p class="intro">程序已自带运行环境。<strong>不用安装 Python、Node.js 或 OBS，不用打开 Codex，日常使用不用联网。</strong>适用 Windows 10 / 11 的 64 位电脑，完整交付包已附带桌面展示组件。</p>
 <section class="step">
 <h2><span class="number">1</span>先把压缩包解压出来</h2>
 <ol>
 <li>找到收到的 ZIP 压缩包，<strong>右键 → 全部提取 / 全部解压缩</strong>。</li>
 <li>解压到桌面、“文档”或 D 盘的普通文件夹，等待完成。</li>
-<li>打开解压后的文件夹，直到看到 <span class="filename">启动工作台.cmd</span>，同一层还有 <code>runtime</code>、<code>instance</code>、<code>docs</code> 等文件夹。</li>
+<li>打开解压后的文件夹，直到看到 <span class="filename">启动工作台.cmd</span>，同一层还有 <code>desktop</code>、<code>runtime</code>、<code>instance</code>、<code>docs</code> 等文件夹。</li>
 </ol>
 <p class="note"><strong>不要在压缩包里面直接启动。</strong>保留整个文件夹，不要只把启动文件拖到桌面。以后继续用这次解压出的文件夹，不要反复解压旧包覆盖新资料。</p>
 <p>有些电脑会隐藏“.cmd”，只显示“启动工作台”，这是正常的。</p>
@@ -23,7 +23,8 @@
 <section class="step">
 <h2><span class="number">2</span>双击“启动工作台”</h2>
 <p>在刚才的文件夹里双击 <span class="filename">启动工作台.cmd</span>。</p>
-<p>会出现一个黑色文字窗口，然后浏览器通常会自动打开。<strong>黑色窗口请一直保留，可以最小化。</strong></p>
+<p>会出现一个黑色文字窗口，然后桌面工作台会自动打开；缺少桌面组件时使用浏览器版。<strong>黑色窗口请一直保留，可以最小化。</strong></p>
+<p>需要原来的界面时，双击“浏览器模式.cmd”。播控与展示请在同一桌面应用中操作，或都在同一浏览器中操作，不要混用。桌面版从顶部“选本工作台”进入目录。</p>
 <p>浏览器没有自动打开时，在浏览器最上方的地址栏输入：</p>
 <p><code>http://127.0.0.1:8765/</code></p>
 <p>如果黑色窗口显示了不同的网址，使用它显示的完整地址。网址只在运行工作台的这台电脑上使用，不要输进网页搜索框。</p>
@@ -31,28 +32,31 @@
 <section class="step">
 <h2><span class="number">3</span>选本 → 预览 → 应用</h2>
 <ol>
-<li>在首页点分类，再点剧本名，进入阅读页。</li>
+<li>可直接在播控台准备内容，也可点顶部“选本工作台”，按分类选择剧本。</li>
 <li>点 <strong>“送至播控预览”</strong>。</li>
 <li>把“操作反馈”选为 <strong>“逐步应用”</strong>，先检查内容、横竖屏和字号。</li>
 <li>点 <strong>“打开独立展示窗口”</strong>。这是给观众看的窗口。</li>
 <li>回播控台点 <strong>“应用到展示”</strong>，观众窗口才更新。</li>
 </ol>
 <figure><img src="docs/guide-assets/03-reader.png" alt="剧本阅读页：编号2指向送至播控预览按钮"><figcaption>阅读页中，编号 ② 是“送至播控预览”。</figcaption></figure>
-<figure><img class="preview" src="docs/guide-assets/05-preview.png" alt="交互预览：编号2为操作反馈，编号3为应用到展示"><figcaption>预览中，编号 ② 选“逐步应用”，编号 ③ 将内容应用给观众。</figcaption></figure>
+<figure><img class="preview" src="docs/guide-assets/05-preview.png" alt="交互预览：编号2为操作反馈，编号3为应用到展示"><figcaption>预览中，编号 ② 选“逐步应用”，编号 ③ 将内容应用给观众。图示为基础操作，新版另有同步档位选项。</figcaption></figure>
+<p>桌面版在抖音直播伴侣窗口采集中选择“喜娃微PIA · 独立展示”。当前用户初步反馈最小化同步似乎已恢复。换电脑后，开播前先在伴侣预览试一次翻页、滚动和最小化；如果停帧，恢复展示窗口并核对采集目标。</p>
 <p class="note">初次使用先保留“逐步应用”。切到“实时同步”时，当前已就绪预览就会同步出去，后面的操作也会同步。工作台负责展示内容，不会自动替你开启抖音直播。</p>
 </section>
 <section class="step">
 <h2>用完怎样关闭？</h2>
-<p>回到文件夹，双击 <span class="filename">停止工作台.cmd</span>。看到停止完成后，按提示按任意键关闭窗口，再关闭网页。</p>
-<p>也可以在最初的黑色窗口里按 <strong>Ctrl+C</strong>。只关闭浏览器网页，不会停止工作台。</p>
+<p>回到文件夹，双击 <span class="filename">停止工作台.cmd</span>。看到停止完成后，按提示按任意键关闭黑色窗口；桌面窗口将在数秒内自动退出。浏览器模式的网页可手动关闭。</p>
+<p>也可以在最初的黑色窗口里按 <strong>Ctrl+C</strong>。只关闭浏览器网页或桌面窗口，不会停止后台服务。</p>
 </section>
+<section class="step"><h2>同步档位先用默认 60</h2><p>交互预览提供 30、60、90、120 Hz。旁边显示实际发送／接收次数；这些数字不是抖音直播帧率。较高档位受电脑和显示器影响，音视频时间校准另有独立节奏。</p></section>
 <h2>遇到这些情况，按这里检查</h2>
 <details><summary>网址打不开</summary><p>确认已完整解压并双击启动，黑色窗口仍在运行。使用黑色窗口里显示的完整地址。程序停止后网址打不开是正常现象，下次重新启动即可。</p></details>
 <details><summary>黑色窗口闪一下就消失</summary><p>如果网页已经打开且能用，可能是重复启动，程序复用了原来的工作台。如果网页也打不开，检查是否在压缩包里直接启动、runtime 文件夹是否完整。出现错误文字时，拍下完整提示交给提供程序的人，保留现有资料。</p></details>
 <details><summary>预览改了，观众还没看到</summary><p>逐步应用模式下，需要点击“应用到展示”。这让你能先检查，再把内容发给观众。</p></details>
 <details><summary>视频打不开或没有声音</summary><p>确认保留完整项目文件夹。浏览器若提示尚未允许播放，在观众窗口点击播放，必要时点击“开声音”。预览默认静音；实时同步时声音由独立展示窗口播放。媒体仍无法打开时先用纯正文，保留错误提示交给提供程序的人。</p></details>
+<details><summary>已经有旧版资料 怎样换新版</summary><p>先在旧版“内容管理 → 备份与恢复”导出完整备份。新版解压到另一个文件夹，先停止旧版，再启动新版并恢复备份。不要直接覆盖旧版的 instance 文件夹。新包带的是打包时资料快照，不会自动带上你后来在旧版的编辑。</p></details>
 <details><summary>换电脑或想保留一份资料</summary><p>大量修改前，到“内容管理 → 备份与恢复”下载完整备份。换电脑或移动项目文件夹前先停止工作台，再复制整个文件夹。不要用旧压缩包覆盖正在使用的资料。</p></details>
-<section class="step"><h2>需要更完整的操作图？</h2><p><a href="docs/喜娃微PIA工作台_图文使用说明书.docx">打开 19 页图文使用说明书（Word）</a></p><p>也可以进入 <code>docs</code> 文件夹，找到“喜娃微PIA工作台_图文使用说明书.docx”。这份网页启动说明不需要 Word，直接用浏览器阅读即可。</p><p><a href="00-先看这里-3步启动.txt">查看纯文字启动说明</a></p></section>
+<section class="step"><h2>需要更完整的操作图？</h2><p><a href="docs/喜娃微PIA工作台_图文使用说明书.docx">打开新版图文使用说明书（Word）</a></p><p>也可以进入 <code>docs</code> 文件夹，找到“喜娃微PIA工作台_图文使用说明书.docx”。这份网页启动说明不需要 Word，直接用浏览器阅读即可。</p><p><a href="00-先看这里-3步启动.txt">查看纯文字启动说明</a></p></section>
 <footer>本说明随项目离线提供。工作资料保存在本机项目文件夹，后续一直使用同一个文件夹即可。</footer>
 </main>
 </html>

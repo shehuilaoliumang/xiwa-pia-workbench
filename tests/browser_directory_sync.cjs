@@ -54,12 +54,14 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
  await page.locator('[data-orientation=landscape]').click();await ready();await page.locator('.preview-panel').screenshot({path:path.join(root,'.qa','browser','category-preview-landscape.png')});
  await frame.locator(`[data-preview-category="${category.id}"]`).click();await frame.locator('.stage-list').waitFor();await ready();
  await frame.locator(`[data-preview-script="${fixture[0].id}"]`).click();await frame.locator('.stage-body').waitFor();await ready();
+ await page.locator('#layout-body-mode').selectOption('scroll');await ready();
  await page.locator('#preview-feedback-mode').selectOption('realtime');await until(async()=> (await state()).snapshot?.scripts[0]?.id===fixture[0].id,'initial realtime apply');await ready();
  const popup=context.waitForEvent('page');await page.locator('#open-display').click();const display=await popup;await display.waitForLoadState();await display.locator('.stage-body').waitFor();
  await page.bringToFront();await delay(900);
  assert.equal(await display.locator('.preview-toolbar').count(),0);
  const size=await ext('next').evaluate(e=>({font:parseFloat(getComputedStyle(e).fontSize),height:e.getBoundingClientRect().height}));assert(size.font>=15&&size.height>=44,'outside controls need readable type and touch size');
  page.on('request',r=>{if(r.method()==='POST')writes.push(r.url())});
+ await page.locator('.live-details > summary').click();
  await page.locator('#live-speed').fill('100');await page.locator('#live-speed').dispatchEvent('change');
  await ext('top').click();await ready();await ext('play').click();await until(async()=> (await state()).playing,'play');
  await frame.waitForFunction(()=>document.querySelector('#stage-scroll').scrollTop>70);

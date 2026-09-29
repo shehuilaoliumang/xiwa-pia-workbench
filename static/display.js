@@ -27,9 +27,11 @@
   let reflowAnchor = null;
   let manualHoldUntil = 0;
   let lastFrame = null;
+  let lastAudiencePaint = performance.now();
   let fractionalDistance = 0;
   let connected = false;
   let connectionLost = false;
+  let lastStateReceivedAt = -Infinity;
   let connecting = false;
   let polling = false;
   let checkpointBusy = false;
@@ -70,7 +72,11 @@
   let previewToolsKey = '';
   const previewPositions = new Map();
   let previewLiveBinding = null;
-  let previewMotionAt = -Infinity;
+  let previewSyncRate = 60;
+  const motionScheduler = createMotionScheduler();
+  const motionSentTimes = [], motionReceivedTimes = [];
+  let motionActivityKey = '', motionActivityAt = -Infinity;
+  let lastReceivedMotionWallTime = 0;
   let previewMotionSeq = Date.now() * 1000;
   let liveMotion = null;
   let previewVisibilityHold = false;
@@ -89,7 +95,82 @@
 
   const text = value => value == null ? '' : String(value);
   const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Number(value))) : fallback;
-  const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  const pendingLayoutFrames = new Set();
+  // Layout measurements must finish even when a background window gets no paint frames.
+  const nextFrame = () => new Promise(resolve => {
+    if (document.hidden) { resolve(); return; }
+    let frame = 0, timer = 0, done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      pendingLayoutFrames.delete(finish);
+      resolve();
+    };
+    pendingLayoutFrames.add(finish);
+    frame = requestAnimationFrame(finish);
+    timer = setTimeout(finish, 100);
+  });
+  // BEGIN MOTION SCHEDULER: kept pure so simulated refresh rates can be verified.
+  function createMotionScheduler() {
+    let nextAt = null, previousAt = null, currentRate = null;
+    return {
+      reset() { nextAt = null; previousAt = null; currentRate = null; },
+      due(timestamp, rate, force = false) {
+        const period = 1000 / rate;
+        if (!Number.isFinite(timestamp) || !Number.isFinite(period) || period <= 0) return false;
+        if (rate !== currentRate || previousAt == null || timestamp < previousAt || timestamp - previousAt > 250) {
+          nextAt = timestamp; currentRate = rate;
+        }
+        previousAt = timestamp;
+        if (!force && timestamp + 0.05 < nextAt) return false;
+        // Keep phase at 90 Hz on a 120 Hz display; skip missed slots, never burst.
+        nextAt = force ? timestamp + period : nextAt + (Math.floor(Math.max(0, timestamp + 0.05 - nextAt) / period) + 1) * period;
+        return true;
+      },
+    };
+  }
+  // END MOTION SCHEDULER
+  function motionRate(samples, now = performance.now()) {
+    while (samples.length && samples[0] <= now - 1000) samples.shift();
+    return samples.length;
+  }
+  function recordMotion(samples) { const now = performance.now(); motionRate(samples, now); samples.push(now); }
+  function previewSyncStatus() {
+    if (previewFeedback !== 'realtime') return 'confirm';
+    if (!liveChannel) return 'unavailable';
+    if (document.visibilityState === 'hidden' || previewVisibilityHold) return 'background';
+    if (positioning) return 'updating';
+    if (!previewLiveBinding || previewLiveBinding.snapshot_id !== snapshotId || previewAcknowledgedId !== snapshotId) return 'unbound';
+    return (mediaPlayer ? mediaPlayer.playing : previewPlaying) || performance.now() - motionActivityAt < 1200 ? 'active' : 'idle';
+  }
+  function reportPreviewSync() {
+    if (!preview) return;
+    window.parent.postMessage({type: 'pia-preview-sync-metrics', snapshot_id: snapshotId,
+      live_snapshot_id: previewLiveBinding?.live_snapshot_id ?? null, revision: previewLiveBinding?.revision ?? null,
+      state: previewSyncStatus(), target_hz: previewSyncRate, media: Boolean(mediaPlayer),
+      tx_hz: motionRate(motionSentTimes), sent_at: Date.now()}, location.origin);
+  }
+  const displayClient = Math.random().toString(36).slice(2);
+  function reportDisplayHealth(visibility = document.visibilityState) {
+    if (preview || !liveChannel) return;
+    liveChannel.postMessage({type: 'display-health', client_id: displayClient, visibility,
+      connected: connected && !connectionLost, positioning,
+      sync: {rx_hz: motionRate(motionReceivedTimes), snapshot_id: state?.snapshot?.id ?? null, revision: state?.revision ?? null, last_motion_at: lastReceivedMotionWallTime}, sent_at: Date.now()});
+  }
+
+  async function waitForTransition(transition) {
+    if (!transition) return;
+    let timer;
+    await Promise.race([transition.finished.catch(() => {}),
+      new Promise(resolve => { timer = setTimeout(resolve, 350); })]);
+    clearTimeout(timer);
+    if (contentTransition === transition) {
+      transition.cancel();
+      contentTransition = null;
+    }
+  }
 
   function element(tag, className, value) {
     const node = document.createElement(tag);
@@ -644,7 +725,7 @@
         if (isPagesMode() && pageElements.length) refreshPagination();
         const pending = reflowAnchor;
         if (!pending || pending.version !== positionVersion || positioning) return;
-        requestAnimationFrame(() => {
+        nextFrame().then(() => {
           if (reflowAnchor === pending && pending.version === positionVersion) placeAnchor(pending.anchor);
         });
       });
@@ -734,7 +815,7 @@
     }
     fitStage();
     updateFooter();
-    if (oldView && snapshot?.mode && oldView !== directoryViewKey(snapshot) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof content.animate === 'function') {
+    if (!document.hidden && oldView && snapshot?.mode && oldView !== directoryViewKey(snapshot) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof content.animate === 'function') {
       const enteringScript = snapshot.mode === 'script';
       const animation = content.animate([
         {opacity: 0, transform: `translateY(${enteringScript ? 22 : -16}px)`},
@@ -779,21 +860,23 @@
     fractionalDistance = 0;
     lastFrame = null;
     const transition = contentTransition;
-    await Promise.all([waitForLayout(), transition ? transition.finished.catch(() => {}) : Promise.resolve()]);
+    await Promise.all([waitForLayout(), waitForTransition(transition)]);
     if (version !== positionVersion) return;
     await ensurePagination();
     // A new state revision can arrive one channel task before its exact motion.
     // Allow that frame to arrive before falling back to a semantic paragraph.
     if (!preview && preferMotion) {
       const deadline = performance.now() + 160;
-      while (version === positionVersion && !recentLiveMotion() && performance.now() < deadline) await nextFrame();
+      while (!document.hidden && version === positionVersion && !recentLiveMotion() && performance.now() < deadline) await nextFrame();
     }
     if (version !== positionVersion) return;
     positioning = false;
     if (!preview && recentLiveMotion()) applyLiveMotion();
     else if (isPagesMode() && pageElements.length && Number.isInteger(requestedPage) && requestedPage >= 0) setCurrentPage(requestedPage);
     else if(!mediaPlayer)placeAnchor(anchor);
+    lastFrame = performance.now();
     locallyAtEnd = false;
+    reportDisplayHealth();
     if (preview) updatePreviewToolbar();
   }
 
@@ -840,6 +923,11 @@
     const wasFollowingMotion = recentLiveMotion();
     const changedSnapshot = (next.snapshot?.id || null) !== snapshotId;
     const changedSeek = next.seek_version !== seekVersion;
+    // A new command starts a new timing interval; never charge paused time to it.
+    const receivedAt = performance.now();
+    if (changedSnapshot || changedSeek || previous?.revision !== next.revision ||
+      previous?.playing !== next.playing || previous?.speed !== next.speed || receivedAt - lastStateReceivedAt > 5000) lastFrame = receivedAt;
+    lastStateReceivedAt = receivedAt;
     state = next;
     const motionKey = `${next.snapshot?.id || ''}:${next.revision}`;
     if (liveMotion && (liveMotion.snapshot_id !== next.snapshot?.id || liveMotion.revision !== next.revision)) liveMotion = null;
@@ -936,13 +1024,21 @@
 
   function animate(timestamp) {
     requestAnimationFrame(animate);
+    lastAudiencePaint = performance.now();
+    if (!document.hidden) advanceAudience(timestamp);
+  }
+
+  function advanceAudience(timestamp, backgroundTick = false) {
+    // After a browser freeze, refresh commands before extrapolating an old play state.
+    if (backgroundTick && timestamp - lastStateReceivedAt > 5000) { lastFrame = null; return; }
     if(mediaPlayer)mediaPlayer.setFollower?.(Boolean(recentLiveMotion()));
     if (!recentLiveMotion()) { if (categoryPeekId) setCategoryPeek(null); if (hoverAnchor) setHoverAnchor(null); }
     if (preview || isMediaMode() || isPagesMode() || !connected || !state?.playing || !state.snapshot || positioning || connectionLost || locallyAtEnd || recentLiveMotion() || timestamp < manualHoldUntil) {
       lastFrame = null;
       return;
     }
-    const elapsed = lastFrame == null ? 0 : Math.min((timestamp - lastFrame) / 1000, 0.12);
+    const interval = lastFrame == null ? 0 : Math.max(0, (timestamp - lastFrame) / 1000);
+    const elapsed = backgroundTick ? interval : Math.min(interval, 0.12);
     lastFrame = timestamp;
     const maxScroll = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     if (scroll.scrollTop >= maxScroll - 1) {
@@ -1243,7 +1339,9 @@
   function setPreviewOptions(options) {
     if (options.placement === 'inside' || options.placement === 'outside') previewPlacement = options.placement;
     if (options.feedback === 'confirm' || options.feedback === 'realtime') previewFeedback = options.feedback;
+    if ([30, 60, 90, 120].includes(options.sync_rate) && options.sync_rate !== previewSyncRate) { previewSyncRate = options.sync_rate; motionScheduler.reset(); motionSentTimes.length = 0; }
     if (previewFeedback !== 'realtime') { previewLiveBinding = null; cancelPreviewResume(); }
+    reportPreviewSync();
     document.body.classList.toggle('preview-realtime', previewFeedback === 'realtime');
     previewToolbar.hidden = previewPlacement === 'outside';
     document.body.classList.toggle('preview-tools-outside', previewPlacement === 'outside');
@@ -1288,26 +1386,27 @@
 
   function animatePreview(timestamp) {
     requestAnimationFrame(animatePreview);
-    publishPreviewMotion(timestamp);
     if (!previewPlaying || isMediaMode() || isPagesMode() || !renderedSnapshot || positioning || previewVisibilityHold || document.visibilityState === 'hidden' || timestamp < manualHoldUntil) {
       previewLastFrame = null;
-      return;
+    } else {
+      const elapsed = previewLastFrame == null ? 0 : Math.min((timestamp - previewLastFrame) / 1000, 0.12);
+      previewLastFrame = timestamp;
+      const maxScroll = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      if (scroll.scrollTop >= maxScroll - 1) setPreviewPlaying(false, 'interaction');
+      else {
+        previewFractionalDistance += clamp(previewLiveBinding?.speed ?? renderedSnapshot.layout?.speed, 5, 180, defaults.speed) * elapsed;
+        if (previewFractionalDistance > 0) {
+          reflowAnchor = null;
+          clearPreviewSelection();
+          const before = scroll.scrollTop;
+          scroll.scrollTop = Math.min(maxScroll, before + previewFractionalDistance);
+          // Retain the part the browser could not represent at this zoom level.
+          previewFractionalDistance -= scroll.scrollTop - before;
+        }
+      }
     }
-    const elapsed = previewLastFrame == null ? 0 : Math.min((timestamp - previewLastFrame) / 1000, 0.12);
-    previewLastFrame = timestamp;
-    const maxScroll = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    if (scroll.scrollTop >= maxScroll - 1) {
-      setPreviewPlaying(false, 'interaction');
-      return;
-    }
-    previewFractionalDistance += clamp(previewLiveBinding?.speed ?? renderedSnapshot.layout?.speed, 5, 180, defaults.speed) * elapsed;
-    const distance = Math.floor(previewFractionalDistance);
-    if (distance > 0) {
-      reflowAnchor = null;
-      clearPreviewSelection();
-      scroll.scrollTop = Math.min(maxScroll, scroll.scrollTop + distance);
-      previewFractionalDistance -= distance;
-    }
+    // Send this frame's resulting position, rather than its previous position.
+    publishPreviewMotion(timestamp);
   }
 
   async function renderPreview(snapshot, requestedAnchor, requestedPage) {
@@ -1394,6 +1493,8 @@
     if (state && message.revision === state.revision) {
       if (message.snapshot_id !== state.snapshot?.id || (liveMotion && message.seq <= liveMotion.seq) || !validCategoryPeek(message.category_peek, state.snapshot) || !validHoverAnchor(message.hover_anchor, state.snapshot)) return;
       liveMotion = motion;
+      recordMotion(motionReceivedTimes);
+      lastReceivedMotionWallTime = Date.now();
       applyLiveMotion();
       return;
     }
@@ -1401,6 +1502,8 @@
     const previous = futureMotions.get(key);
     if (previous && message.seq <= previous.seq) return;
     futureMotions.set(key, motion);
+    recordMotion(motionReceivedTimes);
+    lastReceivedMotionWallTime = Date.now();
     for (const [entryKey, value] of futureMotions) {
       if (Date.now() - value.sent_at > 500) futureMotions.delete(entryKey);
     }
@@ -1411,9 +1514,13 @@
     const binding = previewLiveBinding;
     if (preview && previewHiddenState && document.visibilityState !== 'hidden' && !previewVisibilityHold) requestAudiencePosition();
     if (!preview || !liveChannel || previewFeedback !== 'realtime' || !binding || positioning || previewVisibilityHold || document.visibilityState === 'hidden' ||
-      binding.snapshot_id !== snapshotId || previewAcknowledgedId !== snapshotId ||
-      (!force && timestamp - previewMotionAt < (mediaPlayer?100:32))) return;
-    previewMotionAt = timestamp;
+      binding.snapshot_id !== snapshotId || previewAcknowledgedId !== snapshotId) { motionScheduler.reset(); return; }
+    // Video/audio clocks run locally; keep their correction channel independent.
+    if (!motionScheduler.due(timestamp, mediaPlayer ? 10 : previewSyncRate, force)) return;
+    const activityKey = JSON.stringify([scroll.scrollTop, categoryPeekId, hoverAnchor, pageIndex,
+      mediaPlayer ? mediaPlayer.getState().caption_index : null]);
+    if (activityKey !== motionActivityKey) { if (motionActivityKey) motionActivityAt = timestamp; motionActivityKey = activityKey; }
+    recordMotion(motionSentTimes);
     // Timestamp-based, strictly increasing sequence numbers remain ordered
     // across rebindings and normal iframe reloads without a shared counter.
     previewMotionSeq = Math.max(previewMotionSeq + 1, Date.now() * 1000);
@@ -1434,7 +1541,7 @@
       revision: message.revision, seek_version:message.seek_version, speed: clamp(message.speed, 5, 180, renderedSnapshot.layout?.speed || defaults.speed)};
     if(mediaPlayer){mediaPlayer.setMuted(true,{locked:true});if(mediaNeedsSeek&&validMediaState(message.media_state))mediaPlayer.setState(message.media_state,Boolean(message.playing),{remote:true});else mediaPlayer.setPlayback(Boolean(message.playing),{remote:true});previewPlaying=mediaPlayer.playing;}
     if (typeof message.playing === 'boolean' && message.playing !== previewPlaying) setPreviewPlaying(message.playing);
-    previewMotionAt = -Infinity;
+    motionScheduler.reset();
     if (document.visibilityState === 'hidden') rememberHiddenPosition();
     else if (previewVisibilityHold && (!previewResumePending || previewResumePending.revision !== message.revision || previewResumePending.snapshot_id !== message.live_snapshot_id)) requestAudiencePosition();
     publishPreviewMotion(performance.now(), true);
@@ -1498,7 +1605,7 @@
     if (Number.isFinite(position.speed)) previewLiveBinding.speed = clamp(position.speed, 5, 180, defaults.speed);
     setPreviewPlaying(position.playing);
     cancelPreviewResume();
-    previewMotionAt = -Infinity;
+    motionScheduler.reset();
     publishPreviewMotion(performance.now(), true);
     postPreviewPosition('render');
   }
@@ -1538,7 +1645,7 @@
     if (preview || !liveChannel || !state || typeof message.request_id !== 'string' || message.request_id.length > 120 ||
       message.snapshot_id !== state.snapshot?.id || message.revision !== state.revision) return;
     const deadline = performance.now() + 500;
-    while (positioning && performance.now() < deadline) await nextFrame();
+    while (!document.hidden && positioning && performance.now() < deadline) await nextFrame();
     if (!liveChannel || positioning || message.snapshot_id !== state.snapshot?.id || message.revision !== state.revision) return;
     liveChannel.postMessage({type: 'position-report', request_id: message.request_id,
       snapshot_id: message.snapshot_id, revision: message.revision, scroll_top: scroll.scrollTop,
@@ -1546,7 +1653,17 @@
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!preview) return;
+    if (document.hidden) {
+      // Also release waits that began just before the window was minimized.
+      for (const finish of [...pendingLayoutFrames]) finish();
+      if (contentTransition) { contentTransition.cancel(); contentTransition = null; }
+    }
+    if (!preview) {
+      lastFrame = document.hidden ? performance.now() : null;
+      if (!document.hidden) { fitStage(); poll(); }
+      reportDisplayHealth();
+      return;
+    }
     if (document.visibilityState === 'hidden') {
       if (previewVisibilityHold) {
         clearTimeout(previewResumeTimer);
@@ -1562,6 +1679,7 @@
       if (event.data?.type === 'position-report') receiveAudiencePosition(event.data);
       return;
     }
+    if (event.data?.type === 'display-health-request') { reportDisplayHealth(); return; }
     if (event.data?.type === 'page-step' || event.data?.type === 'page-status-request') { replyPageRequest(event.data); return; }
     if (event.data?.type === 'position-request') { replyAudiencePosition(event.data); return; }
     if (event.data?.type === 'state') {
@@ -1571,6 +1689,7 @@
     } else if (event.data?.type === 'motion') receiveLiveMotion(event.data);
   });
   window.addEventListener('pagehide', () => {
+    reportDisplayHealth('closed');
     previewLiveBinding = null;
     cancelPreviewResume();
     if (liveChannel) { liveChannel.close(); liveChannel = null; }
@@ -1587,6 +1706,7 @@
       setDisconnected();
     } finally {
       connecting = false;
+      reportDisplayHealth();
     }
   }
 
@@ -1604,6 +1724,7 @@
       setDisconnected();
     } finally {
       polling = false;
+      reportDisplayHealth();
     }
   }
 
@@ -1685,6 +1806,7 @@
     });
     window.parent.postMessage({type: 'pia-preview-ready'}, location.origin);
     requestAnimationFrame(animatePreview);
+    setInterval(reportPreviewSync, 500);
     return; // Preview scrolling is local; no connect, poll, or checkpoint calls.
   }
 
@@ -1693,6 +1815,12 @@
   renderSnapshot(bootstrap.state?.snapshot || null);
   connect();
   setInterval(poll, 700);
+  // Browsers may throttle this too. It keeps logical progress moving when allowed,
+  // but cannot make Windows window capture paint a minimized browser.
+  setInterval(() => {
+    const now = performance.now();
+    if (document.hidden || now - lastAudiencePaint > 500) advanceAudience(now, true);
+  }, 250);
   setInterval(() => checkpoint(), 2000);
   requestAnimationFrame(animate);
   window.addEventListener('pagehide', () => {

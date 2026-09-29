@@ -133,6 +133,19 @@
       if (status) status.textContent = '识别内容已填入草稿。可继续修改，点击“保存剧本”后才会入库。';
     } catch (failure) { error(failure.message || '填入失败，请重新打开导入窗口。'); setBusy(false); }
   }
+  $('#copy-import-ai-prompt')?.addEventListener('click', async () => {
+    const field = $('#import-ai-prompt'), status = $('#import-ai-copy-status');
+    field.focus(); field.select(); field.setSelectionRange(0, field.value.length);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(field.value);
+      status.textContent = '已复制。粘贴到常用 AI 后，再附上剧本原文。';
+    } catch (_) {
+      let copied = false;
+      try { field.focus(); field.select(); copied = document.execCommand('copy'); } catch (_) { /* selected text remains the final fallback */ }
+      status.textContent = copied ? '已复制。粘贴到常用 AI 后，再附上剧本原文。' : '提示词已选中，请按 Ctrl+C 复制，也可右键选择复制。';
+    }
+  });
   document.querySelector('#open-import-editor')?.addEventListener('click', open);
   for (const button of dialog.querySelectorAll('[data-import-source]')) button.addEventListener('click', () => selectSource(button.dataset.importSource));
   for (const button of dialog.querySelectorAll('[data-import-close]')) button.addEventListener('click', close);
