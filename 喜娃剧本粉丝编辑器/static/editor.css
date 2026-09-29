@@ -85,9 +85,17 @@ body.hide-list aside { display: none; }
 section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #b7a68d #f3efe7; }
 
 /* 编辑页双栏 */
-.editor-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+#editorPanel { padding: 0; }
+.editor-head {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 24px 12px; margin-bottom: 18px;
+  background: rgba(247,246,242,.97);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
 .editor-head h2 { font-size: 21px; color: #4a3b28; flex: 1; letter-spacing: .5px; }
-.editor-body { display: flex; gap: 18px; align-items: flex-start; }
+.editor-body { display: flex; gap: 18px; align-items: flex-start; padding: 0 24px 24px; }
 .editor-main { flex: 1; min-width: 0; }
 .media-side { width: 400px; min-width: 400px; position: sticky; top: 0; }
 
