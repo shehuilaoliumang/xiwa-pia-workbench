@@ -97,7 +97,8 @@ section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; 
 .editor-head h2 { font-size: 21px; color: #4a3b28; flex: 1; letter-spacing: .5px; }
 .editor-body { display: flex; gap: 18px; align-items: flex-start; padding: 0 24px 24px; }
 .editor-main { flex: 1; min-width: 0; }
-.media-side { width: 400px; min-width: 400px; position: sticky; top: 0; }
+.media-side { width: 400px; min-width: 400px; position: sticky; top: 70px; }
+.welcome-body .media-side { position: sticky; top: 0; }
 
 .panel, .card {
   background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
