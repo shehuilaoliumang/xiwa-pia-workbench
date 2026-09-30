@@ -5,8 +5,10 @@ Simulates the full journey without touching any real data:
   2. Start the fan editor service on an isolated port/data dir.
   3. Import the ZIP -> edit (retitle, change text, delete a cued block, add
      new text block and illustration) -> export a new ZIP.
-  4. Validate the exported ZIP with the exact routine the anchor workbench
-     uses on import (script_package._validated) and assert expected results.
+  4. Validate the exported ZIP with the fan's local package validator.
+
+For actual CURRENT anchor API compatibility, additionally run the parent
+project's tests/fan_exchange_compatibility.py (supports FAN_EXE too).
 
 Also covers the media/cue endpoints (upload, save cues, remove) that mirror
 the anchor workbench's media editor, and asserts the anchor-parity rule that
@@ -19,6 +21,7 @@ import io
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import tempfile
@@ -132,6 +135,9 @@ def multipart(field, filename, content_type, payload):
 
 
 def main():
+    with socket.socket() as probe:
+        probe.settimeout(.3)
+        assert probe.connect_ex(('127.0.0.1', PORT)) != 0, 'Do not reuse an occupied QA service'
     base = Path(tempfile.mkdtemp(prefix="fan-test-"))
     data_dir = base / "fan-data"
     fan_exe = os.environ.get("FAN_EXE")
@@ -148,7 +154,7 @@ def main():
         for _ in range(60):
             try:
                 status, body = fetch("GET", base_url + "/api/health")
-                if status == 200:
+                if status == 200 and Path(json.loads(body)['data_dir']).resolve() == data_dir.resolve():
                     break
             except Exception:
                 time.sleep(0.5)
@@ -276,7 +282,7 @@ def main():
         script = json.loads(data)["script"]
         assert "media" not in script
 
-        # Step 9: export and validate with the anchor-side routine
+        # Step 9: export and validate with the fan-local routine
         status, data = fetch("POST", base_url + f"/api/workspaces/{wsid}/export",
                              headers={"X-CSRF-Token": csrf})
         assert status == 200
@@ -296,7 +302,7 @@ def main():
         print("  imported:", workspace["title"], "->", len(script["blocks"]), "blocks, media ok")
         print("  edited: retitled, text/role changed, cued-block deletion rejected until cue adjusted,")
         print("          new text + image block added, media uploaded/cued/removed")
-        print("  exported: re-validated by anchor-side _validated -> OK")
+        print("  exported: re-validated by fan-local _validated -> OK")
     finally:
         try:
             if csrf:
@@ -305,7 +311,9 @@ def main():
             pass
         proc.wait(timeout=10)
         import shutil
-        shutil.rmtree(base, ignore_errors=True)
+        resolved = base.resolve()
+        assert resolved.parent == Path(tempfile.gettempdir()).resolve() and resolved.name.startswith('fan-test-')
+        shutil.rmtree(resolved, ignore_errors=True)
 
 
 if __name__ == "__main__":

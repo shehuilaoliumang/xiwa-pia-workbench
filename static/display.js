@@ -2,6 +2,7 @@
 
 (() => {
   const preview = new URLSearchParams(location.search).get('preview') === '1';
+  const editorPreview = preview && new URLSearchParams(location.search).get('editor') === '1';
   const bootstrap = JSON.parse(document.getElementById('bootstrap').textContent);
   const viewport = document.getElementById('display-viewport');
   const stage = document.getElementById('stage');
@@ -1135,6 +1136,39 @@
     postPreviewPosition('interaction');
   }
 
+  function focusEditorAnchor(message) {
+    if (!editorPreview || renderedSnapshot?.editor_only !== true || renderedSnapshot.mode !== 'script' ||
+      message.snapshot_id !== snapshotId || previewAcknowledgedId !== snapshotId || positioning ||
+      typeof message.anchor !== 'string' || !anchorMap.has(message.anchor)) return;
+    const anchor = message.anchor;
+    let targetPage = null;
+    if (isPagesMode()) {
+      const containsAnchor = page => [...(page?.querySelectorAll('[data-anchor]') || [])]
+        .some(node => node.dataset.anchor === anchor);
+      // Long paragraphs span pages. Preserve the part currently visible.
+      targetPage = containsAnchor(pageElements[pageIndex]) ? pageIndex : pageElements.findIndex(containsAnchor);
+      if (targetPage < 0) return;
+    }
+    cancelPreviewPositionReport();
+    previewPlaying = false;
+    previewLastFrame = null;
+    previewFractionalDistance = 0;
+    positionVersion += 1;
+    reflowAnchor = null;
+    clearPreviewSelection();
+    if (targetPage !== null) setCurrentPage(targetPage);
+    else placeAnchor(anchor);
+    previewSelectedAnchor = anchor;
+    const selected = isPagesMode()
+      ? [...(pageElements[pageIndex]?.querySelectorAll('[data-anchor]') || [])].find(node => node.dataset.anchor === anchor)
+      : anchorMap.get(anchor);
+    selected?.classList.add('preview-selected');
+    updatePreviewToolbar();
+    // Dedicated acknowledgement cannot be interpreted as a user/live action.
+    window.parent.postMessage({type: 'pia-editor-focused', snapshot_id: snapshotId, anchor,
+      page_status: pageStatus(), ...pageStatus()}, location.origin);
+  }
+
   function makePreviewBlockInteractive(node, block) {
     if (!preview || !block.id) return;
     node.classList.add('preview-selectable-block');
@@ -1154,6 +1188,7 @@
 
   function setPreviewPlaying(playing, reason = null) {
     if (!preview) return;
+    if (editorPreview) playing = false;
     if(mediaPlayer){
       if(reason==='interaction'){if(playing)void mediaPlayer.play();else mediaPlayer.pause();}
       else mediaPlayer.setState(mediaPlayer.getState(),Boolean(playing),{remote:true});
@@ -1188,7 +1223,7 @@
     const canApply = hasSnapshot && previewCanApply && previewAcknowledgedId === snapshotId && !positioning;
     previewButtons.returnList.disabled = !canReturnFrom(renderedSnapshot);
     previewButtons.returnList.textContent = renderedSnapshot?.mode === 'list' && renderedSnapshot.directory_level === 'scripts' ? '返回分类' : '返回目录';
-    previewButtons.play.disabled = !hasContent || positioning || isPagesMode();
+    previewButtons.play.disabled = editorPreview || !hasContent || positioning || isPagesMode();
     previewButtons.play.textContent = previewFeedback === 'realtime'
       ? (previewPlaying ? '暂停滚动' : '开始滚动') : (previewPlaying ? '暂停试滚' : '预览试滚');
     if(mediaPlayer)previewButtons.play.textContent=previewPlaying?'暂停媒体':'播放 / 读完继续';
@@ -1236,6 +1271,7 @@
 
   function runPreviewCommand(action) {
     if (!renderedSnapshot) return;
+    if (editorPreview && !['previous', 'next', 'previous-page', 'next-page', 'top'].includes(action)) return;
     switch (action) {
       case 'return-list':
         if (!canReturnFrom(renderedSnapshot)) return;
@@ -1420,7 +1456,7 @@
     if (oldKey) previewPositions.set(oldKey, currentAnchor());
     const newKey = previewContentKey(snapshot);
     const anchor = requestedAnchor !== undefined ? requestedAnchor : previewPositions.get(newKey) ?? null;
-    const focusWasContent = content.contains(document.activeElement);
+    const focusWasContent = !editorPreview && content.contains(document.activeElement);
     cancelPreviewPositionReport();
     setPreviewPlaying(false);
     clearPreviewSelection();
@@ -1446,7 +1482,7 @@
       if(version!==previewRenderVersion||snapshot.id!==snapshotId||mediaPlayer!==player)return;
     }
     previewAcknowledgedId = snapshotId;
-    previewStatusMessage = '预览已就绪 · 应用后更新展示';
+    previewStatusMessage = editorPreview ? '编辑预览已就绪 · 未保存 / 未上屏' : '预览已就绪 · 应用后更新展示';
     if (focusWasContent) {
       const heading = content.querySelector('h1');
       if (heading) {
@@ -1751,16 +1787,22 @@
     window.addEventListener('keydown', previewKeydown);
     window.addEventListener('message', event => {
       if (event.origin !== location.origin || event.source !== window.parent) return;
+      if (event.data?.type === 'pia-editor-focus') {
+        focusEditorAnchor(event.data);
+        return;
+      }
       if (event.data?.type === 'pia-preview-live-binding') {
+        if (editorPreview) return;
         setPreviewLiveBinding(event.data);
         return;
       }
       if (event.data?.type === 'pia-preview-follow-command') {
+        if (editorPreview) return;
         followPreviewCommand(event.data);
         return;
       }
       if (event.data?.type === 'pia-preview-options') {
-        setPreviewOptions(event.data);
+        setPreviewOptions(editorPreview ? {...event.data, feedback: 'confirm'} : event.data);
         return;
       }
       if (event.data?.type === 'pia-preview-key') {
@@ -1779,13 +1821,14 @@
         return;
       }
       if (event.data?.type === 'pia-preview-apply-request') {
+        if (editorPreview) return;
         if (event.data.snapshot_id !== snapshotId) return;
         applyPreview();
         return;
       }
       if (event.data?.type === 'pia-preview-status') {
         if (event.data.snapshot_id !== snapshotId) return;
-        previewCanApply = event.data.can_apply === true;
+        previewCanApply = !editorPreview && event.data.can_apply === true;
         previewStatusMessage = text(event.data.message) || '预览草稿';
         updatePreviewToolbar();
         return;

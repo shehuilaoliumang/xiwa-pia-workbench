@@ -5,8 +5,10 @@ Covers the "0 to 1" path that mirrors the anchor workbench's text editor:
   2. /api/workspaces/new creates a workspace from the parsed candidate.
   3. The new workspace can be saved (edit a block, add a block) and exported.
   4. A blank workspace (no blocks) can be created, filled in and exported.
-  5. Every exported ZIP passes the exact anchor-side validation routine.
+  5. Every exported ZIP passes the fan-local validation routine.
 Run in dev mode (python) or against the frozen exe (FAN_EXE env).
+Actual current anchor API compatibility is covered separately by the parent
+project's tests/fan_exchange_compatibility.py, which also supports FAN_EXE.
 """
 from __future__ import annotations
 
@@ -14,6 +16,7 @@ import io
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import tempfile
@@ -53,13 +56,16 @@ def multipart(field, filename, content_type, payload):
 
 
 def validate_exported_zip(blob):
-    """Run the exact anchor-side import validation on the exported ZIP."""
+    """Run the fan-local import validation on the exported ZIP."""
     stream = io.BytesIO(blob)
     with package._validated(stream) as pkg:
         return pkg["script"], pkg["category_name"]
 
 
 def main():
+    with socket.socket() as probe:
+        probe.settimeout(.3)
+        assert probe.connect_ex(('127.0.0.1', PORT)) != 0, 'Do not reuse an occupied QA service'
     base = Path(tempfile.mkdtemp(prefix="fan-create-"))
     data_dir = base / "fan-data"
     fan_exe = os.environ.get("FAN_EXE")
@@ -76,7 +82,7 @@ def main():
         for _ in range(60):
             try:
                 status, body = fetch("GET", base_url + "/api/health")
-                if status == 200:
+                if status == 200 and Path(json.loads(body)['data_dir']).resolve() == data_dir.resolve():
                     break
             except Exception:
                 pass
@@ -143,7 +149,7 @@ def main():
         saved = json.loads(body)["script"]
         assert saved["blocks"][0]["text"] == "夜色降临，微风轻拂。" and len(saved["blocks"]) == 8, saved
 
-        # 5) export and validate with the anchor-side routine
+        # 5) export and validate with the fan-local routine
         status, body = fetch("POST", base_url + f"/api/workspaces/{wsid}/export", data=b"", headers=headers)
         assert status == 200 and body[:2] == b"PK", "export did not produce a zip"
         exported, category_name = validate_exported_zip(body)
@@ -177,8 +183,8 @@ def main():
 
         print("CREATE FLOW OK")
         print("  pasted-text parsed (title/author/roles/5 blocks), TXT (GB18030) parsed,")
-        print("  workspace created from candidate -> edited -> exported -> anchor _validated OK,")
-        print("  blank workspace created -> filled -> exported -> anchor _validated OK")
+        print("  workspace created from candidate -> edited -> exported -> fan-local _validated OK,")
+        print("  blank workspace created -> filled -> exported -> fan-local _validated OK")
     finally:
         try:
             if csrf:
@@ -189,7 +195,9 @@ def main():
             proc.terminate()
         proc.wait(timeout=10)
         import shutil
-        shutil.rmtree(base, ignore_errors=True)
+        resolved = base.resolve()
+        assert resolved.parent == Path(tempfile.gettempdir()).resolve() and resolved.name.startswith('fan-create-')
+        shutil.rmtree(resolved, ignore_errors=True)
 
 
 if __name__ == "__main__":

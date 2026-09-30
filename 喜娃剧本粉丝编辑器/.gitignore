@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *.log
 fan-data/
+fan-data-*/
+desktop-user-data/
+server.json
+server.lock
 desktop/runtime/
 build/work/
 build/dist/

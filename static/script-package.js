@@ -4,7 +4,12 @@
   if (!dialog) return;
   const $ = selector => dialog.querySelector(selector);
   let version = 0, openEpoch = 0, controller = null, candidate = null;
-  let checking = false, importing = false, importedId = null, categoriesReady = false;
+  let checking = false, importing = false, importedId = null, categoriesReady = false, finished = false, requestId = null;
+  const choice = document.createElement('section'); choice.className = 'script-package-conflict'; choice.hidden = true;
+  choice.innerHTML = '<h4>检查结果与处理方式</h4><p id="script-package-match-status" class="help"></p><label class="field">本次如何处理<select id="script-package-action"><option value="skip">跳过，保留现有资料</option></select></label><label id="script-package-target-field" class="field" hidden>选择要覆盖的现有剧本<select id="script-package-target"><option value="">请选择一篇现有剧本</option></select></label><div id="script-package-comparison" class="script-package-comparison"></div><label id="script-package-overwrite-field" class="script-package-overwrite" hidden><input id="script-package-overwrite-check" type="checkbox">我已核对：覆盖所选剧本的资料、正文和关联音视频，覆盖前的版本会保存到历史中。</label>';
+  $('#script-package-preview').insertBefore(choice, $('#script-package-category').closest('label'));
+  const action = () => $('#script-package-action').value;
+  const matches = () => candidate?.matches || [];
   const error = value => { $('#script-package-error').textContent = value || ''; };
   const status = value => { $('#script-package-status').textContent = value || ''; };
   const controls = () => {
@@ -12,14 +17,21 @@
     $('#script-package-check').textContent = checking ? '正在检查…' : '检查文件';
     $('#script-package-file').disabled = importing;
     $('#script-package-category').disabled = importing;
-    $('#script-package-confirm').disabled = importing || checking || !candidate || !$('#script-package-category').value || !!importedId;
-    $('#script-package-confirm').textContent = importing ? '正在导入…' : '作为新剧本导入';
+    $('#script-package-action').disabled = importing || checking;
+    $('#script-package-target').disabled = importing || checking;
+    $('#script-package-overwrite-check').disabled = importing || checking;
+    const overwrite = action() === 'overwrite', needsCategory = action() === 'new' || overwrite;
+    $('#script-package-category').closest('label').hidden = !needsCategory;
+    $('#script-package-target-field').hidden = !overwrite;
+    $('#script-package-overwrite-field').hidden = !overwrite;
+    $('#script-package-confirm').disabled = importing || checking || !candidate || finished || (needsCategory && !$('#script-package-category').value) || (overwrite && (!$('#script-package-target').value || !$('#script-package-overwrite-check').checked));
+    $('#script-package-confirm').textContent = importing ? '正在处理…' : (overwrite ? '确认覆盖所选剧本' : (needsCategory ? '作为新剧本导入' : '确认跳过'));
     for (const button of dialog.querySelectorAll('[data-package-close]')) button.disabled = importing;
     dialog.setAttribute('aria-busy', String(checking || importing));
   };
   function invalidate() {
     ++version; controller?.abort(); controller = null; candidate = null; checking = false;
-    importedId = null; $('#script-package-edit-imported').hidden = true;
+    importedId = null; finished = false; requestId = null; $('#script-package-edit-imported').hidden = true;
     $('#script-package-preview').hidden = true; error(''); status(''); controls();
   }
   function close() { if (!importing) { ++openEpoch; invalidate(); dialog.close(); } }
@@ -59,21 +71,22 @@
           continue;
         }
       }
-      throw new Error(payload.error || `操作未完成（${response.status}），请检查是否为单篇剧本导出文件。`);
+      const failure = new Error(payload.error || `操作未完成（${response.status}），请检查是否为单篇剧本导出文件。`);
+      failure.code = payload.code; failure.status = response.status; failure.payload = payload; throw failure;
     }
   }
   function element(tag, className, text) {
     const node = document.createElement(tag); node.className = className; node.textContent = text ?? ''; return node;
   }
-  function render(data) {
+  function render(data, saved = {}) {
     if (!data.script || !Array.isArray(data.script.blocks) || !/^[a-f0-9]{64}$/i.test(data.package_sha256 || '')) throw new Error('文件检查响应缺少剧本或校验信息，请重新检查。');
     candidate = data;
+    requestId = crypto.randomUUID();
     $('#script-package-title').textContent = data.title || data.script.title;
     $('#script-package-author').textContent = '作者 / 来源：' + (data.author || '未提供');
     $('#script-package-origin').textContent = '原分类：' + (data.category_name || '未提供');
     $('#script-package-summary').textContent = `${data.text_blocks} 个文字段落 · ${data.image_blocks} 张正文图片 · ${data.has_media ? '附音视频' : '无音视频'} · ${data.cue_count} 个时间点`;
     const warnings = [...(Array.isArray(data.warnings) ? data.warnings : [])];
-    if (!Array.isArray(data.warnings) && data.duplicate_title_count > 0) warnings.push(`当前资料已有 ${data.duplicate_title_count} 篇同名剧本；确认后会新增一篇，不覆盖已有内容。`);
     if (!Array.isArray(data.warnings) && (data.visible === false || data.visible === 0 || data.script.visible === false || data.script.visible === 0)) warnings.push('这篇剧本原来处于隐藏状态，导入后保留隐藏，可在内容管理中恢复显示。');
     $('#script-package-warnings').replaceChildren(...[...new Set(warnings)].map(value => element('li', '', value)));
     $('#script-package-warnings').hidden = !warnings.length;
@@ -94,10 +107,37 @@
       }
     }
     $('#script-package-content').replaceChildren(fragment);
+    choice.hidden = false;
+    const kind = data.status || 'new';
+    $('#script-package-match-status').textContent = kind === 'duplicate' ? '内容与本地现有剧本完全相同：本次跳过，不新增。' : (kind === 'conflict' ? '发现同名剧本，但内容不同。请对照差异；默认跳过。' : '本地没有相同或同名剧本，可新增到选择的分类。');
+    const actions = kind === 'new' ? [['new','新增剧本'],['skip','跳过']] : kind === 'conflict' ? [['skip','跳过，保留现有资料'],['overwrite','覆盖所选的现有剧本']] : [['skip','跳过完全相同的剧本']];
+    $('#script-package-action').replaceChildren(...actions.map(([value,label]) => new Option(label,value)));
+    if (actions.some(([value]) => value === saved.action)) $('#script-package-action').value = saved.action;
+    $('#script-package-target').replaceChildren(new Option('请选择一篇现有剧本',''), ...matches().map(match => new Option(`${match.title || data.title} · ${match.category_name || '未分类'} · ${match.id}`, match.id)));
+    if (matches().some(match => match.id === saved.target)) $('#script-package-target').value = saved.target;
+    $('#script-package-overwrite-check').checked = false;
+    renderComparison();
     $('#script-package-preview').hidden = false;
-    status('检查完成，尚未写入资料。请选择接收分类后确认导入。');
+    status('检查完成，尚未写入资料。请核对处理方式后确认。');
   }
-  async function check() {
+  function renderComparison() {
+    const selected = $('#script-package-target').value;
+    const view = matches().filter(match => !selected || match.id === selected);
+    const rows = view.map(match => {
+      const row = element('article','script-package-match','');
+      row.append(element('strong','',`${match.title || candidate.title} · ${match.category_name || '未分类'}`));
+      row.append(element('p','help', `现有剧本标识：${match.id}`));
+      const changes = match.changes || match.differences || [];
+      row.append(element('p','', Array.isArray(changes) && changes.length ? '将变化：' + changes.map(value => typeof value === 'string' ? value : value.label || value.field || '内容').join('、') : (match.identical ? '全部正文、资料和关联资源相同。' : '请检查正文、剧本资料和关联资源的变化。')));
+      return row;
+    });
+    $('#script-package-comparison').replaceChildren(...rows);
+    if (action() === 'overwrite' && selected) {
+      const category = $('#script-package-category').selectedOptions[0];
+      $('#script-package-comparison').append(element('p','help','覆盖后接收分类：' + (category?.value ? category.textContent : '请选择本地分类')));
+    }
+  }
+  async function check(saved = {}) {
     if (importing || checking || !categoriesReady) return;
     invalidate();
     const file = $('#script-package-file').files[0];
@@ -108,7 +148,7 @@
     try {
       const data = await request('/api/script-packages/preview', body, controller.signal);
       if (epoch !== version || !dialog.open) return;
-      render(data);
+      render(data, saved);
     } catch (failure) {
       if (epoch === version && failure.name !== 'AbortError') { candidate = null; error(failure.message); status(''); }
     } finally {
@@ -123,29 +163,37 @@
     finally { button.disabled = false; }
   }
   async function confirmImport() {
-    if (importing || checking || !candidate || importedId) return;
+    if (importing || checking || !candidate || finished) return;
     const file = $('#script-package-file').files[0], category = $('#script-package-category').value;
-    if (!file || !category) { error('请检查文件并选择接收分类。'); return; }
+    if (!file || $('#script-package-confirm').disabled) { error('请检查文件并核对处理方式。'); return; }
+    const saved = {action: action(), target: $('#script-package-target').value};
     const body = new FormData(); body.append('file', file); body.append('category_id', category); body.append('expected_sha256', candidate.package_sha256);
-    importing = true; controls(); error(''); status('正在保存新剧本和资源，请稍候…');
+    body.append('action', saved.action); body.append('target_id', saved.target); body.append('expected_target_fingerprint', matches().find(match => match.id === saved.target)?.fingerprint || ''); body.append('request_id', requestId);
+    importing = true; controls(); error(''); status(saved.action === 'skip' ? '正在核对并跳过…' : '正在保存剧本和资源，请稍候…');
+    let stale = false;
     try {
       const data = await request('/api/script-packages/import', body);
-      if (!data.script?.id) throw new Error('服务未返回新剧本标识。');
-      importedId = data.script.id; candidate = null;
-      $('#script-package-edit-imported').hidden = false;
-      status('新剧本已保存，正在刷新资料列表…');
+      if (!data.skipped && saved.action !== 'skip' && !data.script?.id) throw new Error('服务未返回剧本标识。');
+      importedId = data.skipped ? null : (data.script?.id || null); finished = true; candidate = null;
+      $('#script-package-edit-imported').hidden = !importedId;
+      status(importedId ? '剧本已保存，正在刷新资料列表…' : '已跳过，现有资料保持不变。');
     } catch (failure) {
-      candidate = null;
-      error(failure.message + ' 未确认导入结果；请先检查剧本列表，避免重复导入。需要重试时重新检查文件。');
-      status('');
+      stale = failure.status === 409 && /stale|changed|conflict|preview_required/.test(failure.code || '');
+      if (!stale) {
+        error(failure.message + ' 请核对剧本列表后重试；导入时会再次检查重复及覆盖目标的变化。'); status('');
+      }
     } finally { importing = false; controls(); }
+    if (stale) { await check(saved); error('检查后本地资料或文件发生变化，已重新核对。原选择已保留；覆盖前请再次确认差异。'); return; }
     if (importedId) await editImported();
   }
   document.querySelector('#open-script-package')?.addEventListener('click', open);
   for (const button of dialog.querySelectorAll('[data-package-close]')) button.addEventListener('click', close);
   $('#script-package-file').addEventListener('change', () => { if (!importing) { invalidate(); status('文件已选择，请点击“检查文件”。'); } });
-  $('#script-package-check').addEventListener('click', check);
-  $('#script-package-category').addEventListener('change', controls);
+  $('#script-package-check').addEventListener('click', () => check());
+  $('#script-package-category').addEventListener('change', () => { $('#script-package-overwrite-check').checked = false; renderComparison(); controls(); });
+  $('#script-package-action').addEventListener('change', () => { $('#script-package-overwrite-check').checked = false; renderComparison(); controls(); });
+  $('#script-package-target').addEventListener('change', () => { $('#script-package-overwrite-check').checked = false; const target = matches().find(match => match.id === $('#script-package-target').value); if (target) $('#script-package-category').value = target.category_id; renderComparison(); controls(); });
+  $('#script-package-overwrite-check').addEventListener('change', controls);
   $('#script-package-confirm').addEventListener('click', confirmImport);
   $('#script-package-edit-imported').addEventListener('click', editImported);
   dialog.addEventListener('cancel', event => { if (importing) event.preventDefault(); else close(); });

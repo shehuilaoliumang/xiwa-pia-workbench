@@ -33,7 +33,7 @@ IMAGE_MIMES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
 MIMES = {**IMAGE_MIMES, **{ext: value[1] for ext, value in MEDIA_FORMATS.items()}}
 ASSET_RE = re.compile(r"assets/[0-9a-f]{64}\.(?:png|jpg|jpeg|webp|mp4|webm|mp3|wav|m4a|ogg)\Z")
 SCRIPT_FIELDS = {"id", "title", "author", "synopsis", "cast_note", "notes", "category_id", "visible", "tags",
-                 "source_category", "source_pages", "blocks", "media"}
+                 "source_category", "source_pages", "blocks", "media", "role_colors"}
 BLOCK_FIELDS = {"id", "kind", "text", "role", "color", "source_page", "source_file", "original_text", "runs", "image_path"}
 
 

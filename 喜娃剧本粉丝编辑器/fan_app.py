@@ -27,8 +27,8 @@ from flask import Flask, abort, jsonify, render_template, request, send_file
 
 import script_package as package
 import import_parser
-from storage import (DomainError, MEDIA_FORMATS, MEDIA_MAX_BYTES, decode_background, encode, media_duration,
-                     normalize_cues, normalize_media, now, resources, validate_media_stream)
+from storage import (DomainError, MEDIA_FORMATS, MEDIA_MAX_BYTES, color, decode_background, encode, media_duration,
+                     identifier, normalize_cues, normalize_media, normalize_script, now, resources, validate_media_stream)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 MAX_UPLOAD_BYTES = 520 * 1024 * 1024      # 512 MB package + multipart overhead
@@ -142,6 +142,7 @@ def create_workspace(data_dir, payload):
         "category_id": "category-fan",
         "visible": payload.get("visible", True),
         "tags": payload.get("tags", []),
+        "role_colors": payload.get("role_colors", {}),
         "blocks": blocks if blocks is not None else [],
         "media": None,
     })
@@ -181,13 +182,13 @@ def get_workspace(data_dir, wsid):
 
 
 def save_workspace(data_dir, wsid, payload):
-    """Merge editable fields, prune stale cue references, validate, persist."""
+    """Merge editable fields, validate retained cue references, and persist."""
     if not isinstance(payload, dict):
         raise _domain_error("保存内容无效。")
     ws_dir = _workspace_dir(data_dir, wsid)
     stored = _read_json(_script_path(ws_dir), "剧本数据")
     merged = copy.deepcopy(stored)
-    for field in ("title", "author", "synopsis", "cast_note", "notes", "tags", "visible"):
+    for field in ("title", "author", "synopsis", "cast_note", "notes", "tags", "visible", "role_colors"):
         if field in payload:
             merged[field] = payload[field]
     # Media metadata (file/duration/cues) is edited through the dedicated
@@ -200,8 +201,23 @@ def save_workspace(data_dir, wsid, payload):
         blocks = payload["blocks"]
         if not isinstance(blocks, list) or len(blocks) > 20000:
             raise _domain_error("正文段落数量无效。")
-        merged["blocks"] = blocks
-    item = package._normalize(merged)
+        merged["blocks"] = copy.deepcopy(blocks)
+        previous_blocks = {block["id"]: block for block in stored["blocks"]}
+        for block in merged["blocks"]:
+            if not isinstance(block, dict):
+                raise _domain_error("正文段落格式无效。")
+            if "id" in block:
+                identifier(block["id"], "段落 ID")
+            previous = previous_blocks.get(block.get("id"))
+            if not previous or block.get("kind", "text") != "text":
+                continue
+            # Older fan clients change the color picker without clearing PPT
+            # runs. A changed paragraph color must reach the anchor display.
+            if color(block.get("color"), "#343b37") != previous["color"] and block.get("runs") == previous.get("runs"):
+                block["runs"] = [{"text": block.get("text", ""), "color": color(block.get("color"), "#343b37"), "bold": False}]
+    # A save is an edit of the stored source, not a second source import.
+    # Preserve original provenance; changed text cannot retain stale PPT runs.
+    item = package._normalize(normalize_script(merged, stored))
     refmap = _read_json(ws_dir / "refmap.json", "素材清单")
     files_dir = ws_dir / "files"
     for ref in sorted(resources(item)):
@@ -407,6 +423,7 @@ def export_workspace(data_dir, wsid):
 
 
 def create_app(data_dir):
+    data_dir = Path(data_dir).resolve()
     app = Flask(__name__, template_folder=str(PROJECT_ROOT / "templates"))
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
     csrf_token = uuid.uuid4().hex
@@ -439,7 +456,7 @@ def create_app(data_dir):
 
     @app.get("/api/health")
     def health():
-        return jsonify(app="xiwa-fan-editor", ok=True, version="0.2.0")
+        return jsonify(app="xiwa-fan-editor", ok=True, version="0.2.1", data_dir=str(data_dir))
 
     @app.get("/api/workspaces")
     def workspaces():

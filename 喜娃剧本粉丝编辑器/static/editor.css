@@ -123,6 +123,22 @@ section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; 
 .field textarea { min-height: 64px; }
 .field .checkline { display: flex; align-items: center; gap: 8px; padding-top: 8px; font-size: 13px; color: var(--ink); }
 
+/* 角色预设独立于每句颜色，正文保留手动例外。 */
+.role-default-add { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.role-default-add > .field:first-child { flex: 1 1 180px; min-width: 0; }
+.role-default-add input[type=text] { width: 100%; }
+.role-default-color { flex: none; }
+.role-default-color input[type=color] { width: 60px; height: 40px; }
+#roleDefaultList { max-height: 290px; overflow-y: auto; scrollbar-width: thin; }
+.role-default-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.role-default-name { flex: 1; min-width: 0; }
+.role-default-name strong { display: block; overflow-wrap: anywhere; font-weight: 600; }
+.role-default-name .hint { display: block; font-size: 11px; }
+.role-default-row input[type=color] { flex: none; width: 48px; height: 34px; }
+.role-default-row .button { flex: none; }
+#roleDefaultStatus { margin-top: 12px; overflow-wrap: anywhere; }
+#roleDefaultStatus.error { color: var(--red); }
+
 /* 正文段落 */
 .block {
   border: 1px solid var(--line); border-radius: 12px; background: #faf9f6;
@@ -286,11 +302,44 @@ section { flex: 1; padding: 20px 24px; overflow-y: auto; scrollbar-width: thin; 
 /* 窄屏：右侧栏降级为普通块 */
 @media (max-width: 1180px) {
   .editor-body { flex-direction: column; overflow-y: auto; }
-  .editor-main { overflow: visible; }
-  .media-side { position: static; width: 100%; min-width: 0; overflow: visible; }
+  .editor-main { flex: none; overflow: visible; }
+  .media-side { flex: none; position: static; width: 100%; min-width: 0; overflow: visible; }
   .welcome-body { flex-direction: column; }
   .welcome-body .media-side .panel { width: 100%; }
   .welcome-main { min-height: 0; }
   .site-header { flex-wrap: wrap; height: auto; padding: 10px 16px; row-gap: 8px; }
   main { height: calc(100% - 92px); }
+}
+
+.editor-head h2 { min-width: 0; overflow-wrap: anywhere; }
+.block .roleInput { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  body { display: flex; flex-direction: column; }
+  .site-header { flex: none; height: auto; gap: 8px 12px; padding: 10px 12px; }
+  .brand-text strong { font-size: 15px; letter-spacing: .5px; }
+  .brand-text small { font-size: 8px; letter-spacing: .3px; }
+  .local-badge { font-size: 9px; }
+  .header-actions { width: 100%; flex-shrink: 1; flex-wrap: wrap; gap: 6px; }
+  .header-actions .button { flex: 1 1 135px; min-height: 34px; padding: 6px 8px; font-size: 11px; }
+  main { flex: 1; min-height: 0; height: auto; flex-direction: column; overflow: hidden; }
+  aside { flex: none; width: 100%; min-width: 0; max-height: 138px; padding: 9px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .aside-head h2 { margin-bottom: 6px; }
+  .ws-card { padding: 8px 10px; }
+  .ws-card .ops { margin-top: 4px; }
+  #editorPanel { min-height: 0; }
+  .editor-head { flex-wrap: wrap; padding: 10px 12px; margin-bottom: 10px; gap: 6px; }
+  .editor-head h2 { flex-basis: 100%; font-size: 17px; }
+  .editor-head .button { flex: 1; min-height: 34px; padding: 6px 8px; font-size: 11px; }
+  .editor-body { padding: 0 12px 12px; gap: 12px; }
+  .panel, .card { padding: 14px; }
+  .grid, .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .role-default-add > .field:first-child { flex-basis: 100%; }
+  .role-default-add > .button { flex: 1; min-width: 0; }
+  .role-default-row { gap: 7px; }
+  .role-default-row .button { padding: 6px 8px; font-size: 11px; }
+  .block { padding: 10px; }
+  .block .imgwrap { flex-direction: column; }
+  .block .imgwrap img { max-width: 100%; }
+  .modal-mask { padding: 12px; }
+  .modal { width: 100%; max-height: 92vh; padding: 18px; }
 }

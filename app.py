@@ -15,6 +15,7 @@ from werkzeug.exceptions import HTTPException
 from storage import DomainError, Store, MEDIA_FORMATS, BACKGROUND_MAX_BYTES
 from import_parser import parse_text, parse_upload
 from script_package import export_package, preview_package, import_package, PACKAGE_MAX_BYTES
+from script_merge import preview_backup, import_backup
 
 
 def create_app(test_config=None):
@@ -222,7 +223,23 @@ def create_app(test_config=None):
     def import_script_package():
         uploaded = script_package_upload()
         return jsonify(import_package(store, uploaded.stream, request.form.get("category_id"),
-                                      request.form.get("expected_sha256"))), 201
+                                      request.form.get("expected_sha256"), request.form.get("action", "skip"),
+                                      request.form.get("target_id"), request.form.get("expected_target_fingerprint"))), 201
+
+    @application.post("/api/library-merge/preview")
+    def preview_library_merge():
+        uploaded = script_package_upload()
+        return jsonify(preview_backup(store, uploaded.stream))
+
+    @application.post("/api/library-merge/import")
+    def import_library_merge():
+        uploaded = script_package_upload()
+        import json
+        try:
+            decisions = json.loads(request.form.get("decisions", "null"))
+        except (ValueError, RecursionError):
+            raise DomainError("合并选择格式无效，请重新预览后确认。") from None
+        return jsonify(import_backup(store, uploaded.stream, request.form.get("expected_sha256"), decisions))
 
     @application.post("/api/scripts/<item_id>/media")
     def upload_script_media(item_id):
@@ -243,6 +260,10 @@ def create_app(test_config=None):
     @application.get("/api/scripts/<item_id>/history")
     def script_history(item_id):
         return jsonify(history=store.history(item_id))
+
+    @application.post("/api/scripts/<item_id>/history/<history_id>/restore")
+    def restore_script_history(item_id, history_id):
+        return jsonify(store.restore_history(item_id, history_id))
 
     @application.route("/api/queue", methods=["GET", "PUT", "POST"])
     def queue():
@@ -285,6 +306,10 @@ def create_app(test_config=None):
     @application.post("/api/preview")
     def preview():
         return jsonify(store.preview(body()))
+
+    @application.post("/api/editor-preview")
+    def editor_preview():
+        return jsonify(store.editor_preview(body()))
 
     @application.post("/api/apply")
     def apply():

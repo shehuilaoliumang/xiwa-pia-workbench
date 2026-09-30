@@ -28,6 +28,11 @@ from pathlib import Path
 
 FROZEN = bool(getattr(sys, "frozen", False))
 EXE_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent
+if not FROZEN:
+    # The workbench's embedded Python uses an isolated ._pth and does not add
+    # the launched script directory automatically. Always load the fan's own
+    # modules in development, regardless of the parent's current directory.
+    sys.path.insert(0, str(EXE_DIR))
 
 LOG_FILE = None
 
@@ -83,36 +88,54 @@ def bundled_desktop_dir():
     return Path(__file__).resolve().parent / "desktop"
 
 
-def ensure_desktop(base):
-    """Release the desktop shell (main.cjs + Electron runtime) next to the exe.
+DESKTOP_REQUIRED = ("electron.exe", "icudtl.dat", "resources.pak", "snapshot_blob.bin",
+                    "v8_context_snapshot.bin", "version", "locales/en-US.pak")
 
-    A complete release is detected by the electron.exe + main.cjs markers and
-    reused as-is; anything incomplete or missing is discarded and copied fresh,
-    so a partial first release or a stale shell can never leave a broken window
-    (V8 snapshot, entry script missing, etc.).
+
+def _runtime_complete(directory):
+    return all((directory / name).is_file() and (directory / name).stat().st_size > 0
+               for name in DESKTOP_REQUIRED)
+
+
+def _same_component(source, target):
+    return target.is_file() and source.read_bytes() == target.read_bytes()
+
+
+def ensure_desktop(base):
+    """Refresh released shell files after an EXE upgrade, retaining user data.
+
+    Required runtime files and release/version markers decide whether to copy
+    the runtime. Presence of electron.exe alone does not prove it is complete.
+    The shell is compared independently, so an old cached main.cjs is updated
+    even when the Electron version itself has not changed.
     """
-    target = base / "desktop"
-    if (target / "runtime" / "electron.exe").exists() and (target / "main.cjs").exists():
-        return target
-    bundled = bundled_desktop_dir()
-    if (bundled / "runtime" / "electron.exe").exists():
-        # Frozen mode: main.cjs + runtime are all bundled; release them once.
-        if target.exists():
-            shutil.rmtree(target)
-        shutil.copytree(bundled, target)
-        log(f"已释放桌面组件：{bundled} → {target}")
-    else:
-        # Development mode: the fan shell already lives at <project>/desktop/
-        # (same directory as target); borrow the Electron runtime fresh from the
-        # anchor workbench's desktop folder.
-        anchor_runtime = Path(__file__).resolve().parents[1] / "desktop" / "runtime"
-        runtime_target = target / "runtime"
-        if runtime_target.exists():
-            shutil.rmtree(runtime_target)
-        shutil.copytree(anchor_runtime, runtime_target)
-        log(f"已复制 Electron 运行时：{anchor_runtime} → {runtime_target}")
-    if not (target / "runtime" / "electron.exe").exists():
-        raise SystemExit("桌面组件缺失，无法启动窗口。请重新安装本工具。")
+    target = Path(base).resolve() / "desktop"
+    bundled = bundled_desktop_dir().resolve()
+    source_runtime = bundled / "runtime"
+    if not _runtime_complete(source_runtime):
+        if FROZEN:
+            raise SystemExit("EXE 内的桌面组件不完整，请使用完整重新构建的版本。")
+        source_runtime = Path(__file__).resolve().parents[1] / "desktop" / "runtime"
+    if not _runtime_complete(source_runtime):
+        raise SystemExit("桌面组件缺失，无法启动窗口。请先准备完整 Electron 运行时。")
+    target_runtime = target / "runtime"
+    markers = ["version"] + (["xiwa-runtime.json"] if (source_runtime / "xiwa-runtime.json").is_file() else [])
+    refresh_runtime = not _runtime_complete(target_runtime) or any(
+        not _same_component(source_runtime / name, target_runtime / name) for name in markers)
+    if refresh_runtime:
+        # Overlay only application components. Never recursively remove an old
+        # desktop folder or the neighbouring fan-data workspaces during upgrade.
+        shutil.copytree(source_runtime, target_runtime, dirs_exist_ok=True)
+        log(f"已释放或更新 Electron 运行时：{target_runtime}")
+    target.mkdir(parents=True, exist_ok=True)
+    for name in ("main.cjs", "package.json"):
+        source = bundled / name
+        destination = target / name
+        if not source.is_file():
+            raise SystemExit("桌面入口文件缺失，请使用完整重新构建的版本。")
+        if source.resolve() != destination.resolve() and not _same_component(source, destination):
+            shutil.copy2(source, destination)
+            log(f"已更新桌面入口：{name}")
     return target
 
 

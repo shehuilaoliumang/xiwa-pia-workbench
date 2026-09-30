@@ -96,12 +96,13 @@ class ScriptPackageTests(unittest.TestCase):
     def preview(self, content, expected=200):
         return self.upload(self.client, self.token, "/api/script-packages/preview", content, expected=expected)
 
-    def do_import(self, content, category="cat-b", expected=201, sha=None, app=None):
+    def do_import(self, content, category="cat-b", expected=201, sha=None, app=None, action="new", **decision):
         app = app or self.app
         client = app.test_client()
         token = app.extensions["csrf_token"]
         return self.upload(client, token, "/api/script-packages/import", content,
-                           {"category_id": category, "expected_sha256": sha if sha is not None else hashlib.sha256(content).hexdigest()}, expected)
+                           {"category_id": category, "expected_sha256": sha if sha is not None else hashlib.sha256(content).hexdigest(),
+                            "action": action, **decision}, expected)
 
     def frozen(self, store=None):
         store = store or self.store
@@ -172,10 +173,15 @@ class ScriptPackageTests(unittest.TestCase):
         self.write("/api/apply", {"mode": "script", "script_id": "script-a", "orientation": "portrait", "layout": {"body_mode": "pages"}})
         archive = self.export()
         before = self.frozen()
-        item = self.do_import(archive)["script"]
+        # Import on another machine: semantic duplicates in the source library
+        # now skip automatically instead of manufacturing a second copy.
+        target = self.make_app(self.root / "remap target")
+        target_store = target.extensions["store"]
+        target_before = self.frozen(target_store)
+        item = self.do_import(archive, "cat-target", app=target)["script"]
         after = self.frozen()
         self.assertNotEqual(item["id"], original["id"])
-        self.assertEqual(item["category_id"], "cat-b")
+        self.assertEqual(item["category_id"], "cat-target")
         self.assertEqual(item["source_category"], original["source_category"])
         self.assertEqual(item["source_pages"], [7])
         ids = dict(zip([b["id"] for b in original["blocks"]], [b["id"] for b in item["blocks"]]))
@@ -187,10 +193,13 @@ class ScriptPackageTests(unittest.TestCase):
             self.assertEqual(new["block_ids"], [ids[x] for x in old["block_ids"]])
             self.assertEqual((new["at"], new["label"]), (old["at"], old["label"]))
         for key in ("categories", "settings", "history"): self.assertEqual(after["data"][key], before["data"][key])
-        self.assertEqual(after["data"]["scripts"][:-1], before["data"]["scripts"])
-        self.assertEqual(after["data"]["scripts"][-1], item)
+        self.assertEqual(after, before)
+        imported_data = self.frozen(target_store)
+        self.assertEqual(imported_data["data"]["scripts"], [item])
+        for key in ("categories", "settings", "history"):
+            self.assertEqual(imported_data["data"][key], target_before["data"][key])
         self.assertEqual(item["media"]["path"], original["media"]["path"])
-        self.assertEqual(len(after["media"]), len(before["media"]) + 1)
+        self.assertEqual(len(imported_data["media"]), 2)
 
     def test_import_export_import_roundtrip_and_resource_dedup(self):
         self.media()
@@ -201,7 +210,7 @@ class ScriptPackageTests(unittest.TestCase):
         self.assertFalse(one["visible"])
         again = self.export(one["id"], target.test_client())
         two = self.do_import(again, "cat-target", app=target)["script"]
-        self.assertNotEqual(one["id"], two["id"])
+        self.assertEqual(one["id"], two["id"])
         self.assertEqual([b["text"] for b in one["blocks"]], [b["text"] for b in two["blocks"]])
         self.assertEqual([c["at"] for c in two["media"]["cues"]], [0, 1])
         self.assertEqual(two["media"]["cues"][0]["block_ids"], [two["blocks"][0]["id"], two["blocks"][1]["id"]])
@@ -226,7 +235,8 @@ class ScriptPackageTests(unittest.TestCase):
         for sha in ["0" * 64, "", "garbage"]:
             self.do_import(archive, expected=409, sha=sha)
             self.assertEqual(self.frozen(), before)
-        self.do_import(archive, category="missing", expected=404)
+        changed = self.changed_script(archive, lambda item: item.update(title="新的剧名"))
+        self.do_import(changed, category="missing", expected=404)
         self.assertEqual(self.frozen(), before)
 
     def test_malformed_path_duplicate_and_symlink_zip(self):
@@ -372,6 +382,7 @@ class ScriptPackageTests(unittest.TestCase):
 
     def test_existing_damaged_hash_file_is_not_overwritten_or_deleted(self):
         archive = self.export(); manifest, files = self.unpack(archive)
+        archive = self.changed_script(archive, lambda item: item.update(title="新的独立剧本"))
         member = next(name for name in files if name.startswith("assets/"))
         target = self.store.media_dir / Path(member).name
         target.write_bytes(b"existing damage")

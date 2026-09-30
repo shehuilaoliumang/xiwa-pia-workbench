@@ -66,6 +66,11 @@ async function openDetails() { await page.locator('#body-editor-details').evalua
 async function newDraft(title) {
   await page.locator('#new-script').click();
   await page.locator('#script-dialog').waitFor({state: 'visible'});
+  if (await page.locator('#editor-recovery').isVisible()) {
+    await page.locator('#editor-discard').click();
+    await page.locator('#confirm-yes').click();
+    await page.locator('#editor-recovery').waitFor({state: 'hidden'});
+  }
   await page.locator('#edit-title').fill(title);
   await openDetails();
 }
@@ -193,7 +198,7 @@ async function main() {
     await upload(`[data-replace-image="${firstImage}"]`, imageA);
     await closeDraft();
     assert.deepEqual(await stored(saved.id), saved, 'Cancel never alters the stored script');
-    result.checks.push('Cancel discards uploaded replacement and edited text; stored script remains byte-for-byte equivalent');
+    result.checks.push('Cancel preserves the formal script byte-for-byte; unsaved changes are protected separately as a local draft');
 
     // Hold an actual upload response after the server has accepted the image.
     // Closing the first editor and opening another must invalidate its callback.
@@ -208,7 +213,10 @@ async function main() {
     }, {times: 1});
     await selectFile('#add-image-block', imageB);
     await until(() => delayedCaptured, 'upload response held');
-    await closeDraft(); await newDraft('新会话只保留自己的正文'); await addText('新会话不能收到之前的图片。');
+    assert(await page.locator('#script-dialog [data-close="script-dialog"]').first().isDisabled(), 'Normal closing is locked during image upload');
+    // A nonstandard/programmatic close still must not leak its late response.
+    await page.locator('#script-dialog').evaluate(dialog => dialog.close());
+    await newDraft('新会话只保留自己的正文'); await addText('新会话不能收到之前的图片。');
     const newSession = await draft();
     releaseDelayed(); releaseDelayed = null;
     await page.unroute(uploadPattern);

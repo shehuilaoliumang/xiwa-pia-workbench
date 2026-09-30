@@ -1,0 +1,16 @@
+<dialog id="library-merge-dialog" class="dialog library-merge-dialog" aria-labelledby="library-merge-heading">
+  <div class="dialog-heading"><div><span class="eyebrow">MERGE SCRIPT LIBRARY</span><h2 id="library-merge-heading">从备份合并剧本</h2></div><button type="button" class="icon-button" data-library-merge-close aria-label="关闭合并窗口">×</button></div>
+  <p class="help">只导入剧本及其图片、音视频和时间点。先逐篇检查，再选择新增、跳过或覆盖。分类映射到本地已有分类；本场列表、正在展示的内容和展示设置保持原样。</p>
+  <label class="field">选择工作台完整备份 ZIP<input id="library-merge-file" type="file" accept=".zip,application/zip"></label>
+  <div class="library-merge-check-row"><button id="library-merge-check" type="button" class="button secondary">检查备份</button><p id="library-merge-status" role="status" aria-live="polite"></p></div>
+  <p id="library-merge-error" class="form-error" role="alert"></p>
+  <section id="library-merge-preview" hidden>
+    <h3>分类对应</h3><p class="help">为要新增的剧本选择接收分类；覆盖时默认沿用所选本地剧本的分类，也可在该篇下调整。不创建或修改分类。</p>
+    <div id="library-merge-categories" class="library-merge-categories"></div>
+    <div class="library-merge-list-heading"><h3>逐篇检查</h3><p id="library-merge-count" class="help"></p></div>
+    <div id="library-merge-items" class="library-merge-items" aria-label="待合并剧本"></div>
+    <div id="library-merge-review" class="library-merge-review" aria-live="polite"></div>
+    <label id="library-merge-overwrite-field" class="library-merge-overwrite" hidden><input id="library-merge-overwrite-confirm" type="checkbox">我已核对下方覆盖范围：覆盖所选剧本的资料、正文和关联媒体；覆盖前的版本会保存到历史中。</label>
+  </section>
+  <div class="dialog-actions"><button type="button" class="button secondary" data-library-merge-close>取消</button><button id="library-merge-confirm" type="button" class="button primary" disabled>确认合并</button></div>
+</dialog>

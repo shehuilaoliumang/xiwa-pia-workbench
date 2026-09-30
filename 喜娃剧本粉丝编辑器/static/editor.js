@@ -1,4 +1,4 @@
-/* 喜娃剧本粉丝编辑器 — 页面逻辑（含音视频配本编辑，与管理系统的编辑能力对齐） */
+/* 喜娃剧本粉丝编辑器 — 正文与音视频配本编辑，保持主播系统剧本交换格式兼容。 */
 "use strict";
 
 const CSRF = document.querySelector('meta[name="csrf"]').content;
@@ -9,6 +9,160 @@ const KIND_TEXT = { mp4: '视频（MP4）', webm: '视频（WebM）', mp3: '音�
 let currentId = null;
 let script = null;
 let blocks = [];
+let bodySaving = false;
+
+function blockColor(block) {
+  if (/^#[0-9a-f]{6}$/i.test(block && block.color || '')) return block.color.toLowerCase();
+  const run = (block && block.runs || []).find(item => String(item.text || '').trim() && /^#[0-9a-f]{6}$/i.test(item.color || ''));
+  return run ? run.color.toLowerCase() : null;
+}
+
+function roleColor(name, currentBlock) {
+  const palette = script && script.role_colors || {};
+  const configured = Object.hasOwn(palette, name) ? palette[name] : null;
+  if (typeof configured === 'string' && /^#[0-9a-f]{6}$/i.test(configured)) return configured.toLowerCase();
+  const earlier = blocks.find(block => block !== currentBlock && block.kind !== 'image' && String(block.role || '').trim() === name && blockColor(block));
+  return earlier ? blockColor(earlier) : null;
+}
+
+function roleNames() {
+  return [...new Set([...Object.keys(script && script.role_colors || {}), ...blocks.filter(block => block.kind !== 'image').map(block => String(block.role || '').trim()).filter(Boolean)])];
+}
+
+function updateRoleOptions(refreshDefaults = true) {
+  const list = document.getElementById('fan-role-options');
+  if (!list) return;
+  list.replaceChildren(...roleNames().map(name => new Option(name, name)));
+  if (refreshDefaults) renderRoleDefaults();
+}
+
+function roleDefaultStatus(message, isError = false) {
+  const status = document.getElementById('roleDefaultStatus');
+  const count = Object.keys(script && script.role_colors || {}).length;
+  status.textContent = message + '（已设置 ' + count + '/200 个默认色）';
+  status.classList.toggle('error', isError);
+}
+
+function writeRoleDefault(name, value) {
+  if (!script || bodySaving) return false;
+  name = String(name || '').trim();
+  if (!name) throw new Error('请先输入角色名。');
+  if (Array.from(name).length > 200) throw new Error('角色名最多 200 个字符，请缩短后再添加。');
+  if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error('默认颜色无效，请重新选择颜色。');
+  if (!script.role_colors || typeof script.role_colors !== 'object' || Array.isArray(script.role_colors)) script.role_colors = Object.create(null);
+  if (!Object.hasOwn(script.role_colors, name) && Object.keys(script.role_colors).length >= 200) throw new Error('最多设置 200 个角色默认色，请先清除一个预设。');
+  // Ordinary assignment treats __proto__ specially on a plain object.
+  Object.defineProperty(script.role_colors, name, {value: value.toLowerCase(), enumerable: true, writable: true, configurable: true});
+  updateRoleOptions(false);
+  roleDefaultStatus('已设置「' + name + '」的默认色；点击「保存修改」后保留。');
+  return true;
+}
+
+function renderRoleDefaults() {
+  const list = document.getElementById('roleDefaultList');
+  if (!list) return;
+  list.replaceChildren();
+  const palette = script && script.role_colors || {};
+  const names = roleNames();
+  if (!names.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint'; empty.textContent = '还没有角色。可先添加预设，也可在正文填写角色名后设置。';
+    list.appendChild(empty);
+  }
+  names.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'role-default-row'; row.dataset.roleName = name;
+    const label = document.createElement('div'); label.className = 'role-default-name';
+    const title = document.createElement('strong'); title.textContent = name;
+    const note = document.createElement('span'); note.className = 'hint';
+    const explicit = Object.hasOwn(palette, name);
+    note.textContent = explicit ? '已设置默认色' : roleColor(name, null) ? '未设置默认色 · 沿用正文首色' : '尚无默认色';
+    label.append(title, note);
+    const picker = document.createElement('input'); picker.type = 'color';
+    picker.dataset.roleDefault = name; picker.value = roleColor(name, null) || DEFAULT_COLOR;
+    picker.setAttribute('aria-label', '「' + name + '」的默认颜色');
+    const clear = document.createElement('button'); clear.type = 'button';
+    clear.className = 'button secondary small'; clear.dataset.roleClear = name;
+    clear.textContent = '清除默认色'; clear.disabled = !explicit;
+    const change = () => {
+      if (bodySaving) return;
+      try {
+        if (writeRoleDefault(name, picker.value)) { note.textContent = '已设置默认色'; clear.disabled = false; }
+      } catch (error) {
+        picker.value = roleColor(name, null) || DEFAULT_COLOR;
+        roleDefaultStatus(error.message, true);
+      }
+    };
+    picker.addEventListener('input', change);
+    picker.addEventListener('change', change);
+    clear.addEventListener('click', () => {
+      if (!script || bodySaving || !Object.hasOwn(script.role_colors || {}, name)) return;
+      delete script.role_colors[name];
+      updateRoleOptions();
+      roleDefaultStatus('已清除「' + name + '」的默认色；已有台词颜色保留。点击「保存修改」后保留。');
+    });
+    row.append(label, picker, clear); list.appendChild(row);
+  });
+  if (bodySaving) lockBodySave(true);
+}
+
+function addRoleDefault() {
+  if (!script || bodySaving) return;
+  const input = document.getElementById('newRoleName');
+  try {
+    if (!writeRoleDefault(input.value, document.getElementById('newRoleColor').value)) return;
+    input.value = '';
+    renderRoleDefaults();
+    input.focus();
+  } catch (error) { roleDefaultStatus(error.message, true); }
+}
+
+function setBlockText(block, value) {
+  if (block.text === value) return;
+  const base = blockColor(block) || DEFAULT_COLOR;
+  block.text = value; block.color = base; delete block.runs;
+}
+
+function setBlockRole(block, value, picker) {
+  if (block.role === value) return;
+  const previous = String(block.role || '').trim(), next = value.trim();
+  block.role = value;
+  if (next && next !== previous) {
+    const inferred = roleColor(next, block);
+    if (inferred) {
+      if (blockColor(block) !== inferred) delete block.runs;
+      block.color = inferred;
+      if (picker) picker.value = inferred;
+    }
+  }
+  updateRoleOptions();
+}
+
+function setBlockColor(block, value) {
+  if (blockColor(block) === value.toLowerCase()) return;
+  block.color = value.toLowerCase(); delete block.runs;
+}
+
+function syncBlocksFromDom() {
+  const wrap = document.getElementById('blocks');
+  if (!wrap) return;
+  for (const card of wrap.children) {
+    const block = blocks.find(item => item.id === card.dataset.blockId);
+    if (!block || block.kind === 'image') continue;
+    const text = card.querySelector('.textInput'), role = card.querySelector('.roleInput'), picker = card.querySelector('.colorInput');
+    if (text) setBlockText(block, text.value);
+    if (role) setBlockRole(block, role.value, picker);
+    if (picker) setBlockColor(block, picker.value);
+  }
+}
+
+function lockBodySave(locked) {
+  bodySaving = locked;
+  document.querySelectorAll('#editorPanel input,#editorPanel textarea,#editorPanel button').forEach(node => {
+    if (locked) { if (node.dataset.fanSaveDisabled === undefined) node.dataset.fanSaveDisabled = node.disabled ? 'true' : 'false'; node.disabled = true; }
+    else if (node.dataset.fanSaveDisabled !== undefined) { node.disabled = node.dataset.fanSaveDisabled === 'true'; delete node.dataset.fanSaveDisabled; }
+  });
+}
 
 function toast(message, isError) {
   const el = document.getElementById('toast');
@@ -117,6 +271,7 @@ async function refreshList(selectId) {
 }
 
 async function openWorkspace(id) {
+  if (bodySaving) { toast('正在保存当前剧本，请稍后切换。', true); return; }
   try {
     stopPlayer();
     const data = await (await api('/api/workspaces/' + id)).json();
@@ -130,7 +285,10 @@ async function openWorkspace(id) {
     document.getElementById('fCastNote').value = script.cast_note || '';
     document.getElementById('fNotes').value = script.notes || '';
     document.getElementById('fVisible').checked = script.visible !== false;
+    document.getElementById('newRoleName').value = '';
+    document.getElementById('newRoleColor').value = DEFAULT_COLOR;
     renderBlocks();
+    roleDefaultStatus('设置只影响之后选用角色的句子；点击「保存修改」后保留。');
     renderMedia();
     loadPlayer();
     document.getElementById('editorTitle').textContent = (script.title || '未命名') + '　·　编辑中';
@@ -148,6 +306,7 @@ function renderBlocks() {
   blocks.forEach((block, index) => {
     const card = document.createElement('div');
     card.className = 'block';
+    card.dataset.blockId = block.id;
     if (block.kind === 'image') {
       const src = assetUrl(block.image_path);
       card.innerHTML = '<div class="imgwrap"><img src="' + src + '" alt="插图">' +
@@ -161,8 +320,8 @@ function renderBlocks() {
     } else {
       const original = block.original_text && block.original_text !== block.text ? block.original_text : '';
       card.innerHTML =
-        '<div class="row"><div class="role"><input class="roleInput" placeholder="角色名，如：旁白 / 小明" value="">' +
-        '<div class="colorline" style="margin-top:6px">角色颜色 <input type="color" class="colorInput" value="' + DEFAULT_COLOR + '"></div></div>' +
+        '<div class="row"><div class="role"><input class="roleInput" list="fan-role-options" autocomplete="off" placeholder="角色名，如：旁白 / 小明" value="">' +
+        '<div class="colorline" style="margin-top:6px">本句颜色 <input type="color" class="colorInput" value="' + DEFAULT_COLOR + '"></div></div>' +
         '</div>' +
         (original ? '<div class="muted">原稿：' + esc(original) + '</div>' : '') +
         '<textarea class="textInput" placeholder="台词内容……"></textarea>' +
@@ -170,13 +329,21 @@ function renderBlocks() {
         '<button class="btn plain small" data-op="down">↓</button>' +
         '<button class="btn danger small" data-op="del">删除</button></div>';
       card.querySelector('.roleInput').value = block.role || '';
-      const currentColor = /^#[0-9a-f]{6}$/i.test(block.color) ? block.color : DEFAULT_COLOR;
+      const currentColor = blockColor(block) || DEFAULT_COLOR;
       card.querySelector('.colorInput').value = currentColor;
       card.querySelector('.textInput').value = block.text || '';
-      card.querySelector('.textInput').addEventListener('input', () => { delete block.runs; });
+      const roleInput = card.querySelector('.roleInput'), picker = card.querySelector('.colorInput'), textInput = card.querySelector('.textInput');
+      textInput.addEventListener('input', () => setBlockText(block, textInput.value));
+      roleInput.addEventListener('input', event => { if (!event.isComposing) setBlockRole(block, roleInput.value, picker); });
+      roleInput.addEventListener('change', () => setBlockRole(block, roleInput.value, picker));
+      roleInput.addEventListener('compositionend', () => setBlockRole(block, roleInput.value, picker));
+      picker.addEventListener('input', () => setBlockColor(block, picker.value));
+      picker.addEventListener('change', () => setBlockColor(block, picker.value));
     }
     card.querySelectorAll('[data-op=up],[data-op=down],[data-op=del]').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (bodySaving) return;
+        syncBlocksFromDom();
         const op = btn.dataset.op;
         if (op === 'up' && index > 0) { [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]]; renderBlocks(); }
         if (op === 'down' && index < blocks.length - 1) { [blocks[index + 1], blocks[index]] = [blocks[index], blocks[index + 1]]; renderBlocks(); }
@@ -192,10 +359,12 @@ function renderBlocks() {
     });
     wrap.appendChild(card);
   });
+  updateRoleOptions();
 }
 
 function collect() {
   if (!script) return null;
+  syncBlocksFromDom();
   const tags = document.getElementById('fTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
   return {
     title: document.getElementById('fTitle').value.trim(),
@@ -205,34 +374,31 @@ function collect() {
     notes: document.getElementById('fNotes').value,
     tags: tags,
     visible: document.getElementById('fVisible').checked,
-    blocks: blocks.map((block, index) => {
-      const card = document.getElementById('blocks').children[index];
-      const copy = { ...block };
-      if (block.kind === 'text' && card) {
-        copy.role = card.querySelector('.roleInput').value.trim();
-        copy.color = card.querySelector('.colorInput').value;
-        const text = card.querySelector('.textInput').value;
-        if (text !== block.text) delete copy.runs;
-        copy.text = text;
-      }
-      return copy;
-    })
+    role_colors: JSON.parse(JSON.stringify(script.role_colors || {})),
+    blocks: blocks.map(block => block.kind === 'image' ? { ...block } : { ...block, role: String(block.role || '').trim() })
   };
 }
 
 async function save() {
-  if (!currentId) return;
+  if (!currentId || bodySaving) return;
   const payload = collect();
   if (!payload.title) { toast('剧名不能为空。', true); return; }
+  const workspaceId = currentId;
+  lockBodySave(true);
   try {
-    const res = await api('/api/workspaces/' + currentId, { method: 'PUT', json: payload });
+    const res = await api('/api/workspaces/' + workspaceId, { method: 'PUT', json: payload });
     const data = await res.json();
+    if (currentId !== workspaceId) return;
     script = data.script;
+    blocks = JSON.parse(JSON.stringify(script.blocks || []));
+    renderBlocks();
+    lockBodySave(true);
+    roleDefaultStatus('角色默认色已保存。');
     toast('已保存。');
     await refreshList(currentId);
   } catch (error) {
     toast(error.message, true);
-  }
+  } finally { lockBodySave(false); }
 }
 
 async function exportZip() {
@@ -255,6 +421,7 @@ async function exportZip() {
 }
 
 async function importPackage(file) {
+  if (bodySaving) { toast('请等待当前剧本保存完成。', true); return; }
   if (!file) return;
   if (file.size > 550 * 1024 * 1024) { toast('剧本包过大（超过 512 MB）。', true); return; }
   try {
@@ -275,6 +442,7 @@ async function importPackage(file) {
 }
 
 async function deleteWorkspace(id) {
+  if (bodySaving) { toast('请等待当前剧本保存完成。', true); return; }
   if (!confirm('确定删除这个本地剧本工作区吗？\n删除后如需修改请重新导入主播发的 ZIP。')) return;
   try {
     await api('/api/workspaces/' + id, { method: 'DELETE' });
@@ -292,19 +460,23 @@ async function deleteWorkspace(id) {
 }
 
 async function uploadImage(file, onRef) {
-  if (!file) return;
+  if (!file || !currentId || bodySaving) return;
+  syncBlocksFromDom();
+  const workspaceId = currentId;
   if (file.size > 12 * 1024 * 1024) { toast('插图须在 12 MB 以内。', true); return; }
   try {
     const body = new FormData();
     body.append('image', file);
-    const res = await fetch('/api/workspaces/' + currentId + '/images', { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body });
+    const res = await fetch('/api/workspaces/' + workspaceId + '/images', { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body });
     if (!res.ok) {
       let message = '图片上传失败（' + res.status + '）';
       try { const data = await res.json(); if (data.error) message = data.error; } catch (e) {}
       throw new Error(message);
     }
     const data = await res.json();
-    onRef(data.ref);
+    if (currentId !== workspaceId) { toast('图片已上传至原剧本；当前剧本已切换，请重新打开原剧本后添加。', true); return; }
+    syncBlocksFromDom();
+    if (onRef(data.ref) === false) return;
     toast('插图已添加，记得保存。');
   } catch (error) {
     toast(error.message, true);
@@ -312,6 +484,8 @@ async function uploadImage(file, onRef) {
 }
 
 function addTextBlock() {
+  if (bodySaving || !currentId) return;
+  syncBlocksFromDom();
   blocks.push({ id: uid('block-'), kind: 'text', text: '', role: '', color: DEFAULT_COLOR });
   renderBlocks();
 }
@@ -324,8 +498,11 @@ function addImageBlock(file) {
 }
 
 function replaceImage(index, file) {
+  const blockId = blocks[index] && blocks[index].id;
   uploadImage(file, ref => {
-    blocks[index].image_path = ref;
+    const block = blocks.find(item => item.id === blockId && item.kind === 'image');
+    if (!block) { toast('原图片段已移除，请重新添加图片。', true); return false; }
+    block.image_path = ref;
     renderBlocks();
   });
 }
@@ -662,7 +839,9 @@ async function removeMedia() {
     const res = await api('/api/workspaces/' + currentId + '/media', { method: 'DELETE' });
     const data = await res.json();
     stopPlayer();
-    script = data.script;
+    // The media endpoint must not replace unsaved role defaults or body edits.
+    if (data.script.media) script.media = data.script.media;
+    else delete script.media;
     document.getElementById('mediaPlayerWrap').innerHTML = '';
     renderMedia();
     toast('已解除音视频关联。');
@@ -719,6 +898,10 @@ document.getElementById('btnExport').addEventListener('click', exportZip);
 document.getElementById('btnAddText').addEventListener('click', addTextBlock);
 document.getElementById('btnAddImage').addEventListener('click', () => document.getElementById('fileImage').click());
 document.getElementById('fileImage').addEventListener('change', e => { addImageBlock(e.target.files[0]); e.target.value = ''; });
+document.getElementById('btnAddRoleDefault').addEventListener('click', addRoleDefault);
+document.getElementById('newRoleName').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); addRoleDefault(); }
+});
 bindMediaEvents();
 
 refreshList(null).catch(() => {});

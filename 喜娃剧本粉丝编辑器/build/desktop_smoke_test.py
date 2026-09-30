@@ -29,52 +29,68 @@ def fetch(method, url, data=None, headers=None):
         return error.code, error.read()
 
 
-def electron_processes():
-    import ctypes
-
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [("dwSize", ctypes.c_ulong), ("cntUsage", ctypes.c_ulong), ("th32ProcessID", ctypes.c_ulong),
-                    ("th32DefaultHeapID", ctypes.c_void_p), ("th32ModuleID", ctypes.c_ulong),
-                    ("cntThreads", ctypes.c_ulong), ("th32ParentProcessID", ctypes.c_ulong),
-                    ("pcPriClassBase", ctypes.c_long), ("dwFlags", ctypes.c_ulong),
-                    ("szExeFile", ctypes.c_wchar * 260)]
-
-    result = []
-    snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(0x00000002, 0)  # TH32CS_SNAPPROCESS
-    if snapshot == -1:
-        return result
+def _electron_snapshot():
+    """Read process identity only; this test never stops another Electron app."""
+    script = (
+        "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); "
+        "@(Get-CimInstance Win32_Process -Filter \"Name = 'electron.exe'\" | "
+        "Select-Object ProcessId,ParentProcessId,CommandLine) | ConvertTo-Json -Compress"
+    )
+    result = subprocess.run(["powershell", "-NoProfile", "-Command", script],
+                            capture_output=True, timeout=20, encoding="utf-8", errors="replace")
+    if result.returncode != 0:
+        raise RuntimeError("Cannot inspect the test desktop process tree")
     try:
-        entry = PROCESSENTRY32W()
-        entry.dwSize = ctypes.sizeof(entry)
-        if ctypes.windll.kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
-            while True:
-                if entry.szExeFile.lower() == "electron.exe":
-                    result.append(entry.th32ProcessID)
-                if not ctypes.windll.kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
-                    break
-    finally:
-        ctypes.windll.kernel32.CloseHandle(snapshot)
-    return result
+        records = json.loads(result.stdout.strip() or "[]")
+    except ValueError as error:
+        raise RuntimeError("Invalid desktop process inventory") from error
+    return records if isinstance(records, list) else [records]
 
 
-def electron_renderer_pids():
-    """Return electron PIDs whose command line marks them as renderer processes
-    (i.e. a BrowserWindow was actually created)."""
-    import subprocess as sp
-    try:
-        script = ("Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and "
-                  "$_.CommandLine -match '--type=renderer' } | ForEach-Object { $_.ProcessId }")
-        output = sp.run(["powershell", "-NoProfile", "-Command", script],
-                        capture_output=True, timeout=20, text=True)
-        if output.returncode == 0:
-            return [int(line.strip()) for line in output.stdout.splitlines() if line.strip().isdigit()]
-    except Exception:
-        pass
-    return []
+def _owned_electrons(data_dir, records):
+    data_key = str(Path(data_dir).resolve()).replace("\\", "/").casefold()
+    marker = re.compile(re.escape(data_key) + r'(?=[/"\s]|$)')
+    owned = {int(row["ProcessId"]) for row in records
+             if marker.search(str(row.get("CommandLine") or "").replace("\\", "/").casefold())}
+    # Renderer/GPU children sometimes omit the data path; follow only a main
+    # process already proven to belong to this uniquely named test directory.
+    while True:
+        children = {int(row["ProcessId"]) for row in records
+                    if int(row.get("ParentProcessId") or 0) in owned}
+        if children <= owned:
+            break
+        owned.update(children)
+    return [row for row in records if int(row["ProcessId"]) in owned]
+
+
+def electron_processes(data_dir):
+    return [int(row["ProcessId"]) for row in _owned_electrons(data_dir, _electron_snapshot())]
+
+
+def electron_renderer_pids(data_dir):
+    return [int(row["ProcessId"]) for row in _owned_electrons(data_dir, _electron_snapshot())
+            if "--type=renderer" in str(row.get("CommandLine") or "")]
+
+
+def _safe_cleanup(base):
+    import shutil
+    resolved = Path(base).resolve()
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    if (resolved.parent != temp_root or not resolved.name.startswith("fan-desktop-test-")
+            or not resolved.is_relative_to(temp_root)):
+        raise RuntimeError("Refusing cleanup outside this test's temporary directory")
+    shutil.rmtree(resolved, ignore_errors=True)
 
 
 def main():
-    base = Path(tempfile.mkdtemp(prefix="fan-desktop-test-"))
+    # Never attach to, shut down or borrow evidence from an occupied service.
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("127.0.0.1", PORT))
+        except OSError as error:
+            raise RuntimeError(f"QA port {PORT} is occupied; existing services were not touched") from error
+    base = Path(tempfile.mkdtemp(prefix="fan-desktop-test-")).resolve()
     data_dir = base / "fan-data"
     fan_exe = os.environ.get("FAN_EXE")
     if fan_exe:
@@ -92,8 +108,13 @@ def main():
             try:
                 status, body = fetch("GET", base_url + "/api/health")
                 if status == 200:
+                    health = json.loads(body)
+                    assert health.get("app") == "xiwa-fan-editor", "health belongs to a different service"
+                    assert health.get("ok") is True and health.get("version") == "0.2.1", "unexpected fan service version"
+                    assert isinstance(health.get("data_dir"), str), "health is missing the workspace identity"
+                    assert Path(health["data_dir"]).resolve() == data_dir.resolve(), "health belongs to another workspace"
                     break
-            except Exception:
+            except (urllib.error.URLError, OSError):
                 pass
             time.sleep(0.5)
         else:
@@ -106,7 +127,7 @@ def main():
 
         # Electron shell should spawn and release next to the base directory.
         for _ in range(60):
-            if electron_processes():
+            if electron_processes(data_dir):
                 break
             time.sleep(0.5)
         else:
@@ -125,8 +146,8 @@ def main():
             detail = log.read_text(encoding="utf-8", errors="replace")[-2000:] if log.exists() else "(no desktop.log)"
             raise RuntimeError("desktop entry script did not execute (desktop-user-data missing)\n" + detail)
         time.sleep(3)
-        assert electron_processes(), "electron shell died unexpectedly"
-        renderer = electron_renderer_pids()
+        assert electron_processes(data_dir), "electron shell died unexpectedly"
+        renderer = electron_renderer_pids(data_dir)
         assert renderer, "no renderer process -> window was not created"
 
         # Page still served (CSP + external assets intact).
@@ -140,7 +161,7 @@ def main():
         # Graceful shutdown: service stops -> desktop shell notices and quits.
         fetch("POST", base_url + "/api/shutdown", headers={"X-CSRF-Token": csrf})
         for _ in range(60):
-            if not electron_processes():
+            if not electron_processes(data_dir):
                 break
             time.sleep(0.5)
         else:
@@ -151,7 +172,7 @@ def main():
         assert not (data_dir / "server.json").exists()
         print("DESKTOP SMOKE OK")
         print("  service up, desktop assets released, electron shell spawned (hidden),")
-        print("  entry script executed (desktop-user-data), window renderer created,")
+        print("  entry script executed (desktop-user-data), owned window renderer created:", renderer)
         print("  shutdown -> shell quit -> service exited -> server.json removed")
     finally:
         try:
@@ -162,8 +183,7 @@ def main():
         if proc.poll() is None:
             proc.terminate()
         proc.wait(timeout=10)
-        import shutil
-        shutil.rmtree(base, ignore_errors=True)
+        _safe_cleanup(base)
 
 
 if __name__ == "__main__":

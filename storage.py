@@ -450,6 +450,17 @@ def normalize_script(data, existing=None, source_import=False):
     if not isinstance(tags, list) or len(tags) > 100:
         raise DomainError("标签须为不超过 100 项的列表。")
     result["tags"] = list(dict.fromkeys(text(tag, "标签", 80, True, True) for tag in tags))
+    role_colors = data.get("role_colors", previous.get("role_colors", {}))
+    if not isinstance(role_colors, dict) or len(role_colors) > 200:
+        raise DomainError("角色默认配色须为不超过 200 项的对象。")
+    result["role_colors"] = {}
+    for role, value in role_colors.items():
+        role = text(role, "角色名称", 200, True, True)
+        if role in result["role_colors"]:
+            raise DomainError("角色默认配色包含重复角色名。")
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            raise DomainError("角色默认配色须为 #RRGGBB 色值。")
+        result["role_colors"][role] = color(value)
     # Source fields are write-protected after import. Edits retain a full history.
     source = data if source_import else previous
     result["source_category"] = text(source.get("source_category", "用户新增"), "原分类", 200)
@@ -1100,6 +1111,27 @@ class Store:
             return [{"id": row["id"], "created_at": row["created_at"], "script": json.loads(row["data"])}
                     for row in connection.execute("SELECT * FROM history WHERE script_id=? ORDER BY created_at DESC", (item_id,))]
 
+    def restore_history(self, item_id, history_id):
+        identifier(history_id, "历史版本 ID")
+        with self.transaction(write=True) as connection:
+            previous = self._get(connection, "scripts", item_id)
+            row = connection.execute("SELECT data FROM history WHERE id=? AND script_id=?", (history_id, item_id)).fetchone()
+            if not row:
+                raise DomainError("该历史版本不存在或不属于此剧本。", 404, "history_not_found")
+            candidate = json.loads(row[0])
+            candidate["id"] = previous["id"]
+            if not connection.execute("SELECT 1 FROM categories WHERE id=?", (candidate.get("category_id"),)).fetchone():
+                candidate["category_id"] = UNCATEGORIZED
+            item = normalize_script(candidate, source_import=True)
+            self._assert_assets(item)
+            if item.get("media"):
+                path = self.resource_file(item["media"]["path"])
+                if path.stat().st_size != item["media"]["size"] or hashlib.sha256(path.read_bytes()).hexdigest() != item["media"]["sha256"]:
+                    raise DomainError("历史版本的媒体校验失败，请先修复资源。", 409, "invalid_media")
+            self._record_history(connection, previous)
+            self._script(connection, item)
+            return item
+
     def save_queue(self, ids):
         ids = id_list(ids, "待展示列表")
         with self.transaction(write=True) as connection:
@@ -1231,6 +1263,36 @@ class Store:
     def preview(self, data):
         with self.transaction() as connection:
             return self._snapshot(connection, data)
+
+    def editor_preview(self, data):
+        orientation = data.get("orientation", "portrait")
+        body_mode = data.get("body_mode", "pages")
+        if not isinstance(orientation, str) or orientation not in DEFAULT_LAYOUTS or not isinstance(body_mode, str) or body_mode not in {"pages", "scroll"}:
+            raise DomainError("编辑预览的画幅或阅读模式无效。")
+        draft = data.get("draft")
+        if not isinstance(draft, dict):
+            raise DomainError("请提交完整编辑草稿。")
+        with self.transaction() as connection:
+            script_id = data.get("script_id")
+            existing = self._get(connection, "scripts", identifier(script_id, "剧本 ID")) if script_id is not None else None
+            candidate = copy.deepcopy(draft)
+            draft_title = text(candidate.get("title", ""), "剧名", 200)
+            if not draft_title.strip():
+                candidate["title"] = "未命名剧本"
+            item = normalize_script(candidate, existing)
+            item.pop("media", None)
+            category = self._get(connection, "categories", item["category_id"])
+            self._assert_assets(item)
+            layout = normalize_layout({"body_mode": body_mode}, orientation,
+                                      self._setting(connection, "layouts", DEFAULT_LAYOUTS)[orientation])
+            snapshot = {"id": "editor-" + uuid.uuid4().hex, "mode": "script", "orientation": orientation,
+                        "directory_level": "scripts", "focus_category_id": item["category_id"],
+                        "categories": [category], "scripts": [item], "layout": layout,
+                        "selection": {"mode": "script", "script_id": item["id"], "category_ids": [],
+                                      "script_ids": [], "directory_level": "scripts", "focus_category_id": item["category_id"]},
+                        "created_at": now(), "editor_only": True}
+            # Intentionally no apply token: an editor draft cannot enter live state.
+            return {"snapshot": snapshot}
 
     def apply(self, data):
         realtime = data.get("realtime", False)
@@ -1553,7 +1615,7 @@ class Store:
         finally:
             connection.close()
 
-    def restore(self, uploaded):
+    def _read_backup(self, uploaded):
         try:
             with zipfile.ZipFile(uploaded) as archive:
                 entries = archive.infolist()
@@ -1590,7 +1652,7 @@ class Store:
                     if len(content) != expected["size"] or hashlib.sha256(content).hexdigest() != expected["sha256"]:
                         raise DomainError("备份校验失败，文件可能损坏。")
                     files[name] = content
-                with tempfile.TemporaryDirectory(prefix="restore-", dir=self.instance_dir) as temporary:
+                with tempfile.TemporaryDirectory(prefix="restore-") as temporary:
                     source_database = Path(temporary) / "database.sqlite3"
                     source_database.write_bytes(files["database.sqlite3"])
                     imported = self._validate_database(source_database)
@@ -1626,6 +1688,10 @@ class Store:
             raise
         except (zipfile.BadZipFile, RuntimeError, KeyError, TypeError, ValueError, OSError) as error:
             raise DomainError("无法读取备份，请选择由本工作台导出的完整 ZIP 文件。") from error
+        return imported, media
+
+    def restore(self, uploaded):
+        imported, media = self._read_backup(uploaded)
         with self.lock:
             before = self.backup()
             self.backup_dir.mkdir(exist_ok=True)

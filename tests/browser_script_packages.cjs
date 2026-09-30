@@ -61,16 +61,21 @@ try {
   const mediaUpload=await context.request.post(base+'/api/scripts/'+fixture.id+'/media',{headers:{'X-CSRF-Token':(await library()).csrf_token},multipart:{file:{name:'演示.wav',mimeType:'audio/wav',buffer:wav()}}});
   assert(mediaUpload.ok(),await mediaUpload.text());
   await api('/api/scripts/'+fixture.id+'/media/cues','PUT',{duration:2,cues:[{id:'cue-package-check',at:.5,label:'一起走本',block_ids:fixture.blocks.slice(0,2).map(b=>b.id)}]});
-  const source=(await library()).scripts.find(s=>s.id===fixture.id),beforeState=await get('/api/state'),beforeCount=(await library()).scripts.length;
+  let source=(await library()).scripts.find(s=>s.id===fixture.id);const packageTitle=source.title,beforeState=await get('/api/state'),beforeCount=(await library()).scripts.length;
   await page.goto(base+'/manage');await page.waitForFunction(()=>window.piaScriptPackages&&window.piaEditor);
   const downloadPromise=page.waitForEvent('download');await page.locator('[data-export-script="'+fixture.id+'"]').click();
   const download=await downloadPromise,filename=path.join(data,'exported-script.zip');await download.saveAs(filename);
   assert(fs.statSync(filename).size>0);assert.equal((await library()).scripts.length,beforeCount);assert.deepEqual(await get('/api/state'),beforeState);
+  // Keep the exported content and the local edited source as distinct titles so
+  // this original exchange test exercises the new-script path; conflict/duplicate
+  // behavior has its own browser_import_conflicts.cjs coverage.
+  await api('/api/scripts/'+source.id,'PATCH',{...source,title:'本地保留本（原单篇交换验收）'});
+  source=(await library()).scripts.find(s=>s.id===source.id);
   result.checks.push('UI export downloads one script without changing live or library');
   await openPackage();await checkFile(filename);await ready();
-  assert.equal(await page.locator('#script-package-title').textContent(),source.title);
+  assert.equal(await page.locator('#script-package-title').textContent(),packageTitle);
   assert.match(await page.locator('#script-package-summary').textContent(),/2 个文字段落.*1 张正文图片.*附音视频.*1 个时间点/);
-  assert.match(await page.locator('#script-package-warnings').textContent(),/隐藏/);assert.match(await page.locator('#script-package-warnings').textContent(),/同名/);
+  assert.match(await page.locator('#script-package-warnings').textContent(),/隐藏/);assert.match(await page.locator('#script-package-match-status').textContent(),/可新增/);
   assert(await page.locator('#script-package-confirm').isDisabled());
   await page.locator('#script-package-category').selectOption(first.categories[1].id);
   assert(!await page.locator('#script-package-confirm').isDisabled());
@@ -79,7 +84,7 @@ try {
   await screenshot('script-package-preview-desktop.png');
   await page.locator('[data-package-close]').last().click();
   assert.equal((await library()).scripts.length,beforeCount);assert.deepEqual(await get('/api/state'),beforeState);
-  result.checks.push('preview/cancel is read-only; body, media, cues, hidden and duplicate summaries shown');
+  result.checks.push('preview/cancel is read-only; body, media, cues, hidden and new-script summaries shown');
   await openPackage();await checkFile({name:'坏文件.zip',mimeType:'application/zip',buffer:Buffer.from('not a zip')});
   await until(async()=>!!await page.locator('#script-package-error').textContent(),'invalid ZIP error');
   assert(await page.locator('#script-package-preview').isHidden());assert(await page.locator('#script-package-confirm').isDisabled());
@@ -90,8 +95,8 @@ try {
   result.checks.push('invalid ZIP and full backup report readable errors without writes');
   let blocked=false;
   await page.route('**/api/script-packages/preview',async route=>{
-    const response=await route.fetch();blocked=true;await new Promise(resolve=>{release=resolve;});
-    await route.fulfill({response}).catch(()=>{});
+    blocked=true;await new Promise(resolve=>{release=resolve;});
+    await route.continue().catch(()=>{});
   });
   await checkFile(filename);await until(()=>blocked,'delayed preview response');
   await page.locator('#script-package-file').setInputFiles({name:'换成另一份.zip',mimeType:'application/zip',buffer:Buffer.from('replacement')});
@@ -121,7 +126,7 @@ try {
   await page.keyboard.press('Escape');assert(await page.locator('#script-package-dialog').isVisible());
   release();release=null;await page.locator('#script-dialog').waitFor();await page.unroute('**/api/script-packages/import');
   assert.equal(imports,1);const after=await library();assert.equal(after.scripts.length,beforeCount+1);
-  const imported=after.scripts.find(s=>s.title===source.title&&s.id!==source.id);assert(imported);
+  const imported=after.scripts.find(s=>s.title===packageTitle&&s.id!==source.id);assert(imported);
   assert.equal(imported.category_id,first.categories[1].id);assert.equal(imported.visible,false);
   assert.equal(await page.locator('#edit-script-id').inputValue(),imported.id);assert.equal(await page.locator('#manage-script-search').inputValue(),'');assert.equal(await page.locator('#manage-visible-filter').inputValue(),'');
   assert.deepEqual(after.scripts.find(s=>s.id===source.id),source);assert.deepEqual(await get('/api/state'),beforeState);

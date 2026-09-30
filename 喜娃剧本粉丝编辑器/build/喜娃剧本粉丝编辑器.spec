@@ -1,11 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+# Build from any checkout location; no user-specific absolute paths.
+from pathlib import Path
 
+fan_root = Path(SPECPATH).resolve().parent
+runtime_root = fan_root.parent / 'desktop' / 'runtime'
+if not (runtime_root / 'electron.exe').is_file():
+    raise FileNotFoundError('缺少主项目 desktop/runtime/electron.exe；请先准备完整 Electron 运行时。')
 
 a = Analysis(
-    ['C:/Users/Lu/Documents/ChatGPT/选本网页/喜娃剧本粉丝编辑器/fan_entry.py'],
-    pathex=[],
-    binaries=[('C:/Users/Lu/Documents/ChatGPT/选本网页/desktop/runtime', 'desktop/runtime')],
-    datas=[('C:/Users/Lu/Documents/ChatGPT/选本网页/喜娃剧本粉丝编辑器/templates', 'templates'), ('C:/Users/Lu/Documents/ChatGPT/选本网页/喜娃剧本粉丝编辑器/static', 'static'), ('C:/Users/Lu/Documents/ChatGPT/选本网页/喜娃剧本粉丝编辑器/desktop/main.cjs', 'desktop'), ('C:/Users/Lu/Documents/ChatGPT/选本网页/喜娃剧本粉丝编辑器/desktop/package.json', 'desktop')],
+    [str(fan_root / 'fan_entry.py')],
+    pathex=[str(fan_root)],
+    binaries=[(str(runtime_root), 'desktop/runtime')],
+    datas=[(str(fan_root / 'templates'), 'templates'), (str(fan_root / 'static'), 'static'),
+           (str(fan_root / 'desktop' / 'main.cjs'), 'desktop'),
+           (str(fan_root / 'desktop' / 'package.json'), 'desktop')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

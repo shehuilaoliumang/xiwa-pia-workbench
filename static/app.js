@@ -78,7 +78,7 @@
     const add = event.target.closest('[data-queue-add]'); if (add) { await toggleQueue(add.dataset.queueAdd); toast(queueIds().includes(add.dataset.queueAdd) ? '已加入本场待展示' : '已移出本场待展示'); }
     const remove = event.target.closest('[data-queue-remove]'); if (remove) await saveQueue(queueIds().filter(id => id !== remove.dataset.queueRemove));
     const move = event.target.closest('[data-queue-move]'); if (move) { const ids = [...queueIds()], i = ids.indexOf(move.dataset.queueMove), j = i + Number(move.dataset.delta); if (j >= 0 && j < ids.length) { [ids[i],ids[j]] = [ids[j],ids[i]]; await saveQueue(ids); } }
-    const close = event.target.closest('[data-close]'); if (close) $('#'+close.dataset.close).close();
+    const close = event.target.closest('[data-close]'); if (close) {if(close.dataset.close==='script-dialog'&&editorBusy()){toast('操作正在进行，请完成后再关闭草稿。',true);return;}$('#'+close.dataset.close).close();}
   }));
   $$('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === (page === 'reader' ? 'catalog' : page)));
 
@@ -644,8 +644,50 @@
   }
 
   // Content maintenance. Text always enters the DOM through textContent or escaping.
-  let editingBlocks=[], editingScript=null, editingNotesDisplay='',editorSession='';
-  function updateRoleOptions(){const node=$('#script-role-options');if(!node)return;const roles=[...new Set(editingBlocks.map(b=>str(b.role).trim()).filter(Boolean))];node.replaceChildren(...roles.map(role=>new Option(role,role)));}
+  let editingBlocks=[], editingScript=null, editingNotesDisplay='',editingNotesRaw='',editingRoleColors={},editorSession='',editorSaving=false,editorRestoring=false;
+  const editorSubscribers=new Set();
+  function editorBusy(){return editorSaving||editorRestoring||imageUploadActive();}
+  function fullEditorDraft(){
+    if(!$('#script-dialog')?.open)return null;
+    return {script_id:$('#edit-script-id').value||null,title:$('#edit-title').value,category_id:$('#edit-category').value,author:$('#edit-author').value,synopsis:$('#edit-synopsis').value,cast_note:$('#edit-cast').value,tags:$('#edit-tags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),notes:$('#edit-notes').value===editingNotesDisplay?editingNotesRaw:$('#edit-notes').value,visible:$('#edit-visible').checked,blocks:clone(editingBlocks),role_colors:clone(editingRoleColors)};
+  }
+  function editorChanged(reason='action',key=''){
+    const event={type:'change',reason,key,draft:fullEditorDraft(),busy:editorBusy()};
+    for(const fn of editorSubscribers){try{fn(event);}catch(err){console.error('Editor listener failed',err);}}
+  }
+  function editorEvent(type){for(const fn of editorSubscribers){try{fn({type,draft:fullEditorDraft(),busy:editorBusy()});}catch(err){console.error('Editor listener failed',err);}}}
+  function replaceEditorDraft(data,{reason='restore',notify=true}={}){
+    if(!$('#script-dialog').open||editorBusy())throw new Error('请等待当前操作完成后再恢复草稿。');
+    if(!data||!Array.isArray(data.blocks))throw new Error('草稿内容不完整，无法恢复。');
+    editingBlocks=clone(data.blocks);editingRoleColors=clone(data.role_colors||{});
+    for(const [id,key] of [['title','title'],['category','category_id'],['author','author'],['synopsis','synopsis'],['cast','cast_note']])$('#edit-'+id).value=str(data[key]);
+    $('#edit-tags').value=(data.tags||[]).join('，');editingNotesRaw=str(data.notes);editingNotesDisplay=displayNotes(editingNotesRaw);$('#edit-notes').value=editingNotesDisplay;$('#edit-visible').checked=visible(data.visible);
+    $('#body-editor-details').open=true;renderBlockEditor();if(notify)editorChanged(reason);
+  }
+  function updateRoleOptions(){const node=$('#script-role-options');if(!node)return;const roles=[...new Set([...Object.keys(editingRoleColors),...editingBlocks.map(b=>str(b.role).trim()).filter(Boolean)])];node.replaceChildren(...roles.map(role=>new Option(role,role)));}
+  function explicitRoleColor(role){const value=Object.hasOwn(editingRoleColors,role)?editingRoleColors[role]:null;return typeof value==='string'&&/^#[a-f\d]{6}$/i.test(value)?value.toLowerCase():null;}
+  function blockRoleColor(block){
+    if(/^#[a-f\d]{6}$/i.test(block.color||''))return block.color.toLowerCase();
+    const run=block.runs?.find(item=>str(item.text).trim()&&/^#[a-f\d]{6}$/i.test(item.color||''));
+    return run?run.color.toLowerCase():null;
+  }
+  function updateBlockRole(input){
+    const index=Number(input.dataset.blockRole),block=editingBlocks[index];
+    if(!block||block.role===input.value)return;
+    const previousRole=str(block.role).trim(),nextRole=input.value.trim();
+    block.role=input.value;
+    if(nextRole&&nextRole!==previousRole){
+      const existing=editingBlocks.find(item=>item!==block&&item.kind!=='image'&&str(item.role).trim()===nextRole&&blockRoleColor(item));
+      const roleColor=explicitRoleColor(nextRole)||(existing&&blockRoleColor(existing));
+      if(roleColor){
+        // Keep authored inline colours when the selected role already has this base colour.
+        if(blockRoleColor(block)!==roleColor)block.runs=[{text:block.text||'',color:roleColor}];
+        block.color=roleColor;
+        const picker=$(`[data-block-color="${index}"]`);if(picker)picker.value=roleColor;
+      }
+    }
+    updateRoleOptions();
+  }
   function refreshManageSelects() { const select=$('#manage-category-filter'), old=select.value;select.innerHTML='<option value="">全部分类</option>'+optionMarkup(library.categories,old); }
   function renderManagedScripts() {
     const q=$('#manage-script-search').value.toLowerCase().trim(),cat=$('#manage-category-filter').value,filter=$('#manage-visible-filter').value;
@@ -689,16 +731,19 @@
   let imageUploadRequest=null, imagePick=null;
   function imageUploadActive(){return imageUploadRequest?.session===editorSession;}
   function updateImageControls(){
-    const busy=imageUploadActive();
+    const busy=editorBusy();
     $('#body-editor').setAttribute('aria-busy',String(busy));
     $('#add-image-block').disabled=busy;
     $('#open-import-editor').disabled=busy;
     $('#script-form button[type="submit"]').disabled=busy;
+    $('#add-block').disabled=busy;
+    $$('#script-form input,#script-form textarea,#script-form select,#script-form [data-close="script-dialog"]').forEach(node=>node.disabled=busy);
     $$('.body-editor-row [data-block-move]').forEach(button=>{
       const i=editingBlocks.findIndex(b=>b.id===button.dataset.blockMove),to=i+Number(button.dataset.delta);
       button.disabled=busy||to<0||to>=editingBlocks.length;
     });
     $$('.body-editor-row [data-remove-block],.body-editor-row [data-replace-image],.body-editor-row [data-add-image-after]').forEach(button=>button.disabled=busy);
+    editorEvent('busy');
   }
   function imageStatus(message,error=false){
     const status=$('#script-image-status');status.textContent=message;status.classList.toggle('error',error);
@@ -709,7 +754,7 @@
     row?.querySelector('[data-preview-script-image],textarea')?.focus({preventScroll:true});
   }
   function pickScriptImage(mode='append',blockId=null){
-    if(imageUploadActive())return;
+    if(editorBusy())return;
     imagePick={session:editorSession,mode,blockId};
     const input=$('#script-image-file');input.value='';input.click();
   }
@@ -736,7 +781,7 @@
           editingBlocks.splice(index+1,0,block);
         }else editingBlocks.push(block);
       }
-      $('#body-editor-details').open=true;renderBlockEditor();focusEditorBlock(block.id);
+      $('#body-editor-details').open=true;renderBlockEditor();focusEditorBlock(block.id);editorChanged('image');
       imageStatus((request.mode==='replace'?'图片已替换':'图片已加入草稿')+'，点击“保存剧本”后生效。');
     }catch(err){
       if(request.session===editorSession&&$('#script-dialog').open)imageStatus('图片未添加：'+err.message,true);
@@ -749,13 +794,15 @@
     $('#body-editor').innerHTML=editingBlocks.map((b,i)=>`<div class="body-editor-row" data-block-index="${i}" data-block-id="${esc(b.id)}"><div class="body-editor-heading"><span>段落 ${i+1} · ${b.kind==='image'?'图片':'文字'}</span><div class="body-editor-row-actions"><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="-1" aria-label="上移第 ${i+1} 段">↑ 上移</button><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="1" aria-label="下移第 ${i+1} 段">↓ 下移</button><button type="button" class="icon-button" data-remove-block="${i}" aria-label="移除第 ${i+1} 段">移除</button></div></div>${b.kind==='image'?`<button type="button" class="script-image-thumbnail" data-preview-script-image="${esc(b.id)}" aria-label="查看第 ${i+1} 段图片大图"><img src="${esc(media(b.image_path))}" alt="剧本插图"><span>点击查看大图</span></button><div class="body-image-actions"><button type="button" class="button secondary small" data-replace-image="${esc(b.id)}">替换图片</button></div>`:`<div class="body-editor-fields"><input data-block-role="${i}" list="script-role-options" autocomplete="off" value="${esc(b.role||'')}" placeholder="角色标签（可空）" aria-label="第 ${i+1} 段角色"><input data-block-color="${i}" type="color" value="${color(b.color,'#4b443a')}" aria-label="第 ${i+1} 段配色"></div><textarea data-block-text="${i}" rows="${Math.min(8,Math.max(2,Math.ceil((b.text||'').length/70)))}" aria-label="第 ${i+1} 段正文">${esc(b.text||'')}</textarea>`}<button type="button" class="body-insert-image" data-add-image-after="${esc(b.id)}">＋ 在此段后添加图片</button></div>`).join('');updateRoleOptions();updateImageControls();
   }
   function openScript(id) {
-    editorSession=crypto.randomUUID();imageUploadRequest=null;imagePick=null;imageStatus('');
-    editingScript=id?clone(byId(id)):null;const s=editingScript||{title:'',category_id:library.categories.find(c=>!isSystem(c))?.id||'uncategorized',author:'',synopsis:'',cast_note:'',tags:[],notes:'',visible:true,blocks:[]};editingBlocks=clone(s.blocks||[]);
-    $('#script-dialog-title').textContent=id?'编辑剧本':'新增剧本';$('#edit-script-id').value=id||'';$('#edit-title').value=s.title;$('#edit-category').innerHTML=optionMarkup(library.categories,s.category_id);$('#edit-author').value=s.author||'';$('#edit-synopsis').value=s.synopsis||'';$('#edit-cast').value=s.cast_note||'';$('#edit-tags').value=(s.tags||[]).join('，');editingNotesDisplay=displayNotes(s.notes);$('#edit-notes').value=editingNotesDisplay;$('#edit-visible').checked=visible(s.visible);$('#script-source-note').textContent=id?'编辑不会覆盖原始证据文件。':'新内容作为手动录入保存。';$('#script-error').textContent='';$('#body-editor-details').open=!id;renderBlockEditor();$('#script-dialog').showModal();
+    if(editorBusy()){toast('正在处理当前草稿，请稍后切换剧本。',true);return;}
+    editorSession=crypto.randomUUID();imagePick=null;imageStatus('');
+    editingScript=id?clone(byId(id)):null;const s=editingScript||{title:'',category_id:library.categories.find(c=>!isSystem(c))?.id||'uncategorized',author:'',synopsis:'',cast_note:'',tags:[],notes:'',visible:true,blocks:[]};editingBlocks=clone(s.blocks||[]);editingRoleColors=clone(s.role_colors||{});editingNotesRaw=s.notes||'';
+    $('#script-dialog-title').textContent=id?'编辑剧本':'新增剧本';$('#edit-script-id').value=id||'';$('#edit-title').value=s.title;$('#edit-category').innerHTML=optionMarkup(library.categories,s.category_id);$('#edit-author').value=s.author||'';$('#edit-synopsis').value=s.synopsis||'';$('#edit-cast').value=s.cast_note||'';$('#edit-tags').value=(s.tags||[]).join('，');editingNotesDisplay=displayNotes(s.notes);$('#edit-notes').value=editingNotesDisplay;$('#edit-visible').checked=visible(s.visible);$('#script-source-note').textContent=id?'编辑不会覆盖原始证据文件。':'新内容作为手动录入保存。';$('#script-error').textContent='';$('#body-editor-details').open=!id;renderBlockEditor();$('#script-dialog').showModal();editorEvent('open');
   }
   async function reorderCategories(ids) { await api('/api/categories/reorder',{ids});await refreshLibrary();toast('分类顺序已保存'); }
   if(page==='manage') {
     window.piaScriptPackages={
+      refreshLibrary,
       async categories(){await refreshLibrary();return clone(library.categories);},
       async editImported(id){
         await refreshLibrary();
@@ -766,17 +813,34 @@
       }
     };
     window.piaEditor={
+      getFullDraft:fullEditorDraft,
+      subscribe(fn){editorSubscribers.add(fn);return()=>editorSubscribers.delete(fn);},
+      focusBlock(id){$('#body-editor-details').open=true;focusEditorBlock(id);},
+      isBusy:editorBusy,
+      replaceFullDraft:replaceEditorDraft,
+      roleColor(role){return explicitRoleColor(role)||blockRoleColor(editingBlocks.find(b=>b.kind!=='image'&&str(b.role).trim()===role&&blockRoleColor(b))||{})||'#4b443a';},
+      setRoleColor(role,value){if(editorBusy())throw new Error('请等待当前操作完成。');role=str(role).trim();if(!role||role.length>200||!/^#[a-f\d]{6}$/i.test(value))throw new Error('请填写有效角色名和颜色。');if(!Object.hasOwn(editingRoleColors,role)&&Object.keys(editingRoleColors).length>=200)throw new Error('每个剧本最多设置 200 个角色默认颜色。');Object.defineProperty(editingRoleColors,role,{value:value.toLowerCase(),enumerable:true,writable:true,configurable:true});updateRoleOptions();editorChanged('role-default');},
+      removeRoleColor(role){if(editorBusy())throw new Error('请等待当前操作完成。');delete editingRoleColors[role];updateRoleOptions();editorChanged('role-default');},
+      unifyRoleColor(role){if(editorBusy())throw new Error('请等待当前操作完成。');const target=window.piaEditor.roleColor(role);for(const block of editingBlocks){if(block.kind!=='image'&&str(block.role).trim()===role){block.color=target;block.runs=[{text:block.text||'',color:target}];}}renderBlockEditor();editorChanged('role-unify');},
+      confirm:confirmAction,
+      history(id){return api('/api/scripts/'+encodeURIComponent(id)+'/history',undefined,'GET');},
+      async restoreHistory(id,historyId){
+        if(editorBusy()||!$('#script-dialog').open||$('#edit-script-id').value!==id)throw new Error('请重新打开目标剧本后操作。');
+        editorRestoring=true;updateImageControls();
+        try{await api('/api/scripts/'+encodeURIComponent(id)+'/history/'+encodeURIComponent(historyId)+'/restore',{});editorEvent('history-restored');editorRestoring=false;$('#script-dialog').close();await refreshLibrary();openScript(id);toast('历史版本已恢复；重新应用后更新展示。');}
+        finally{editorRestoring=false;updateImageControls();}
+      },
       getDraft(){if(!$('#script-dialog').open)throw new Error('请先新建或编辑一个剧本。');return {session_id:editorSession,title:$('#edit-title').value,author:$('#edit-author').value,blocks:clone(editingBlocks)};},
       applyImport({candidate,mode='append',session_id}){
         if(!$('#script-dialog').open||session_id!==editorSession)throw new Error('正在编辑的剧本已切换，请重新识别后导入。');
-        if(imageUploadActive())throw new Error('图片正在上传，请完成后再导入正文。');
+        if(editorBusy())throw new Error('当前操作正在进行，请完成后再导入正文。');
         if(!candidate||!Array.isArray(candidate.blocks)||!['append','replace'].includes(mode))throw new Error('导入内容无效。');
         const incoming=candidate.blocks.map(b=>({id:'block-'+crypto.randomUUID(),kind:'text',text:str(b.text),role:str(b.role),color:color(b.color,'#4b443a')}));
         if(!incoming.length)throw new Error('没有可导入的正文。');
         editingBlocks=mode==='replace'?[...incoming,...editingBlocks.filter(b=>b.kind==='image')]:[...editingBlocks,...incoming];
         if(!$('#edit-title').value.trim()&&candidate.title)$('#edit-title').value=candidate.title;
         if(!$('#edit-author').value.trim()&&candidate.author)$('#edit-author').value=candidate.author;
-        $('#body-editor-details').open=true;renderBlockEditor();toast('内容已填入草稿，检查后点击保存剧本。');
+        $('#body-editor-details').open=true;renderBlockEditor();editorChanged('import');toast('内容已填入草稿，检查后点击保存剧本。');
       }
     };
     $$('[data-tab]').forEach(button=>button.addEventListener('click',()=>{$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));['scripts','categories','backgrounds','backup'].forEach(id=>{$('#manage-'+id).hidden=id!==button.dataset.tab;});}));
@@ -804,7 +868,7 @@
       const toggle=e.target.closest('[data-toggle-script]');if(toggle){const s=byId(toggle.dataset.toggleScript);await api('/api/scripts/'+encodeURIComponent(s.id),{visible:!visible(s.visible)},'PATCH');await refreshLibrary();toast(visible(s.visible)?'剧本已隐藏，可随时恢复。':'剧本已恢复显示。');}
       const remove=e.target.closest('[data-delete-category]');if(remove){const c=category(remove.dataset.deleteCategory),count=library.scripts.filter(s=>s.category_id===c.id).length;const target=await confirmAction('删除“'+c.name+'”？',count?`这个分类中有 ${count} 篇剧本（含隐藏）。请选择承接分类，剧本会先转移，不会被删除。`:'这是一个空分类，删除后可重新创建。已上屏画面保持不变。',{label:'确认删除',choices:count?library.categories.filter(x=>x.id!==c.id&&visible(x.visible)).map(x=>({value:x.id,label:x.name})):null});if(target!==null){await api('/api/categories/'+encodeURIComponent(c.id),{target_id:typeof target==='string'?target:'uncategorized'},'DELETE');await refreshLibrary();toast('分类已删除，关联剧本已保留。');}}
       const move=e.target.closest('[data-category-move]');if(move){const ids=library.categories.map(c=>c.id),i=ids.indexOf(move.dataset.categoryMove),j=i+Number(move.dataset.delta);if(j>=0&&j<ids.length){[ids[i],ids[j]]=[ids[j],ids[i]];await reorderCategories(ids);}}
-      const removeBlock=e.target.closest('[data-remove-block]');if(removeBlock&&!removeBlock.disabled){const session=editorSession,blockId=editingBlocks[Number(removeBlock.dataset.removeBlock)]?.id;if(await confirmAction('移除正文段落？','移除仅在保存剧本后生效。原始 PPT 证据不会改变。',{label:'移除此段'})){const index=editingBlocks.findIndex(b=>b.id===blockId);if(session===editorSession&&index>=0){editingBlocks.splice(index,1);renderBlockEditor();}}}
+      const removeBlock=e.target.closest('[data-remove-block]');if(removeBlock&&!removeBlock.disabled){const session=editorSession,blockId=editingBlocks[Number(removeBlock.dataset.removeBlock)]?.id;if(await confirmAction('移除正文段落？','移除仅在保存剧本后生效。原始 PPT 证据不会改变。',{label:'移除此段'})){const index=editingBlocks.findIndex(b=>b.id===blockId);if(session===editorSession&&index>=0&&!editorBusy()){editingBlocks.splice(index,1);renderBlockEditor();editorChanged('remove');}}}
     }));
     $('#category-form').addEventListener('submit',async e=>{e.preventDefault();const id=$('#category-id').value,data={name:$('#category-name').value.trim(),description:$('#category-description-input').value,color:$('#category-color').value,background:$('#category-background').value,visible:$('#category-visible').checked};try{await api('/api/categories'+(id?'/'+encodeURIComponent(id):''),data,id?'PATCH':'POST');$('#category-dialog').close();await refreshLibrary();toast('分类已保存；当前上屏内容保持不变。');}catch(err){$('#category-error').textContent=err.message;}});
     click('#add-image-block',()=>pickScriptImage());
@@ -814,21 +878,27 @@
       if(!imageUploadActive())uploadScriptImage(file,pick);
     });
     $('#script-dialog').addEventListener('close',()=>{
-      editorSession=crypto.randomUUID();imagePick=null;imageUploadRequest=null;
+      editorEvent('close');editorSession=crypto.randomUUID();imagePick=null;
       $('#script-image-preview-dialog').close();updateImageControls();
     });
+    $('#script-dialog').addEventListener('cancel',event=>{if(editorBusy()){event.preventDefault();toast('操作正在进行，请完成后再关闭草稿。',true);}});
     $('#body-editor').addEventListener('click',event=>{
       const preview=event.target.closest('[data-preview-script-image]');
       if(preview){const block=editingBlocks.find(b=>b.id===preview.dataset.previewScriptImage);if(block){$('#script-image-preview').src=media(block.image_path);$('#script-image-preview-dialog').showModal();}return;}
-      if(imageUploadActive())return;
+      if(editorBusy())return;
       const replace=event.target.closest('[data-replace-image]');if(replace){pickScriptImage('replace',replace.dataset.replaceImage);return;}
       const insert=event.target.closest('[data-add-image-after]');if(insert){pickScriptImage('after',insert.dataset.addImageAfter);return;}
       const move=event.target.closest('[data-block-move]');
-      if(move&&!move.disabled){const i=editingBlocks.findIndex(b=>b.id===move.dataset.blockMove),j=i+Number(move.dataset.delta);if(i>=0&&j>=0&&j<editingBlocks.length){[editingBlocks[i],editingBlocks[j]]=[editingBlocks[j],editingBlocks[i]];renderBlockEditor();focusEditorBlock(move.dataset.blockMove);}}
+      if(move&&!move.disabled){const i=editingBlocks.findIndex(b=>b.id===move.dataset.blockMove),j=i+Number(move.dataset.delta);if(i>=0&&j>=0&&j<editingBlocks.length){[editingBlocks[i],editingBlocks[j]]=[editingBlocks[j],editingBlocks[i]];renderBlockEditor();focusEditorBlock(move.dataset.blockMove);editorChanged('move');}}
     });
-    $('#body-editor').addEventListener('input',e=>{const t=e.target;if(t.dataset.blockText!==undefined){const b=editingBlocks[Number(t.dataset.blockText)];b.text=t.value;if(b.runs?.map(r=>r.text).join('')!==t.value)b.runs=[{text:t.value,color:b.color||''}];}if(t.dataset.blockRole!==undefined){editingBlocks[Number(t.dataset.blockRole)].role=t.value;updateRoleOptions();}if(t.dataset.blockColor!==undefined){const b=editingBlocks[Number(t.dataset.blockColor)];b.color=t.value;b.runs=[{text:b.text,color:t.value}];}});
-    click('#add-block',()=>{editingBlocks.push({id:'block-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),kind:'text',text:'',role:'',color:'#4b443a',source_page:null,source_file:'',runs:[]});renderBlockEditor();$$('#body-editor textarea').at(-1)?.focus();});
-    $('#script-form').addEventListener('submit',async e=>{e.preventDefault();if(imageUploadActive()){imageStatus('请等待图片上传完成后再保存。',true);return;}const id=$('#edit-script-id').value,data={title:$('#edit-title').value.trim(),category_id:$('#edit-category').value,author:$('#edit-author').value,synopsis:$('#edit-synopsis').value,cast_note:$('#edit-cast').value,tags:$('#edit-tags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),notes:editingScript&&$('#edit-notes').value===editingNotesDisplay?editingScript.notes:$('#edit-notes').value,visible:$('#edit-visible').checked,blocks:editingBlocks};try{await api('/api/scripts'+(id?'/'+encodeURIComponent(id):''),data,id?'PATCH':'POST');$('#script-dialog').close();await refreshLibrary();toast('剧本已保存；重新应用后更新展示。');}catch(err){$('#script-error').textContent=err.message;}});
+    $('#body-editor').addEventListener('input',e=>{if(editorBusy())return;const t=e.target;if(t.dataset.blockText!==undefined){const b=editingBlocks[Number(t.dataset.blockText)];b.text=t.value;if(b.runs?.map(r=>r.text).join('')!==t.value)b.runs=[{text:t.value,color:b.color||''}];}if(t.dataset.blockRole!==undefined&&!e.isComposing)updateBlockRole(t);if(t.dataset.blockColor!==undefined){const b=editingBlocks[Number(t.dataset.blockColor)];b.color=t.value;b.runs=[{text:b.text,color:t.value}];}});
+    $('#body-editor').addEventListener('change',e=>{if(!editorBusy()&&e.target.dataset.blockRole!==undefined)updateBlockRole(e.target);});
+    $('#body-editor').addEventListener('compositionend',e=>{if(!editorBusy()&&e.target.dataset.blockRole!==undefined)updateBlockRole(e.target);});
+    $('#script-form').addEventListener('input',event=>{if(!editorBusy()&&!event.isComposing&&event.target.matches('[id^="edit-"],[data-block-text],[data-block-role],[data-block-color]'))editorChanged('input',event.target.id||event.target.dataset.blockText!==undefined&&'text:'+editingBlocks[Number(event.target.dataset.blockText)]?.id||event.target.dataset.blockRole!==undefined&&'role:'+editingBlocks[Number(event.target.dataset.blockRole)]?.id||'color:'+editingBlocks[Number(event.target.dataset.blockColor)]?.id);});
+    $('#script-form').addEventListener('change',event=>{if(!editorBusy()&&event.target.matches('[id^="edit-"],[data-block-role],[data-block-color]'))editorChanged('input',event.target.id||'block-field');});
+    $('#script-form').addEventListener('compositionend',event=>{if(!editorBusy())editorChanged('input',event.target.id||event.target.closest('.body-editor-row')?.dataset.blockId||'composition');});
+    click('#add-block',()=>{if(editorBusy())return;editingBlocks.push({id:'block-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),kind:'text',text:'',role:'',color:'#4b443a',source_page:null,source_file:'',runs:[]});renderBlockEditor();editorChanged('add');$$('#body-editor textarea').at(-1)?.focus();});
+    $('#script-form').addEventListener('submit',async e=>{e.preventDefault();if(editorBusy()){imageStatus('请等待当前操作完成后再保存。',true);return;}const id=$('#edit-script-id').value,data=fullEditorDraft();delete data.script_id;data.title=data.title.trim();editorSaving=true;updateImageControls();try{await api('/api/scripts'+(id?'/'+encodeURIComponent(id):''),data,id?'PATCH':'POST');editorEvent('saved');editorSaving=false;$('#script-dialog').close();await refreshLibrary();toast('剧本已保存；重新应用后更新展示。');}catch(err){$('#script-error').textContent=err.message;}finally{editorSaving=false;updateImageControls();}});
     let dragged=null;$('#manage-category-list').addEventListener('dragstart',e=>{const row=e.target.closest('[data-category-row]');if(!row||row.draggable===false)return;dragged=row.dataset.categoryRow;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragged);});$('#manage-category-list').addEventListener('dragover',e=>{const row=e.target.closest('[data-category-row]');if(!dragged||!row)return;e.preventDefault();$$('.category-row.drag-over').forEach(x=>x.classList.remove('drag-over'));row.classList.add('drag-over');});$('#manage-category-list').addEventListener('dragend',()=>{dragged=null;$$('.category-row').forEach(x=>x.classList.remove('drag-over','dragging'));});$('#manage-category-list').addEventListener('drop',task(async e=>{e.preventDefault();const row=e.target.closest('[data-category-row]');if(!dragged||!row||row.dataset.categoryRow===dragged)return;const ids=library.categories.map(c=>c.id),from=ids.indexOf(dragged),to=ids.indexOf(row.dataset.categoryRow);ids.splice(from,1);ids.splice(to,0,dragged);dragged=null;await reorderCategories(ids);}));
     click('#restore-backup',async()=>{const file=$('#restore-file').files[0];if(!file){toast('请先选择本项目导出的 ZIP 备份。',true);return;}if(!await confirmAction('恢复备份并替换当前资料？','剧本、分类、设置和本场列表将被这份备份替换。建议先下载当前备份。恢复后展示会暂停。',{label:'确认恢复'}))return;const form=new FormData();form.append('file',file);$('#restore-backup').disabled=true;$('#restore-status').textContent='正在检查并恢复备份…';try{await api('/api/restore',form);await refreshLibrary();$('#restore-status').textContent='恢复完成。资料已重新载入，展示保持暂停。';toast('备份已恢复');}catch(err){$('#restore-status').textContent='恢复未完成：'+err.message;throw err;}finally{$('#restore-backup').disabled=false;}});
     refreshManageSelects();renderManagedScripts();renderManagedCategories();renderBackgrounds();refreshBackgrounds().catch(err=>toast(err.message,true));

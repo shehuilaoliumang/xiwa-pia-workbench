@@ -113,7 +113,7 @@ def main():
     (QA / 'source-snapshot.zip').write_bytes(snapshot)
 
     copy_dirs = ['desktop', 'data', 'docs', 'evidence', 'runtime', 'static', 'templates', 'tests', 'tools', 'vendor']
-    copy_files = ['app.py', 'import_parser.py', 'script_package.py', 'storage.py', 'run.py', 'README.md',
+    copy_files = ['app.py', 'import_parser.py', 'script_package.py', 'script_merge.py', 'storage.py', 'run.py', 'README.md',
                   'PROJECT_CONTEXT.md', 'requirements.txt', '启动工作台.cmd', '停止工作台.cmd',
                   '00-先看这里-3步启动.txt', '00-先看这里-图文启动.html', '浏览器模式.cmd']
     for name in copy_dirs:

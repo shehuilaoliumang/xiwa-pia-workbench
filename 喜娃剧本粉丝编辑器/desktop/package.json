@@ -1,6 +1,6 @@
 {
   "name": "xiwa-fan-editor-desktop",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "喜娃剧本粉丝编辑器桌面窗口",
   "main": "main.cjs",
   "private": true

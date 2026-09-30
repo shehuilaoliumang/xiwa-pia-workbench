@@ -1,8 +1,9 @@
 """Single-document exchange, separate from full-library backup/restore.
 
 A v1 ZIP has manifest.json, script.json and only the referenced assets/<sha>.<ext>.
-Preview validates in OS temporary storage. Import adds a newly identified script;
-existing categories, history, queue, layout and live snapshots are never rewritten.
+Preview validates in OS temporary storage. Imports compare content before adding
+or explicitly replacing a selected same-name script. Replacements preserve the
+script ID and archive its previous version; queue, layout and live stay frozen.
 """
 from __future__ import annotations
 
@@ -33,7 +34,7 @@ IMAGE_MIMES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
 MIMES = {**IMAGE_MIMES, **{ext: value[1] for ext, value in MEDIA_FORMATS.items()}}
 ASSET_RE = re.compile(r"assets/[0-9a-f]{64}\.(?:png|jpg|jpeg|webp|mp4|webm|mp3|wav|m4a|ogg)\Z")
 SCRIPT_FIELDS = {"id", "title", "author", "synopsis", "cast_note", "notes", "category_id", "visible", "tags",
-                 "source_category", "source_pages", "blocks", "media"}
+                 "source_category", "source_pages", "blocks", "media", "role_colors"}
 BLOCK_FIELDS = {"id", "kind", "text", "role", "color", "source_page", "source_file", "original_text", "runs", "image_path"}
 
 
@@ -227,77 +228,17 @@ def _validated(uploaded):
 
 
 def preview_package(store, uploaded):
+    from script_merge import preview_single
     with _validated(uploaded) as package:
-        item = package["script"]
-        with store.transaction() as connection:
-            duplicates = sum(json.loads(row[0])["title"].strip().casefold() == item["title"].casefold()
-                             for row in connection.execute("SELECT data FROM scripts"))
-        warnings = []
-        if not item["visible"]:
-            warnings.append("原剧本处于隐藏状态，导入后仍隐藏；可在内容管理中改为显示。")
-        if duplicates:
-            warnings.append("当前资料已有同名剧本；确认后仍会新增一篇，不覆盖现有剧本。")
-        return {"format": FORMAT, "version": VERSION, "title": item["title"], "author": item["author"],
-                "category_name": package["category_name"], "script": item, "visible": item["visible"],
-                "text_blocks": sum(block["kind"] == "text" for block in item["blocks"]),
-                "image_blocks": sum(block["kind"] == "image" for block in item["blocks"]),
-                "has_media": bool(item.get("media")), "cue_count": len(item.get("media", {}).get("cues", [])),
-                "duplicate_title_count": duplicates, "package_sha256": package["sha256"], "warnings": warnings}
+        return preview_single(store, package)
 
 
-def import_package(store, uploaded, category_id, expected_sha256):
-    category_id = identifier(category_id, "导入分类")
-    if not isinstance(expected_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
-        raise invalid("请先预览这份剧本包，再确认导入。", 409, "script_package_preview_required")
+def import_package(store, uploaded, category_id, expected_sha256, action="skip", target_id=None,
+                   expected_target_fingerprint=None):
+    from script_merge import import_single
     with _validated(uploaded) as package:
-        if package["sha256"] != expected_sha256:
-            raise invalid("剧本包已变化，请重新预览后再导入。", 409, "script_package_changed")
-        item = copy.deepcopy(package["script"])
-        item["id"] = "script-" + uuid.uuid4().hex
-        item["category_id"] = category_id
-        block_ids = {block["id"]: "block-" + uuid.uuid4().hex for block in item["blocks"]}
-        for block in item["blocks"]:
-            block["id"] = block_ids[block["id"]]
-        for cue in item.get("media", {}).get("cues", []):
-            cue["id"] = "cue-" + uuid.uuid4().hex
-            cue["block_ids"] = [block_ids[old] for old in cue["block_ids"]]
-        mapping = {old: "/media/" + PurePosixPath(member).name for old, member in package["mapping"].items()}
-        item = _normalize(replace_resources(item, mapping))
-        created = []
-        with store.lock:
-            try:
-                with store.transaction(write=True) as connection:
-                    store._get(connection, "categories", category_id)
-                    # Plain INSERT is intentional: even an ID collision must never overwrite.
-                    if connection.execute("SELECT 1 FROM scripts WHERE id=?", (item["id"],)).fetchone():
-                        raise invalid("新增剧本标识冲突，请重试导入。", 409, "script_id_conflict")
-                    for member in sorted(set(package["mapping"].values())):
-                        destination = store.resource_file("/media/" + PurePosixPath(member).name)
-                        expected = package["files"][member]
-                        if destination.exists():
-                            if destination.stat().st_size != expected["size"] or _file_hash(destination) != expected["sha256"]:
-                                raise invalid("本地同名素材校验失败，原资料未改变。", 409, "resource_conflict")
-                            continue
-                        temporary = store.media_dir / (".script-package-" + uuid.uuid4().hex)
-                        owned = False
-                        try:
-                            store._write_new_resource(temporary, package["paths"][member].read_bytes())
-                            owned = True
-                            temporary.rename(destination)
-                            created.append(destination)
-                        finally:
-                            if owned:
-                                temporary.unlink(missing_ok=True)
-                    store._assert_assets(item)
-                    connection.execute("INSERT INTO scripts(id,category_id,data) VALUES(?,?,?)",
-                                       (item["id"], item["category_id"], encode(item)))
-                return {"script": item}
-            except Exception as error:
-                for destination in created:
-                    destination.unlink(missing_ok=True)
-                if isinstance(error, OSError):
-                    raise invalid("剧本包保存失败，资料未改变；请检查存储空间后重试。", 503, "resource_write_failed") from error
-                raise
+        return import_single(store, package, category_id, expected_sha256, action, target_id,
+                             expected_target_fingerprint)
 
 
 def export_package(store, item_id):

@@ -450,6 +450,17 @@ def normalize_script(data, existing=None, source_import=False):
     if not isinstance(tags, list) or len(tags) > 100:
         raise DomainError("标签须为不超过 100 项的列表。")
     result["tags"] = list(dict.fromkeys(text(tag, "标签", 80, True, True) for tag in tags))
+    role_colors = data.get("role_colors", previous.get("role_colors", {}))
+    if not isinstance(role_colors, dict) or len(role_colors) > 200:
+        raise DomainError("角色默认配色须为不超过 200 项的对象。")
+    result["role_colors"] = {}
+    for role, value in role_colors.items():
+        role = text(role, "角色名称", 200, True, True)
+        if role in result["role_colors"]:
+            raise DomainError("角色默认配色包含重复角色名。")
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            raise DomainError("角色默认配色须为 #RRGGBB 色值。")
+        result["role_colors"][role] = color(value)
     # Source fields are write-protected after import. Edits retain a full history.
     source = data if source_import else previous
     result["source_category"] = text(source.get("source_category", "用户新增"), "原分类", 200)

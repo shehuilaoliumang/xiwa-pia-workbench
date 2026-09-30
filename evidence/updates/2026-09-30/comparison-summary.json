@@ -1,0 +1,307 @@
+{
+  "source_hashes": {
+    "old": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
+    "new": "86a191a9fdebbe8fa0ecdd4b9cad3bb5c6d59bda9b6a0016bc9ca7a646d72371"
+  },
+  "slide_counts": {
+    "old": 85,
+    "new": 97
+  },
+  "media": {
+    "old_count": 15,
+    "new_count": 15,
+    "added_hashes": [],
+    "removed_hashes": []
+  },
+  "baseline_old_equal": true,
+  "database_hash_before": "10a81df44b15c53d0e8e59aa8c10204919d1533131232626edd2a10022d8c73e",
+  "database_hash_after": "10a81df44b15c53d0e8e59aa8c10204919d1533131232626edd2a10022d8c73e",
+  "aligned_changes": [
+    {
+      "old_page": 1,
+      "new_page": 1,
+      "script": "目录/背景",
+      "text_equal": false,
+      "paragraphs_and_colors_equal": false,
+      "pictures_and_geometry_equal": true,
+      "background_image_equal": true,
+      "background_xml_equal": true,
+      "by_key_changes": [
+        {
+          "shape": "9",
+          "paragraph": 8,
+          "old": [
+            "9",
+            8,
+            "",
+            []
+          ],
+          "new": [
+            "9",
+            8,
+            "3.《云端之下》编剧：芝士奶盖酒             ",
+            [
+              {
+                "text": "3.",
+                "color": "#000000"
+              },
+              {
+                "text": "《云端之下》编剧：",
+                "color": "#000000"
+              },
+              {
+                "text": "芝士奶盖酒",
+                "color": "#E13448"
+              },
+              {
+                "text": " ",
+                "color": "#E13448"
+              },
+              {
+                "text": "  ",
+                "color": "#000000"
+              },
+              {
+                "text": "          ",
+                "color": "#000000"
+              }
+            ]
+          ]
+        },
+        {
+          "shape": "9",
+          "paragraph": 9,
+          "old": null,
+          "new": [
+            "9",
+            9,
+            " ——（备注：一男一女 乘务员与观测员之间的故事）",
+            [
+              {
+                "text": " ——",
+                "color": "#000000"
+              },
+              {
+                "text": "（备注：一男一女",
+                "color": "#000000"
+              },
+              {
+                "text": " ",
+                "color": "#000000"
+              },
+              {
+                "text": "乘务员与观测员之间的",
+                "color": "#000000"
+              },
+              {
+                "text": "故事）",
+                "color": "#000000"
+              }
+            ]
+          ]
+        },
+        {
+          "shape": "9",
+          "paragraph": 10,
+          "old": null,
+          "new": [
+            "9",
+            10,
+            "",
+            []
+          ]
+        }
+      ]
+    },
+    {
+      "old_page": 2,
+      "new_page": 2,
+      "script": "目录/背景",
+      "text_equal": false,
+      "paragraphs_and_colors_equal": false,
+      "pictures_and_geometry_equal": true,
+      "background_image_equal": true,
+      "background_xml_equal": true,
+      "by_key_changes": [
+        {
+          "shape": "3",
+          "paragraph": 6,
+          "old": [
+            "3",
+            6,
+            "                ——（备注：一男一女 男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆）",
+            [
+              {
+                "text": "                ——",
+                "color": "#000000"
+              },
+              {
+                "text": "（备注：",
+                "color": "#000000"
+              },
+              {
+                "text": "一男一女",
+                "color": "#FFFF00"
+              },
+              {
+                "text": " ",
+                "color": "#FFFF00"
+              },
+              {
+                "text": "男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆）",
+                "color": "#000000"
+              }
+            ]
+          ],
+          "new": [
+            "3",
+            6,
+            "                ——（备注：一男一女 男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆）\n4、《浮萍终有归属》—编剧：小美同学",
+            [
+              {
+                "text": "                ——",
+                "color": "#000000"
+              },
+              {
+                "text": "（备注：",
+                "color": "#000000"
+              },
+              {
+                "text": "一男一女",
+                "color": "#FFFF00"
+              },
+              {
+                "text": " ",
+                "color": "#FFFF00"
+              },
+              {
+                "text": "男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆）",
+                "color": "#000000"
+              },
+              {
+                "text": "\n",
+                "color": ""
+              },
+              {
+                "text": "4",
+                "color": "#000000"
+              },
+              {
+                "text": "、《浮萍终有归属》—编剧：小美同学",
+                "color": "#000000"
+              }
+            ]
+          ]
+        },
+        {
+          "shape": "3",
+          "paragraph": 7,
+          "old": [
+            "3",
+            7,
+            "",
+            []
+          ],
+          "new": [
+            "3",
+            7,
+            "                ——（备注：两女妈妈找到曾经遗弃的孩子，但是孩子饱受折磨，心已经死了）",
+            [
+              {
+                "text": "                ——",
+                "color": "#000000"
+              },
+              {
+                "text": "（备注：",
+                "color": "#000000"
+              },
+              {
+                "text": "两女",
+                "color": "#92D050"
+              },
+              {
+                "text": "妈妈找到曾经遗弃的孩子，但是孩子饱受折磨，心已经死了）",
+                "color": "#000000"
+              }
+            ]
+          ]
+        },
+        {
+          "shape": "3",
+          "paragraph": 8,
+          "old": null,
+          "new": [
+            "3",
+            8,
+            "",
+            []
+          ]
+        },
+        {
+          "shape": "3",
+          "paragraph": 9,
+          "old": null,
+          "new": [
+            "3",
+            9,
+            "",
+            []
+          ]
+        }
+      ]
+    }
+  ],
+  "alignment": {
+    "old_1_to_12": "new_1_to_12",
+    "old_13_to_85": "new_25_to_97",
+    "added": {
+      "浮萍终有归属": [
+        13,
+        17
+      ],
+      "云端之下": [
+        18,
+        24
+      ]
+    }
+  },
+  "normalized_live_summary": [
+    {
+      "id": "script-01",
+      "title": "万有引力",
+      "changed_or_added_block_count": 1,
+      "media_present": false,
+      "cue_count": 0
+    },
+    {
+      "id": "script-08",
+      "title": "爱情公寓",
+      "changed_or_added_block_count": 0,
+      "media_present": true,
+      "cue_count": 4
+    }
+  ],
+  "local_library_additions": {
+    "date": "2026-09-30",
+    "before_script_count": 14,
+    "after_script_count": 16,
+    "added": [
+      {
+        "id": "script-ppt20260930-yunduan",
+        "title": "云端之下",
+        "category_id": "cat-sweet",
+        "text_blocks": 62
+      },
+      {
+        "id": "script-ppt20260930-fuping",
+        "title": "浮萍终有归属",
+        "category_id": "cat-bitter",
+        "text_blocks": 23
+      }
+    ],
+    "existing_scripts_unchanged": true,
+    "categories_settings_history_meta_unchanged": true,
+    "source_fields_and_runs_preserved": true,
+    "database_integrity": "ok"
+  }
+}
