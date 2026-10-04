@@ -16,6 +16,7 @@ from storage import DomainError, Store, MEDIA_FORMATS, BACKGROUND_MAX_BYTES
 from import_parser import parse_text, parse_upload
 from script_package import export_package, preview_package, import_package, PACKAGE_MAX_BYTES
 from script_merge import preview_backup, import_backup
+from ai_generator import create_ai_blueprint
 
 
 def create_app(test_config=None):
@@ -38,6 +39,8 @@ def create_app(test_config=None):
     store = Store(application.config["DATABASE"], application.config["SEED_PATH"], application.config["PROJECT_ROOT"])
     application.extensions["store"] = store
     application.extensions["csrf_token"] = secrets.token_urlsafe(32)
+    # AI 多媒体生成中心（实验功能，独立库，不触碰主库 schema）
+    application.register_blueprint(create_ai_blueprint(store, instance_path))
 
     @application.before_request
     def local_request_guard():

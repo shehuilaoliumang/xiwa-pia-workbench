@@ -4,7 +4,7 @@
 {% block content %}
 <section class="page-intro compact"><div><div class="eyebrow">PIA CONTENT LIBRARY</div><h1>内容管理</h1><p>整理分类、编辑剧本。新增或编辑剧本后，可导入文字正文，并手动添加图片。</p></div><button id="new-script" class="button primary">＋ 新增剧本</button></section>
 <div class="management-tabs" role="tablist"><button id="tab-scripts" role="tab" aria-selected="true" data-tab="scripts">剧本资料</button><button id="tab-categories" role="tab" aria-selected="false" data-tab="categories">分类管理</button><button id="tab-backgrounds" role="tab" aria-selected="false" data-tab="backgrounds">背景素材</button><button id="tab-backup" role="tab" aria-selected="false" data-tab="backup">备份与恢复</button></div>
-<section id="manage-scripts" class="panel"><div class="script-package-intro"><p class="help">单篇剧本可带图片、音视频和时间点一起导出分享；先检查重复与差异，再新增、跳过或覆盖。</p><button id="open-script-package" type="button" class="button secondary">导入单篇剧本</button></div><div class="management-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><input id="manage-script-search" type="search" placeholder="搜索全部剧本（含隐藏）" aria-label="搜索全部剧本"></label><select id="manage-category-filter" aria-label="按分类筛选"><option value="">全部分类</option></select><select id="manage-visible-filter" aria-label="按显示状态筛选"><option value="">全部状态</option><option value="visible">显示中</option><option value="hidden">已隐藏</option></select></div><div id="manage-script-list" class="manage-script-list"></div></section>
+<section id="manage-scripts" class="panel"><div class="script-package-intro"><p class="help">单篇剧本可带图片、音视频和时间点一起导出分享；先检查重复与差异，再新增、跳过或覆盖。</p><button id="open-script-package" type="button" class="button secondary">导入单篇剧本</button></div><div class="script-package-intro ai-manage-toolbar"><p class="help">AI 多媒体生成中心：全局角色形象卡片可跨剧本复用；给正文段落生成视频后自动挂入音视频配本。</p><div class="ai-manage-actions"><button id="open-ai-settings" type="button" class="button secondary">AI 生成设置</button><button id="open-ai-characters" type="button" class="button primary">角色形象库</button></div></div><div class="management-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><input id="manage-script-search" type="search" placeholder="搜索全部剧本（含隐藏）" aria-label="搜索全部剧本"></label><select id="manage-category-filter" aria-label="按分类筛选"><option value="">全部分类</option></select><select id="manage-visible-filter" aria-label="按显示状态筛选"><option value="">全部状态</option><option value="visible">显示中</option><option value="hidden">已隐藏</option></select></div><div id="manage-script-list" class="manage-script-list"></div></section>
 <section id="manage-categories" class="panel" hidden><div class="section-heading"><div><h2>分类与排列</h2><p class="muted">拖动或用箭头调整顺序，分类数量可自由增减。</p></div><button id="new-category" class="button primary">＋ 新增分类</button></div><label class="search-field category-search"><span aria-hidden="true">⌕</span><input id="manage-category-search" type="search" placeholder="查找分类" aria-label="查找分类"></label><div id="manage-category-list" class="manage-category-list"></div></section>
 <section id="manage-backgrounds" class="panel" hidden><div class="section-heading"><div><h2>背景素材库</h2><p class="muted">上传自己的背景，或在分类编辑中选用已有素材。</p></div></div><form id="background-upload-form" class="background-upload-form"><label class="field">选择图片<input id="background-upload-file" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" required></label><label class="field">素材名称<input id="background-upload-name" maxlength="80" placeholder="留空时使用文件名"></label><button id="background-upload-button" class="button primary" type="submit">上传背景图片</button></form><p class="help">支持 PNG、JPEG、WebP，单张不超过 12 MB。内置背景原件保留；正在被分类、正文或上屏内容引用的素材不可删除。</p><p id="background-upload-status" role="status"></p><div id="background-grid" class="background-grid"></div></section>
 <section id="manage-backup" class="panel backup-panel" hidden><div><div class="backup-symbol" aria-hidden="true">↧</div><h2>备份当前资料</h2><p>备份包含剧本、分类、排序、主题、本场列表、展示设置及应用素材。<br>开始大量编辑前，建议先保存一份。</p><a href="/api/backup" class="button primary" download>下载完整备份</a></div><div class="restore-section"><h3>从备份恢复</h3><p class="muted">完整恢复会替换当前资料，并暂停展示；仅合并剧本会保留当前分类、设置与本场列表。原始证据 PPT 保持原样。</p><label class="field">选择本项目导出的 ZIP 备份<input id="restore-file" type="file" accept=".zip,application/zip"></label><div class="backup-import-actions"><button id="restore-backup" class="button secondary">完整恢复备份</button><button id="open-library-merge" type="button" class="button secondary">仅合并剧本</button></div><p id="restore-status" role="status"></p></div></section>
@@ -15,6 +15,53 @@
 <dialog id="background-rename-dialog" class="dialog"><form id="background-rename-form"><div class="dialog-heading"><h2>重命名背景</h2><button type="button" class="icon-button" data-close="background-rename-dialog" aria-label="关闭">×</button></div><input id="background-rename-id" type="hidden"><label class="field">素材名称<input id="background-rename-name" maxlength="80" required></label><p id="background-rename-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button secondary" data-close="background-rename-dialog">取消</button><button type="submit" class="button primary">保存名称</button></div></form></dialog>
 <dialog id="script-image-preview-dialog" class="dialog script-image-preview-dialog"><div class="dialog-heading"><h2>正文图片预览</h2><button type="button" class="icon-button" data-close="script-image-preview-dialog" aria-label="关闭图片预览">×</button></div><img id="script-image-preview" alt="剧本插图大图"></dialog>
 <dialog id="background-preview-dialog" class="dialog background-preview-dialog"><div class="dialog-heading"><h2 id="background-preview-title">背景预览</h2><button type="button" class="icon-button" data-close="background-preview-dialog" aria-label="关闭">×</button></div><img id="background-preview-image" alt="背景素材大图预览"></dialog>
+
+<dialog id="ai-settings-dialog" class="dialog ai-settings-dialog" aria-labelledby="ai-settings-heading">
+  <form id="ai-settings-form">
+    <div class="dialog-heading"><div><span class="eyebrow">AI MULTIMEDIA</span><h2 id="ai-settings-heading">AI 生成设置</h2></div><button type="button" class="icon-button" data-ai-settings-close aria-label="关闭 AI 设置">×</button></div>
+    <p class="help">生成服务需要联网与密钥。未配置密钥时，「模拟平台」可用于先跑通流程。密钥保存在本机，不会随剧本导出。</p>
+    <label class="checkbox-label"><input id="ai-enabled" type="checkbox">启用 AI 生成功能</label>
+    <div class="ai-form-grid">
+      <label class="field">默认画面比例<select id="ai-default-ratio"></select></label>
+      <label class="field">默认时长<select id="ai-default-duration"></select></label>
+    </div>
+    <fieldset class="ai-platform-fields">
+      <legend>平台密钥（选填）</legend>
+      <p class="help">字节：火山方舟 api_key；阿里：百炼/DashScope api_key。</p>
+      <label class="field">字节 · 模型<select id="ai-byte-model"></select></label>
+      <label class="field">字节 · API Key<input id="ai-byte-key" type="password" autocomplete="off" placeholder="ark-…"></label>
+      <label class="field">阿里 · 模型<select id="ai-ali-model"></select></label>
+      <label class="field">阿里 · API Key<input id="ai-ali-key" type="password" autocomplete="off" placeholder="sk-…"></label>
+    </fieldset>
+    <p id="ai-settings-error" class="form-error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" class="button secondary" data-ai-settings-close>取消</button><button type="submit" class="button primary">保存设置</button></div>
+  </form>
+</dialog>
+
+<dialog id="ai-characters-dialog" class="dialog ai-characters-dialog" aria-labelledby="ai-characters-heading">
+  <div class="dialog-heading"><div><span class="eyebrow">CHARACTER CARDS</span><h2 id="ai-characters-heading">全局角色形象库</h2></div><button type="button" class="icon-button" data-ai-characters-close aria-label="关闭角色库">×</button></div>
+  <p class="help">角色形象卡片跨剧本复用：生成视频时选用角色，会自动用其形象图保持长相一致。这里可新建角色、生成或上传形象图、查看“已在哪些剧本应用”。</p>
+  <form id="ai-character-form" class="ai-character-form">
+    <input id="ai-character-id" type="hidden">
+    <div class="ai-character-form-grid">
+      <label class="field">角色名（唯一）<input id="ai-character-name" maxlength="200" required placeholder="例如：喜娃"></label>
+      <label class="field">形象描述<textarea id="ai-character-description" rows="2" maxlength="2000" placeholder="发色、服饰、气质，用于生成形象卡片"></textarea></label>
+    </div>
+    <div class="ai-character-actions">
+      <button id="ai-character-save" type="submit" class="button primary small">保存角色</button>
+      <button id="ai-character-generate" type="button" class="button secondary small" disabled>AI 生成形象图</button>
+      <label class="button secondary small ai-upload-label">上传形象图<input id="ai-character-upload" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden></label>
+      <button id="ai-character-delete" type="button" class="button secondary small" disabled>删除角色</button>
+    </div>
+    <p id="ai-character-status" class="help" role="status" aria-live="polite"></p>
+    <div id="ai-character-preview" class="ai-character-preview" hidden><img id="ai-character-preview-img" alt="角色形象图预览"></div>
+    <div id="ai-character-uses" class="ai-character-uses help" hidden></div>
+    <p id="ai-character-error" class="form-error" role="alert"></p>
+  </form>
+  <div id="ai-characters-list" class="ai-characters-list"></div>
+</dialog>
+<link rel="stylesheet" href="{{ url_for('static', filename='ai.css') }}">
+<script src="{{ url_for('static', filename='ai-manage.js') }}" defer></script>
 
 <dialog id="import-editor-dialog" class="dialog import-editor-dialog" aria-labelledby="import-editor-heading">
   <div class="dialog-heading"><div><span class="eyebrow">IMPORT SCRIPT</span><h2 id="import-editor-heading">导入正文</h2></div><button type="button" class="icon-button" data-import-close aria-label="关闭导入窗口">×</button></div>

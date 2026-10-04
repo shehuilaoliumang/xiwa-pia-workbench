@@ -3,7 +3,9 @@
 {% block page %}media-editor{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='media-editor.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='ai.css') }}">
 <script src="{{ url_for('static', filename='media-editor.js') }}" defer></script>
+<script src="{{ url_for('static', filename='ai-media.js') }}" defer></script>
 <div id="media-editor" data-script-id="{{ script_id }}">
   <div class="breadcrumb"><a id="media-back" href="/script/{{ script_id }}">← 返回剧本</a><span>音视频配本</span></div>
   <section class="media-editor-heading"><div><div class="eyebrow">让声音与台词相遇</div><h1 id="media-script-title">音视频配本</h1><p>播放到需要的位置，标记时间，再选择对应台词。</p></div><a id="media-control-link" class="button secondary" href="/control?script={{ script_id }}&body=media" hidden>去播控预览 ↗</a></section>
@@ -17,6 +19,7 @@
         <label class="field media-upload-field">选择文件<input id="media-upload-file" type="file" accept="audio/*,video/*,.mp4,.webm,.mp3,.wav,.ogg,.m4a"></label>
         <div class="media-upload-actions"><button id="media-upload" class="button secondary" type="button" disabled>上传并关联</button><button id="media-remove" class="button secondary" type="button" hidden>解除关联</button></div>
         <p id="media-upload-status" class="help" role="status" aria-live="polite">上传后可开始标记时间。</p>
+        <div class="media-ai-row"><span class="media-ai-badge">AI 生成</span><p class="help">为某个正文段落生成一段符合剧情的视频，完成后自动挂入本剧本媒体位并标记 0 秒时间点。</p><button id="media-ai-generate" class="button primary" type="button">AI 生成视频</button></div>
         <div class="media-mark-row"><div><span class="media-small-label">当前位置</span><output id="media-current-time">00:00.000</output><span id="media-duration" class="media-small-label">总时长待载入</span></div><button id="media-mark-cue" class="button primary" type="button" disabled>暂停并标记当前时间</button></div>
       </section>
       <section class="panel media-cues-panel" aria-labelledby="media-cues-title">
@@ -43,4 +46,24 @@
 {% endblock %}
 {% block dialogs %}
 <dialog id="media-confirm-dialog" class="dialog media-confirm-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="media-confirm-title">确认操作</h2></div><p id="media-confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel">取消</button><button id="media-confirm-yes" class="button primary" value="confirm">确认</button></div></form></dialog>
+<dialog id="ai-video-dialog" class="dialog ai-video-dialog" aria-labelledby="ai-video-heading">
+  <form id="ai-video-form">
+    <div class="dialog-heading"><div><span class="eyebrow">AI MULTIMEDIA</span><h2 id="ai-video-heading">AI 生成视频</h2></div><button type="button" class="icon-button" data-ai-close aria-label="关闭 AI 生成">×</button></div>
+    <p class="help">把一段剧情文字交给生成服务，产出视频后自动挂入本剧本媒体位。生成需要联网与密钥，未配置时可用“模拟平台”先试流程。</p>
+    <label class="field">目标段落<select id="ai-video-block" required></select></label>
+    <label class="field">参考角色（可选，有形象图时自动用于图生视频保持形象一致）<select id="ai-video-character"><option value="">不指定</option></select></label>
+    <div class="ai-form-grid">
+      <label class="field">生成平台<select id="ai-video-platform" required></select></label>
+      <label class="field">画面比例<select id="ai-video-ratio" required></select></label>
+      <label class="field">时长<select id="ai-video-duration" required></select></label>
+    </div>
+    <label class="field">剧情描述<textarea id="ai-video-prompt" rows="4" maxlength="2000" placeholder="描述画面内容与氛围；留空时使用所选段落的原文"></textarea></label>
+    <p id="ai-video-error" class="form-error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" class="button secondary" data-ai-close>取消</button><button type="submit" class="button primary">开始生成并排队</button></div>
+  </form>
+</dialog>
+<div id="ai-task-float" class="ai-task-float" hidden aria-live="polite">
+  <div class="ai-task-float-head"><strong>AI 生成队列</strong><span id="ai-task-float-count" class="status-tag">0</span><button id="ai-task-float-toggle" type="button" class="icon-button" aria-label="收起/展开">–</button></div>
+  <div id="ai-task-float-body"></div>
+</div>
 {% endblock %}
