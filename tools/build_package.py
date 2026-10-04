@@ -114,8 +114,15 @@ EXCLUDED_NAME_PREFIXES = (".build-tmp-", ".tmp-", ".runtime-")
 #: 排除的文件后缀。
 EXCLUDED_SUFFIXES = (".pyc", ".pyo")
 #: 额外的相对路径排除规则。
+#: 改造过程记录与上游同步文档会引用旧品牌名/原始仓库名，属内部资料，
+#: 不是模板产品的一部分，因此不随交付包分发。
+_INTERNAL_RECORD_REASON = "内部记录（含旧品牌名或原始仓库名），不随模板交付"
 EXTRA_EXCLUDED_PATHS = (
     ("tools/exe-build", "本机构建配方与产物（含机器相关绝对路径），不进交付包"),
+    ("docs/模板改造-变更清单.md", _INTERNAL_RECORD_REASON),
+    ("docs/模板改造-残留清单.md", _INTERNAL_RECORD_REASON),
+    ("docs/模板改造-测试与验收记录.md", _INTERNAL_RECORD_REASON),
+    ("docs/上游同步流程.md", _INTERNAL_RECORD_REASON),
 )
 #: 第三方载荷前缀：ZIP 复检时不套用项目排除规则（避免第三方包自带 tests/ 之类误报）。
 THIRD_PARTY_PREFIXES = ("runtime/Lib/site-packages/", "vendor/wheels/", "desktop/runtime/")
