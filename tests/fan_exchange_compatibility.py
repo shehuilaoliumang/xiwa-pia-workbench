@@ -86,10 +86,10 @@ class Compatibility(unittest.TestCase):
         frozen = os.environ.get('FAN_EXE')
         cls.mode = 'frozen EXE' if frozen else 'source'
         entry = ([str(Path(frozen).resolve())] if frozen else
-                 [sys.executable, '-X', 'utf8', str(ROOT / '喜娃剧本粉丝编辑器' / 'fan_entry.py')])
+                 [sys.executable, '-X', 'utf8', str(ROOT / '内容编辑器' / 'fan_entry.py')])
         cls.proc = subprocess.Popen(
             [*entry, '--no-browser', '--port', str(PORT), '--data-dir', str(data_dir)],
-            cwd=ROOT / '喜娃剧本粉丝编辑器', stdout=cls.log, stderr=subprocess.STDOUT,
+            cwd=ROOT / '内容编辑器', stdout=cls.log, stderr=subprocess.STDOUT,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         try:
             for _ in range(100):
@@ -97,7 +97,7 @@ class Compatibility(unittest.TestCase):
                     raise RuntimeError('Fan source service exited; see fan-process.log')
                 try:
                     status, body = cls.http('GET', '/api/health')
-                    if status == 200 and json.loads(body)['app'] == 'xiwa-fan-editor':
+                    if status == 200 and json.loads(body)['app'] == 'content-editor':
                         break
                 except (OSError, ValueError):
                     pass
@@ -159,7 +159,7 @@ class Compatibility(unittest.TestCase):
             'records': cls.records, 'production_unchanged': unchanged,
             'production_sha256': cls.production_sha,
             'source_modules': {'anchor': str(Path(anchor_package.__file__).resolve()),
-                               'fan': str(ROOT / '喜娃剧本粉丝编辑器' / 'script_package.py')}
+                               'fan': str(ROOT / '内容编辑器' / 'script_package.py')}
         }, ensure_ascii=False, indent=2), encoding='utf-8')
         assert unchanged, 'Production data changed during the test; investigate without restoring it'
         print('Evidence:', OUT / 'result.json')
@@ -247,7 +247,7 @@ class Compatibility(unittest.TestCase):
         item = self.fan_json('GET', f'/api/workspaces/{wsid}')['script']
         original_runs = copy.deepcopy(item['blocks'][0]['runs'])
         item['role_colors']['甲'] = '#448866'
-        item['blocks'][2]['text'] = '粉丝修改的台词'
+        item['blocks'][2]['text'] = '作者修改的台词'
         item['blocks'].append({'id': 'fan-added', 'kind': 'text', 'text': '新增句', 'role': '甲', 'color': '#448866'})
         self.fan_json('PUT', f'/api/workspaces/{wsid}', item)
         _, returned = self.http('POST', f'/api/workspaces/{wsid}/export')
@@ -276,7 +276,7 @@ class Compatibility(unittest.TestCase):
         self.records.append({'check': self._testMethodName, 'passed': True})
 
     def test_03_fan_create_text_import_exports_to_current_anchor(self):
-        preview = self.fan_json('POST', '/api/import-preview', {'text': '剧名：粉丝新本\n作者：测试\n\n甲：新台词\n\n乙：第二句'})
+        preview = self.fan_json('POST', '/api/import-preview', {'text': '剧名：作者新本\n作者：测试\n\n甲：新台词\n\n乙：第二句'})
         candidate = preview['candidate']
         candidate['role_colors'] = {'甲': '#114477', '__proto__': '#662244'}
         wsid = self.fan_json('POST', '/api/workspaces/new', candidate)['workspace']['id']

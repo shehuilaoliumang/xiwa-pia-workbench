@@ -20,11 +20,11 @@ from app import create_app
 
 class ScriptImageTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="xiwa-script-images-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="wb-script-images-")
         self.root = Path(self.temporary.name)
         (self.root / "static/media").mkdir(parents=True)
         (self.root / "static/media/source.png").write_bytes(self.picture(shade=(1, 2, 3)))
-        seed = {"categories": [{"id": "cat-a", "name": "分类"}], "scripts": [
+        seed = {"categories": [{"id": "cat-a", "name": "分组"}], "scripts": [
             {"id": "script-a", "title": "原稿", "category_id": "cat-a", "source_pages": [7], "blocks": [
                 {"id": "text-a", "kind": "text", "text": "甲：原文。", "source_page": 7, "source_file": "原稿.pptx"},
                 {"id": "image-a", "kind": "image", "text": "原插图", "image_path": "/static/media/source.png",

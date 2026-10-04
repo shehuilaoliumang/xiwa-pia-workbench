@@ -10,7 +10,7 @@ const base=process.argv[2]||'http://127.0.0.1:8877';
   const token=library.csrf_token;
   const write=async(route,body,method='POST')=>{const r=await context.request.fetch(base+route,{method,data:body,headers:{'X-CSRF-Token':token}});assert(r.ok(),await r.text());return r.json()};
   let categories=library.categories.filter(c=>c.id!=='uncategorized');
-  for(let i=categories.length;i<30;i++)categories.push(await write('/api/categories',{name:`排列验收 ${i+1}：这是用于检查自适应的较长分类名称`,visible:true}));
+  for(let i=categories.length;i<30;i++)categories.push(await write('/api/categories',{name:`排列验收 ${i+1}：这是用于检查自适应的较长分组名称`,visible:true}));
   await fs.mkdir('.qa/browser',{recursive:true});
   for(const count of [0,1,6,12,30]){
     for(let i=0;i<categories.length;i++)await write('/api/categories/'+categories[i].id,{visible:i<count},'PATCH');

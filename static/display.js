@@ -90,7 +90,7 @@
   const futureMotions = new Map();
   let liveChannel = null;
   try {
-    if (typeof BroadcastChannel === 'function') liveChannel = new BroadcastChannel('pia-live-display-v1');
+    if (typeof BroadcastChannel === 'function') liveChannel = new BroadcastChannel('wb-live-display-v1');
   } catch (_) { /* Polling remains available when this browser blocks channels. */ }
 
 
@@ -148,7 +148,7 @@
   }
   function reportPreviewSync() {
     if (!preview) return;
-    window.parent.postMessage({type: 'pia-preview-sync-metrics', snapshot_id: snapshotId,
+    window.parent.postMessage({type: 'wb-preview-sync-metrics', snapshot_id: snapshotId,
       live_snapshot_id: previewLiveBinding?.live_snapshot_id ?? null, revision: previewLiveBinding?.revision ?? null,
       state: previewSyncStatus(), target_hz: previewSyncRate, media: Boolean(mediaPlayer),
       tx_hz: motionRate(motionSentTimes), sent_at: Date.now()}, location.origin);
@@ -441,7 +441,7 @@
       snapshot_id:state.snapshot.id, revision:state.revision, page_index:index, page_count:pageElements.length, anchor:pageAnchor(index)});
   }
 
-  function renderEmpty(title = '把故事，交给声音。', message = '每一次开口，都是一个新的世界。') {
+  function renderEmpty(title = '本地内容管理 · 展示与播控。', message = '每一次开口，都是一个新的世界。') {
     const empty = element('div', 'stage-empty');
     empty.append(element('div', '', '“'), element('h1', '', title), element('p', '', message));
     content.append(empty);
@@ -477,7 +477,7 @@
     categoryPeek.id = 'stage-category-peek';
     categoryPeek.hidden = true;
     categoryPeek.setAttribute('role', 'region');
-    categoryPeek.setAttribute('aria-label', '分类剧本摘要');
+    categoryPeek.setAttribute('aria-label', '分组条目摘要');
     categoryPeek.tabIndex = preview ? 0 : -1;
     categoryPeek.addEventListener('pointerenter', () => clearTimeout(categoryPeekTimer));
     categoryPeek.addEventListener('pointerleave', scheduleCategoryPeekHide);
@@ -516,7 +516,7 @@
     categoryPeek.dataset.categoryPeek = value;
     categoryPeek.append(element('h2', 'category-peek-heading', category.name));
     if (category.description) categoryPeek.append(element('p', 'category-peek-description', category.description));
-    if (!scripts.length) categoryPeek.append(element('p', 'category-peek-empty', '暂无剧本'));
+    if (!scripts.length) categoryPeek.append(element('p', 'category-peek-empty', '暂无条目'));
     scripts.forEach(script => {
       const item = element('article', 'category-peek-script');
       item.append(element('h3', '', script.title));
@@ -554,9 +554,9 @@
     const categories = Array.isArray(snapshot.categories) ? snapshot.categories : [];
     const scripts = Array.isArray(snapshot.scripts) ? snapshot.scripts : [];
     content.append(element('h1', 'stage-collection-title', '选择一种故事'));
-    content.append(element('p', 'stage-intro', `${categories.length} 个分类 · ${scripts.length} 篇剧本`));
+    content.append(element('p', 'stage-intro', `${categories.length} 个分组 · ${scripts.length} 篇条目`));
     if (!categories.length) {
-      renderEmpty('故事正在候场', '当前暂无可展示的分类。');
+      renderEmpty('故事正在候场', '当前暂无可展示的分组。');
       return;
     }
     const columns = categoryColumns(snapshot);
@@ -570,10 +570,10 @@
       const path = safeMedia(category.background);
       if (path) card.style.setProperty('--category-background', `url("${path}")`);
       card.style.setProperty('--category-color', readableColor(category.color, '#805D35'));
-      card.append(element('span', 'stage-category-count', `${entries.length} 篇剧本`));
+      card.append(element('span', 'stage-category-count', `${entries.length} 篇条目`));
       card.append(element('h2', '', category.name));
       if (category.description) card.append(element('p', 'stage-category-description', category.description));
-      if (!entries.length) card.append(element('p', 'stage-category-empty', '暂无剧本'));
+      if (!entries.length) card.append(element('p', 'stage-category-empty', '暂无条目'));
       else {
         const samples = element('ul', 'stage-category-samples');
         entries.slice(0, 3).forEach(script => {
@@ -588,7 +588,7 @@
         card.dataset.previewCategory = category.id;
         card.tabIndex = 0;
         card.setAttribute('role', 'button');
-        card.setAttribute('aria-label', '打开分类：' + text(category.name));
+        card.setAttribute('aria-label', '打开分组：' + text(category.name));
         if (columns === 1) {
           card.setAttribute('aria-controls', 'stage-category-peek');
           const peek = () => setCategoryPeek('category:' + category.id);
@@ -627,16 +627,16 @@
     const scripts = Array.isArray(snapshot.scripts) ? snapshot.scripts : [];
     const categories = Array.isArray(snapshot.categories) ? snapshot.categories : [];
     const focusCategory = categoryMap.get(snapshot.focus_category_id);
-    content.append(element('h1', 'stage-collection-title', focusCategory?.name || (categories.length === 1 ? categories[0].name : '剧本目录')));
-    content.append(element('p', 'stage-intro', `共 ${scripts.length} 篇收录剧本`));
+    content.append(element('h1', 'stage-collection-title', focusCategory?.name || (categories.length === 1 ? categories[0].name : '条目目录')));
+    content.append(element('p', 'stage-intro', `共 ${scripts.length} 篇收录条目`));
     if (categories.length > 1 && snapshot.directory_level !== 'scripts') {
       const nav = element('nav', 'stage-category-nav');
-      nav.setAttribute('aria-label', '本场剧本分类');
+      nav.setAttribute('aria-label', '本场条目分组');
       categories.forEach(category => nav.append(element('span', '', category.name)));
       content.append(nav);
     }
     if (!scripts.length) {
-      renderEmpty('故事正在候场', '当前分类暂无可展示的剧本。');
+      renderEmpty('故事正在候场', '当前分组暂无可展示的条目。');
       return;
     }
     const list = element('div', 'stage-list');
@@ -665,7 +665,7 @@
         });
       }
       const top = element('div', 'stage-card-top');
-      top.append(element('span', 'stage-card-category', categoryMap.get(script.category_id)?.name || script.source_category || '未分类'));
+      top.append(element('span', 'stage-card-category', categoryMap.get(script.category_id)?.name || script.source_category || '未分组'));
       top.append(element('span', 'stage-card-number', String(index + 1).padStart(2, '0')));
       card.append(top, element('h2', '', script.title));
       card.append(element('p', 'stage-card-author', script.author ? '作者 / 来源 · ' + script.author : '原目录未提供作者'));
@@ -713,7 +713,7 @@
     const path = safeMedia(block.image_path);
     if (path) {
       const img = element('img');
-      img.alt = text(block.text) || '剧本插图';
+      img.alt = text(block.text) || '条目插图';
       img.loading = 'eager';
       img.decoding = 'async';
       img.style.height = 'auto';
@@ -734,7 +734,7 @@
     } else {
       figure.append(element('p', 'image-unavailable', '这张插图暂时无法显示。'));
     }
-    figure.append(element('figcaption', '', '剧本插图'));
+    figure.append(element('figcaption', '', '条目插图'));
     makePreviewBlockInteractive(figure, block);
     return figure;
   }
@@ -742,12 +742,12 @@
   function renderScript(snapshot, categoryMap) {
     const scripts = Array.isArray(snapshot.scripts) ? snapshot.scripts : [];
     if (!scripts.length) {
-      renderEmpty('故事正在候场', '请在工作台选择要展示的剧本。');
+      renderEmpty('故事正在候场', '请在工作台选择要展示的条目。');
       return;
     }
     scripts.forEach(script => {
       const heading = element('header', 'stage-script-heading');
-      heading.append(element('p', '', categoryMap.get(script.category_id)?.name || script.source_category || '剧本正文'));
+      heading.append(element('p', '', categoryMap.get(script.category_id)?.name || script.source_category || '条目正文'));
       heading.append(element('h1', '', script.title));
       if (script.author) heading.append(element('p', '', '作者 / 来源 · ' + script.author));
       if (script.cast_note) heading.append(element('small', '', '配音配置 · ' + script.cast_note));
@@ -811,7 +811,7 @@
       }else renderScript(snapshot, categoryMap);
     } else {
       kind.textContent = '选一个故事，开始相遇';
-      baseFooter = `${snapshot.scripts?.length || 0} 篇收录剧本`;
+      baseFooter = `${snapshot.scripts?.length || 0} 篇收录条目`;
       renderList(snapshot, categoryMap);
     }
     fitStage();
@@ -1090,12 +1090,12 @@
     if (!preview || !renderedSnapshot) return;
     cancelPreviewResume();
     if (action === 'apply' && (!previewCanApply || previewAcknowledgedId !== snapshotId || positioning)) return;
-    window.parent.postMessage({type: 'pia-preview-action', action, snapshot_id: snapshotId, ...pageStatus(), ...details}, location.origin);
+    window.parent.postMessage({type: 'wb-preview-action', action, snapshot_id: snapshotId, ...pageStatus(), ...details}, location.origin);
   }
 
   function postPreviewPosition(reason, anchor = currentAnchor()) {
     if (!preview || !renderedSnapshot || previewAcknowledgedId !== snapshotId || positioning) return;
-    window.parent.postMessage({type: 'pia-preview-position', snapshot_id: snapshotId,
+    window.parent.postMessage({type: 'wb-preview-position', snapshot_id: snapshotId,
       anchor, playing: mediaPlayer?mediaPlayer.playing:previewPlaying, reason, ...pageStatus()}, location.origin);
   }
 
@@ -1165,7 +1165,7 @@
     selected?.classList.add('preview-selected');
     updatePreviewToolbar();
     // Dedicated acknowledgement cannot be interpreted as a user/live action.
-    window.parent.postMessage({type: 'pia-editor-focused', snapshot_id: snapshotId, anchor,
+    window.parent.postMessage({type: 'wb-editor-focused', snapshot_id: snapshotId, anchor,
       page_status: pageStatus(), ...pageStatus()}, location.origin);
   }
 
@@ -1174,7 +1174,7 @@
     node.classList.add('preview-selectable-block');
     node.tabIndex = 0;
     node.setAttribute('role', 'button');
-    const label = block.kind === 'image' ? '剧本插图' : text(block.text).trim().slice(0, 38);
+    const label = block.kind === 'image' ? '条目插图' : text(block.text).trim().slice(0, 38);
     node.setAttribute('aria-label', '定位到：' + label);
     node.addEventListener('click', () => selectPreviewAnchor(block.id, nodePageIndex(node)));
     node.addEventListener('keydown', event => {
@@ -1222,7 +1222,7 @@
     const hasContent = hasSnapshot && (anchorElements.length > 0||Boolean(mediaPlayer));
     const canApply = hasSnapshot && previewCanApply && previewAcknowledgedId === snapshotId && !positioning;
     previewButtons.returnList.disabled = !canReturnFrom(renderedSnapshot);
-    previewButtons.returnList.textContent = renderedSnapshot?.mode === 'list' && renderedSnapshot.directory_level === 'scripts' ? '返回分类' : '返回目录';
+    previewButtons.returnList.textContent = renderedSnapshot?.mode === 'list' && renderedSnapshot.directory_level === 'scripts' ? '返回分组' : '返回目录';
     previewButtons.play.disabled = editorPreview || !hasContent || positioning || isPagesMode();
     previewButtons.play.textContent = previewFeedback === 'realtime'
       ? (previewPlaying ? '暂停滚动' : '开始滚动') : (previewPlaying ? '暂停试滚' : '预览试滚');
@@ -1247,7 +1247,7 @@
     previewButtons.apply.textContent = previewFeedback === 'realtime' ? '立即同步' : '应用到展示';
     previewButtons.status.textContent = previewFeedback === 'realtime' ? previewStatusMessage
       : previewPlaying ? '仅预览试滚 · 不改变当前展示' : previewStatusMessage;
-    const toolsState = {type: 'pia-preview-tools', snapshot_id: snapshotId,
+    const toolsState = {type: 'wb-preview-tools', snapshot_id: snapshotId,
       mode: renderedSnapshot?.mode || 'list', directory_level: renderedSnapshot?.directory_level || null,
       focus_category_id: renderedSnapshot?.focus_category_id || null, can_return: canReturnFrom(renderedSnapshot), has_content: hasContent,
       playing: previewPlaying, can_apply: canApply, positioning, ...pageStatus()};
@@ -1360,7 +1360,7 @@
     // A held key must not race through pages or emit repeated live updates.
     if (event.repeat) { event.preventDefault(); return; }
     if (event.key === 'Escape') {
-      window.parent.postMessage({type: 'pia-preview-exit-focus', snapshot_id: snapshotId}, location.origin);
+      window.parent.postMessage({type: 'wb-preview-exit-focus', snapshot_id: snapshotId}, location.origin);
       event.preventDefault();
       return;
     }
@@ -1491,7 +1491,7 @@
       }
     }
     updatePreviewToolbar();
-    window.parent.postMessage({type: 'pia-preview-rendered', snapshot_id: snapshotId}, location.origin);
+    window.parent.postMessage({type: 'wb-preview-rendered', snapshot_id: snapshotId}, location.origin);
     postPreviewPosition('render');
   }
 
@@ -1787,58 +1787,58 @@
     window.addEventListener('keydown', previewKeydown);
     window.addEventListener('message', event => {
       if (event.origin !== location.origin || event.source !== window.parent) return;
-      if (event.data?.type === 'pia-editor-focus') {
+      if (event.data?.type === 'wb-editor-focus') {
         focusEditorAnchor(event.data);
         return;
       }
-      if (event.data?.type === 'pia-preview-live-binding') {
+      if (event.data?.type === 'wb-preview-live-binding') {
         if (editorPreview) return;
         setPreviewLiveBinding(event.data);
         return;
       }
-      if (event.data?.type === 'pia-preview-follow-command') {
+      if (event.data?.type === 'wb-preview-follow-command') {
         if (editorPreview) return;
         followPreviewCommand(event.data);
         return;
       }
-      if (event.data?.type === 'pia-preview-options') {
+      if (event.data?.type === 'wb-preview-options') {
         setPreviewOptions(editorPreview ? {...event.data, feedback: 'confirm'} : event.data);
         return;
       }
-      if (event.data?.type === 'pia-preview-key') {
+      if (event.data?.type === 'wb-preview-key') {
         if (!renderedSnapshot || event.data.snapshot_id !== snapshotId) return;
         runPreviewKey(event.data.key);
         return;
       }
-      if (event.data?.type === 'pia-preview-command') {
+      if (event.data?.type === 'wb-preview-command') {
         if (!renderedSnapshot || event.data.snapshot_id !== snapshotId) return;
         runPreviewCommand(event.data.action);
         return;
       }
-      if (event.data?.type === 'pia-preview-position-request') {
+      if (event.data?.type === 'wb-preview-position-request') {
         if (!renderedSnapshot || event.data.snapshot_id !== snapshotId || previewAcknowledgedId !== snapshotId) return;
         postPreviewPosition('render');
         return;
       }
-      if (event.data?.type === 'pia-preview-apply-request') {
+      if (event.data?.type === 'wb-preview-apply-request') {
         if (editorPreview) return;
         if (event.data.snapshot_id !== snapshotId) return;
         applyPreview();
         return;
       }
-      if (event.data?.type === 'pia-preview-status') {
+      if (event.data?.type === 'wb-preview-status') {
         if (event.data.snapshot_id !== snapshotId) return;
         previewCanApply = !editorPreview && event.data.can_apply === true;
         previewStatusMessage = text(event.data.message) || '预览草稿';
         updatePreviewToolbar();
         return;
       }
-      if (event.data?.type !== 'pia-preview') return;
+      if (event.data?.type !== 'wb-preview') return;
       const snapshot = event.data.snapshot;
       if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.scripts)) return;
       if ((snapshot.id || null) === snapshotId) {
         if (previewAcknowledgedId === snapshotId) {
-          window.parent.postMessage({type: 'pia-preview-rendered', snapshot_id: snapshotId}, location.origin);
+          window.parent.postMessage({type: 'wb-preview-rendered', snapshot_id: snapshotId}, location.origin);
           postPreviewPosition('render');
           previewToolsKey = '';
           updatePreviewToolbar();
@@ -1847,7 +1847,7 @@
       }
       renderPreview(snapshot, event.data.anchor, event.data.page_index);
     });
-    window.parent.postMessage({type: 'pia-preview-ready'}, location.origin);
+    window.parent.postMessage({type: 'wb-preview-ready'}, location.origin);
     requestAnimationFrame(animatePreview);
     setInterval(reportPreviewSync, 500);
     return; // Preview scrolling is local; no connect, poll, or checkpoint calls.

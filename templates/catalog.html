@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="page-intro"><div><div class="eyebrow">PIA SCRIPT LIBRARY</div><h1>选本工作台</h1><p>查找剧本、阅读正文，整理本场待展示列表。</p></div><a class="button primary" href="/control">进入播控台 <span aria-hidden="true">↗</span></a></section>
-<section class="catalog-overview"><div><span class="small-label">剧本收藏</span><strong id="library-count">—</strong><span>篇收录正文 / 选段</span></div><div class="overview-note">选一个本子，读一读。<br>准备好了，再把它带到展示画面。</div><div class="overview-symbol" aria-hidden="true">“</div></section>
-<div class="catalog-layout"><section class="library-panel" aria-label="剧本资料库">
-  <div class="section-heading"><div><span class="eyebrow">THE COLLECTION</span><h2 id="catalog-section-title">剧本分类</h2></div><span id="result-count" class="muted"></span></div>
-  <div id="catalog-back-row" class="catalog-breadcrumb" hidden><button id="catalog-back" type="button">← 返回分类总览</button><span id="catalog-location"></span></div>
-  <div id="category-filters" class="category-filters" role="group" aria-label="按分类筛选"></div>
-  <div class="search-row"><label class="search-field"><span aria-hidden="true">⌕</span><input id="catalog-search" type="search" placeholder="搜索剧名、作者、角色或关键词" aria-label="搜索剧本"></label><select id="cast-filter" aria-label="按原配音配置筛选"><option value="">全部配音配置</option><option value="一男一女">一男一女</option><option value="两女">两女</option><option value="不分性别">性别不限（原备注）</option></select></div>
+<section class="page-intro"><div><div class="eyebrow"> SCRIPT LIBRARY</div><h1>内容管理</h1><p>查找条目、阅读正文，整理本场待展示列表。</p></div><a class="button primary" href="/control">进入展示控制 <span aria-hidden="true">↗</span></a></section>
+<section class="catalog-overview"><div><span class="small-label">条目收藏</span><strong id="library-count">—</strong><span>篇收录正文 / 选段</span></div><div class="overview-note">选一个本子，读一读。<br>准备好了，再把它带到展示画面。</div><div class="overview-symbol" aria-hidden="true">“</div></section>
+<div class="catalog-layout"><section class="library-panel" aria-label="条目资料库">
+  <div class="section-heading"><div><span class="eyebrow">THE COLLECTION</span><h2 id="catalog-section-title">条目分组</h2></div><span id="result-count" class="muted"></span></div>
+  <div id="catalog-back-row" class="catalog-breadcrumb" hidden><button id="catalog-back" type="button">← 返回分组总览</button><span id="catalog-location"></span></div>
+  <div id="category-filters" class="category-filters" role="group" aria-label="按分组筛选"></div>
+  <div class="search-row"><label class="search-field"><span aria-hidden="true">⌕</span><input id="catalog-search" type="search" placeholder="搜索剧名、作者、角色或关键词" aria-label="搜索条目"></label><select id="cast-filter" aria-label="按原配音配置筛选"><option value="">全部配音配置</option><option value="一男一女">一男一女</option><option value="两女">两女</option><option value="不分性别">性别不限（原备注）</option></select></div>
   <p id="category-description" class="category-description"></p><div id="script-grid" class="script-grid"></div>
 </section><aside class="queue-panel"><div class="section-heading"><h2>本场待展示</h2><span id="queue-count" class="count-badge">0</span></div><p class="muted">按顺序整理今晚的故事。<br>加入列表不会立即改变展示。</p><ol id="queue-list" class="queue-list"></ol><a class="button dark full" href="/control">预览与上屏 <span aria-hidden="true">→</span></a></aside></div>
 {% endblock %}

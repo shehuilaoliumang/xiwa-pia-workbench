@@ -34,10 +34,10 @@ async function bodyFocus() { await frame.locator('body').evaluate(element => { e
 async function press(key) { await bodyFocus(); await page.keyboard.press(key); }
 const selected = () => frame.evaluate(() => document.querySelector('.preview-selected')?.dataset.anchor || null);
 const pageIndex = () => frame.locator('.stage-page.is-current').getAttribute('data-page-index').then(Number);
-const interactions = () => page.evaluate(() => window.__qaMessages.filter(message => message.type === 'pia-preview-position' && message.reason === 'interaction').length);
+const interactions = () => page.evaluate(() => window.__qaMessages.filter(message => message.type === 'wb-preview-position' && message.reason === 'interaction').length);
 async function forwarded(key, snapshotId) {
   const id = snapshotId || await frame.evaluate(() => window.__qaSnapshot.id);
-  await page.evaluate(({ key, id }) => document.querySelector('#preview-frame').contentWindow.postMessage({ type: 'pia-preview-key', key, snapshot_id: id }, location.origin), { key, id });
+  await page.evaluate(({ key, id }) => document.querySelector('#preview-frame').contentWindow.postMessage({ type: 'wb-preview-key', key, snapshot_id: id }, location.origin), { key, id });
 }
 async function boundary(key) {
   await bodyFocus(); await delay(80);
@@ -59,13 +59,13 @@ async function main() {
     context = await browser.newContext({ viewport: { width: 1600, height: 1120 } });
     context.setDefaultTimeout(7000);
     await context.addInitScript(() => {
-      if (location.origin === 'http://127.0.0.1:8905') localStorage.setItem('pia-preview-preferences', JSON.stringify({ placement: 'outside', feedback: 'confirm' }));
+      if (location.origin === 'http://127.0.0.1:8905') localStorage.setItem('wb-preview-preferences', JSON.stringify({ placement: 'outside', feedback: 'confirm' }));
       window.__qaMessages = []; window.__qaKeys = [];
       window.addEventListener('keydown', event => setTimeout(() => window.__qaKeys.push({key:event.key,target:event.target?.tagName,prevented:event.defaultPrevented}), 0));
       window.addEventListener('message', event => {
         if (event.origin !== location.origin) return;
-        if (event.data?.type?.startsWith('pia-preview-')) window.__qaMessages.push(event.data);
-        if (event.source === window.parent && event.data?.type === 'pia-preview') window.__qaSnapshot = event.data.snapshot;
+        if (event.data?.type?.startsWith('wb-preview-')) window.__qaMessages.push(event.data);
+        if (event.source === window.parent && event.data?.type === 'wb-preview') window.__qaSnapshot = event.data.snapshot;
       });
     });
     context.on('page', item => {
@@ -90,7 +90,7 @@ async function main() {
     await forwarded('ArrowDown'); await until(async () => await pageIndex() === 1, 'parent key message');
     const samePage = await pageIndex();
     await forwarded('ArrowDown', 'stale-id');
-    await frame.evaluate(() => window.postMessage({ type: 'pia-preview-key', key: 'ArrowDown', snapshot_id: window.__qaSnapshot.id }, location.origin));
+    await frame.evaluate(() => window.postMessage({ type: 'wb-preview-key', key: 'ArrowDown', snapshot_id: window.__qaSnapshot.id }, location.origin));
     await delay(220); assert.equal(await pageIndex(), samePage);
     const repeatPrevented = await frame.evaluate(() => { const event = new KeyboardEvent('keydown', { key: 'ArrowDown', repeat: true, bubbles: true, cancelable: true }); document.body.dispatchEvent(event); return event.defaultPrevented; });
     assert(repeatPrevented); assert.equal(await pageIndex(), samePage);
@@ -122,9 +122,9 @@ async function main() {
 
     await page.locator('#layout-body-mode').selectOption('scroll'); await ready();
     await page.locator('[data-preview-external="top"]').click();
-    await until(()=>page.evaluate(()=>window.__qaMessages.filter(message=>message.type==='pia-preview-position').at(-1)?.anchor===null),'top command received');
+    await until(()=>page.evaluate(()=>window.__qaMessages.filter(message=>message.type==='wb-preview-position').at(-1)?.anchor===null),'top command received');
     await press('ArrowRight'); await until(async () => await selected() === fixture.blocks[0].id, 'first block');
-    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='pia-preview-position').at(-1)?.anchor===id,fixture.blocks[0].id),'first block report');
+    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='wb-preview-position').at(-1)?.anchor===id,fixture.blocks[0].id),'first block report');
     const beforeOneKey = await interactions();
     await press('ArrowDown'); await until(async () => await selected() === fixture.blocks[1].id, 'next block');
     await delay(250); assert.equal(await interactions(), beforeOneKey + 1, 'One arrow emits exactly one interaction');
@@ -132,7 +132,7 @@ async function main() {
     await press('ArrowUp'); await until(async () => await frame.locator('.preview-selected').count() === 0, 'return to top');
     await boundary('ArrowUp');
     await frame.locator(`[data-anchor="${fixture.blocks.at(-1).id}"]`).evaluate(element=>element.click());
-    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='pia-preview-position').at(-1)?.anchor===id,fixture.blocks.at(-1).id),'last block report');
+    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='wb-preview-position').at(-1)?.anchor===id,fixture.blocks.at(-1).id),'last block report');
     await boundary('ArrowDown');
     check('滚动正文四方向按段定位，无150ms重复位置覆盖');
 
@@ -141,7 +141,7 @@ async function main() {
     const cards = frame.locator('[data-preview-category]'), count = await cards.count(); assert(count >= 2);
     await until(() => cards.first().evaluate(element => element === document.activeElement), 'first category focus');
     const firstCategoryAnchor=await cards.first().getAttribute('data-anchor');
-    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='pia-preview-position').at(-1)?.anchor===id,firstCategoryAnchor),'first category report');
+    await until(()=>page.evaluate(id=>window.__qaMessages.filter(message=>message.type==='wb-preview-position').at(-1)?.anchor===id,firstCategoryAnchor),'first category report');
     const directoryBefore=await interactions();await page.keyboard.press('ArrowLeft');await delay(220);
     assert(await cards.first().evaluate(element=>element===document.activeElement));assert.equal(await interactions(),directoryBefore);
     assert(await frame.evaluate(()=>window.__qaKeys.at(-1)?.prevented));
@@ -160,20 +160,20 @@ async function main() {
     await page.goto(base + '/control?script=' + fixture.id + '&body=media'); await ready();
     await page.locator('#layout-body-mode').selectOption('media'); await ready();
     await page.locator('#layout-media-caption-layout').selectOption('scroll'); await ready();
-    await frame.waitForFunction(() => document.querySelector('.pia-media-element')?.duration > 7);
-    const label = () => frame.locator('.pia-media-caption-label').textContent();
-    const mediaPosition = () => frame.locator('.pia-media-element').evaluate(element => element.currentTime);
+    await frame.waitForFunction(() => document.querySelector('.wb-media-element')?.duration > 7);
+    const label = () => frame.locator('.wb-media-caption-label').textContent();
+    const mediaPosition = () => frame.locator('.wb-media-element').evaluate(element => element.currentTime);
     const mediaStart = await mediaPosition();
     await press('ArrowRight'); await until(async () => (await label()).includes('2 / 3'), 'media next caption');
     await press('ArrowDown'); await until(async () => (await label()).includes('3 / 3'), 'media down caption');
     await press('ArrowLeft'); await until(async () => (await label()).includes('2 / 3'), 'media previous caption');
     await press('ArrowUp'); await until(async () => (await label()).includes('1 / 3'), 'media up caption');
     assert.equal(await mediaPosition(), mediaStart, 'Arrows must never seek audio/video');
-    const rangeProtected = await frame.locator('.pia-media-progress').evaluate(element => { element.focus(); const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }); element.dispatchEvent(event); return !event.defaultPrevented; });
+    const rangeProtected = await frame.locator('.wb-media-progress').evaluate(element => { element.focus(); const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }); element.dispatchEvent(event); return !event.defaultPrevented; });
     assert(rangeProtected);
-    await until(()=>page.evaluate(()=>window.__qaMessages.filter(message=>message.type==='pia-preview-position'&&message.reason==='interaction').at(-1)?.media_state?.caption_index===0),'media first caption report');
+    await until(()=>page.evaluate(()=>window.__qaMessages.filter(message=>message.type==='wb-preview-position'&&message.reason==='interaction').at(-1)?.media_state?.caption_index===0),'media first caption report');
     const beforeEscape = await interactions(); await press('Escape');
-    await until(() => page.evaluate(() => window.__qaMessages.some(message => message.type === 'pia-preview-exit-focus')), 'escape exit focus message');
+    await until(() => page.evaluate(() => window.__qaMessages.some(message => message.type === 'wb-preview-exit-focus')), 'escape exit focus message');
     assert.equal(await interactions(), beforeEscape, 'Escape does not play, seek, or publish');
     assert.equal(await mediaPosition(), mediaStart);
     assert.deepEqual(writes, [], 'All confirm keyboard operations remain isolated');

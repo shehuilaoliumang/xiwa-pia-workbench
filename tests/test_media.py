@@ -28,11 +28,11 @@ def wav_bytes(samples=80000, sample=b"\x00\x00"):
 
 class MediaTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="xiwa-media-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="wb-media-")
         self.root = Path(self.temporary.name)
         (self.root / "static" / "media").mkdir(parents=True)
         (self.root / "static" / "media" / "source.png").write_bytes(b"source-image")
-        self.seed = {"categories": [{"id": "cat-a", "name": "分类"}], "scripts": [
+        self.seed = {"categories": [{"id": "cat-a", "name": "分组"}], "scripts": [
             {"id": "script-a", "title": "媒体测试", "category_id": "cat-a", "source_pages": [7],
              "blocks": [{"id": "block-a", "kind": "text", "text": "甲：原文。", "source_page": 7},
                         {"id": "block-b", "kind": "text", "text": "乙：第二段。"},

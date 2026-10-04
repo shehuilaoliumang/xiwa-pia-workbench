@@ -15,7 +15,7 @@ async function until(check,label){for(let i=0;i<150;i++){if(await check())return
  browser=await chromium.launch({channel:'msedge',headless:true});
  const context=await browser.newContext({viewport:{width:1440,height:1050}}),errors=[];
  context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
- await context.addInitScript(()=>{addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='pia-preview')window.observedDirectorySnapshot=e.data.snapshot})});
+ await context.addInitScript(()=>{addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='wb-preview')window.observedDirectorySnapshot=e.data.snapshot})});
  const lib=async()=>(await context.request.get(base+'/api/library')).json();
  const state=async()=>(await context.request.get(base+'/api/state')).json();
  const send=async(url,body,method='POST')=>{const l=await lib(),r=await context.request.fetch(base+url,{method,data:body,headers:{'X-CSRF-Token':l.csrf_token}});assert(r.ok(),await r.text());return r.json()};

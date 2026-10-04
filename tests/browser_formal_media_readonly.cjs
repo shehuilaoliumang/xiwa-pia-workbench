@@ -21,14 +21,14 @@ async function ready() {
   return page.frames().find(frame => frame.url().includes('/display?preview=1'));
 }
 async function seekPreview(frame, at) {
-  const slider = frame.locator('.pia-media-progress');
+  const slider = frame.locator('.wb-media-progress');
   await slider.evaluate((element, value) => {
     element.value = String(value);
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }, at);
   await frame.waitForFunction(expected => {
-    const player = document.querySelector('video.pia-media-element');
+    const player = document.querySelector('video.wb-media-element');
     return player && Math.abs(player.currentTime - expected) < .08 && !player.seeking && player.readyState >= 2 && player.paused;
   }, at);
 }
@@ -37,9 +37,9 @@ async function main() {
     browser = await chromium.launch({ channel: 'msedge', headless: true });
     context = await browser.newContext({ viewport: { width: 1600, height: 1120 }, serviceWorkers: 'block' });
     await context.addInitScript(() => {
-      if(location.origin==='http://127.0.0.1:8765')localStorage.setItem('pia-preview-preferences', JSON.stringify({ placement: 'outside', feedback: 'confirm' }));
+      if(location.origin==='http://127.0.0.1:8765')localStorage.setItem('wb-preview-preferences', JSON.stringify({ placement: 'outside', feedback: 'confirm' }));
       window.addEventListener('message', event => {
-        if (event.origin === location.origin && event.source === window.parent && event.data?.type === 'pia-preview') window.__qaLastSnapshot = event.data.snapshot;
+        if (event.origin === location.origin && event.source === window.parent && event.data?.type === 'wb-preview') window.__qaLastSnapshot = event.data.snapshot;
       });
     });
     await context.route('**/*', async route => {
@@ -59,7 +59,7 @@ async function main() {
     });
     context.on('page', item => item.on('pageerror', error => result.page_errors.push(error.message)));
     const health = await get('/api/health');
-    assert.equal(health.app, 'xiwa-workbench'); result.health = health;
+    assert.equal(health.app, 'content-workbench'); result.health = health;
     const libraryBefore = await get('/api/library');
     const scriptBefore = libraryBefore.scripts.find(script => script.id === 'script-08');
     assert(scriptBefore?.media, 'Formal script-08 media association exists');
@@ -85,16 +85,16 @@ async function main() {
     assert.equal(firstSnapshot.mode, 'list');
     assert.equal(firstSnapshot.directory_level, 'categories');
     assert.equal(await page.locator('#preview-feedback-mode').inputValue(), 'confirm');
-    result.checks.push('普通播控首进为分类总览，使用确认模式');
+    result.checks.push('普通播控首进为分组总览，使用确认模式');
 
     await page.goto(base + '/control?script=script-08&body=media');
     frame = await ready();
     assert.equal(await page.locator('#layout-body-mode').inputValue(), 'media');
     assert.equal(await page.locator('#preview-feedback-mode').inputValue(), 'confirm');
-    await frame.waitForFunction(() => document.querySelector('video.pia-media-element')?.duration > 210);
+    await frame.waitForFunction(() => document.querySelector('video.wb-media-element')?.duration > 210);
     await page.locator('[data-orientation="portrait"]').click(); frame = await ready();
     await seekPreview(frame, 10);
-    result.preview_metadata = await frame.locator('video.pia-media-element').evaluate(player => ({ duration: player.duration, width: player.videoWidth, height: player.videoHeight, currentTime: player.currentTime, paused: player.paused, muted: player.muted }));
+    result.preview_metadata = await frame.locator('video.wb-media-element').evaluate(player => ({ duration: player.duration, width: player.videoWidth, height: player.videoHeight, currentTime: player.currentTime, paused: player.paused, muted: player.muted }));
     await page.locator('.preview-panel').scrollIntoViewIfNeeded();
     await page.locator('.preview-panel').screenshot({ path: path.join(output, 'formal-media-portrait.png') });
     result.checks.push('真实竖屏视频预览，进度条定位10秒仅在草稿内');
@@ -103,7 +103,7 @@ async function main() {
     await seekPreview(frame, 10);
     await page.locator('#layout-media-side').selectOption('right'); frame = await ready();
     await seekPreview(frame, 10);
-    assert.equal(await frame.locator('.pia-media-player').getAttribute('data-media-side'), 'right');
+    assert.equal(await frame.locator('.wb-media-player').getAttribute('data-media-side'), 'right');
     await page.locator('.preview-panel').scrollIntoViewIfNeeded();
     await page.locator('.preview-panel').screenshot({ path: path.join(output, 'formal-media-landscape.png') });
     result.checks.push('横屏及左右位置仅更新预览，保留视频10秒定位');

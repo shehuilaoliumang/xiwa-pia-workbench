@@ -7,7 +7,7 @@
   const actions = form.querySelector(':scope > .dialog-actions');
   const editPane = document.createElement('div');
   editPane.className = 'editor-edit-pane';
-  editPane.setAttribute('aria-label', '剧本编辑区域');
+  editPane.setAttribute('aria-label', '条目编辑区域');
   for (const child of [...form.children]) {
     if (child !== heading && child !== actions) editPane.appendChild(child);
   }
@@ -24,7 +24,7 @@
     </div>
     <p class="help editor-preview-help">选中编辑段落会定位预览，点击预览台词可返回编辑。整页适配当前窗口；预览不保存资料，也不上屏。</p>
     <p id="editor-preview-status" class="editor-preview-status" role="status">展开后加载预览。</p>
-    <div class="editor-preview-stage-slot"><div class="editor-preview-viewport"><iframe id="editor-preview-frame" title="剧本草稿排版预览"></iframe></div></div>
+    <div class="editor-preview-stage-slot"><div class="editor-preview-viewport"><iframe id="editor-preview-frame" title="条目草稿排版预览"></iframe></div></div>
     <div class="editor-preview-navigation"><button type="button" class="button secondary small" id="editor-preview-previous" disabled>上一页</button><span id="editor-preview-page">尚未预览</span><button type="button" class="button secondary small" id="editor-preview-next" disabled>下一页</button></div>`;
   form.insertBefore(panel, actions);
   const $ = id => document.getElementById(id);
@@ -61,7 +61,7 @@
   function focusPreview() {
     if (!selectedAnchor || !rendered || pending || !snapshot || snapshotVersion !== version) return;
     if (!snapshot.scripts.some(script => script.blocks.some(block => block.id === selectedAnchor))) return;
-    send({type: 'pia-editor-focus', snapshot_id: snapshot.id, anchor: selectedAnchor});
+    send({type: 'wb-editor-focus', snapshot_id: snapshot.id, anchor: selectedAnchor});
   }
   function selectEditorBlock(anchor) {
     selectedAnchor = anchor;
@@ -89,10 +89,10 @@
   }
   function showSnapshot() {
     if (!snapshot || snapshotVersion !== version || !ready || !panel.open || !dialog.open) return;
-    send({type: 'pia-preview-options', placement: 'outside', feedback: 'confirm'});
-    send({type: 'pia-preview-live-binding', enabled: false});
-    send({type: 'pia-preview', snapshot, anchor: selectedAnchor, page_index: pageIndex});
-    send({type: 'pia-preview-status', snapshot_id: snapshot.id, can_apply: false, message: '编辑草稿 · 仅预览'});
+    send({type: 'wb-preview-options', placement: 'outside', feedback: 'confirm'});
+    send({type: 'wb-preview-live-binding', enabled: false});
+    send({type: 'wb-preview', snapshot, anchor: selectedAnchor, page_index: pageIndex});
+    send({type: 'wb-preview-status', snapshot_id: snapshot.id, can_apply: false, message: '编辑草稿 · 仅预览'});
   }
   async function refresh() {
     if (!editor || !dialog.open || !panel.open) return;
@@ -136,8 +136,8 @@
     });
     return true;
   }
-  if (!attachEditor(window.piaEditor)) {
-    const probe = setInterval(() => { if (attachEditor(window.piaEditor)) clearInterval(probe); }, 100);
+  if (!attachEditor(window.wbEditor)) {
+    const probe = setInterval(() => { if (attachEditor(window.wbEditor)) clearInterval(probe); }, 100);
     window.addEventListener('pagehide', () => clearInterval(probe), {once: true});
   }
   panel.addEventListener('toggle', () => {
@@ -165,18 +165,18 @@
   window.addEventListener('message', event => {
     if (event.origin !== location.origin || event.source !== frame.contentWindow) return;
     const data = event.data;
-    if (data?.type === 'pia-preview-ready') { ready = true; showSnapshot(); return; }
+    if (data?.type === 'wb-preview-ready') { ready = true; showSnapshot(); return; }
     if (!snapshot || snapshotVersion !== version || data?.snapshot_id !== snapshot.id) return;
-    if (data.type === 'pia-preview-exit-focus') { setZoom(false); return; }
-    if (data.type === 'pia-preview-rendered') { rendered = true; status.textContent = '已更新到当前草稿 · 未保存 / 未上屏'; controls(); fitPage(); focusPreview(); }
-    if (data.type === 'pia-editor-focused') {
+    if (data.type === 'wb-preview-exit-focus') { setZoom(false); return; }
+    if (data.type === 'wb-preview-rendered') { rendered = true; status.textContent = '已更新到当前草稿 · 未保存 / 未上屏'; controls(); fitPage(); focusPreview(); }
+    if (data.type === 'wb-editor-focused') {
       if (data.anchor !== selectedAnchor) return;
       tools = {...tools, ...data};
       if (Number.isInteger(data.page_index)) pageIndex = data.page_index;
       controls();
       return;
     }
-    if (data.type === 'pia-preview-tools' || data.type === 'pia-preview-position') {
+    if (data.type === 'wb-preview-tools' || data.type === 'wb-preview-position') {
       tools = {...tools, ...data}; if (Number.isInteger(data.page_index)) pageIndex = data.page_index; controls();
     }
     // Editing previews intentionally have no handler for apply/font/live actions.
@@ -191,7 +191,7 @@
   $('editor-preview-refresh').addEventListener('click', () => { clearTimeout(timer); void refresh(); });
   $('editor-preview-zoom').addEventListener('click', () => setZoom(!dialog.classList.contains('editor-preview-focus')));
   for (const [id, direction] of [['editor-preview-previous', -1], ['editor-preview-next', 1]]) $(id).addEventListener('click', () => {
-    send({type: 'pia-preview-command', snapshot_id: snapshot?.id, action: mode.value === 'pages' ? direction < 0 ? 'previous-page' : 'next-page' : direction < 0 ? 'previous' : 'next'});
+    send({type: 'wb-preview-command', snapshot_id: snapshot?.id, action: mode.value === 'pages' ? direction < 0 ? 'previous-page' : 'next-page' : direction < 0 ? 'previous' : 'next'});
   });
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape' && dialog.classList.contains('editor-preview-focus')) { event.preventDefault(); event.stopPropagation(); setZoom(false); } });
   window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitPage, 50); });

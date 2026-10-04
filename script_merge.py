@@ -22,7 +22,7 @@ def _local_hashes(store):
         if ref not in cache:
             path = store.resource_file(ref)
             if not path.is_file():
-                raise DomainError("当前剧本有缺失素材，请先修复后再合并。", 409, "missing_resource")
+                raise DomainError("当前条目有缺失素材，请先修复后再合并。", 409, "missing_resource")
             cache[ref] = _file_hash(path)
         return cache[ref]
     return resolve
@@ -76,7 +76,7 @@ def _preview(connection, item, resolve, local_resolve):
         changes = [{"field": field, "label": label} for field, label in FIELDS.items()
                    if incoming[field] != semantic[field]]
         matches.append({"id": current["id"], "title": current["title"], "category_id": current["category_id"],
-                        "category_name": categories.get(current["category_id"], "未分类"),
+                        "category_name": categories.get(current["category_id"], "未分组"),
                         "identical": not changes, "fingerprint": _fingerprint(current, local_resolve), "changes": changes})
     status = "duplicate" if any(match["identical"] for match in matches) else "conflict" if matches else "new"
     return {"status": status, "matches": matches, "default_action": "new" if status == "new" else "skip"}
@@ -89,11 +89,11 @@ def preview_single(store, package):
         comparison = _preview(connection, item, resolve, _local_hashes(store))
     warnings = []
     if not item["visible"]:
-        warnings.append("原剧本处于隐藏状态，导入后仍隐藏；可在内容管理中改为显示。")
+        warnings.append("原条目处于隐藏状态，导入后仍隐藏；可在内容管理中改为显示。")
     if comparison["status"] == "duplicate":
-        warnings.append("内容与现有剧本完全相同，将自动跳过，避免重复添加。")
+        warnings.append("内容与现有条目完全相同，将自动跳过，避免重复添加。")
     elif comparison["status"] == "conflict":
-        warnings.append("已有同名剧本且内容不同，请选择覆盖目标或跳过；覆盖前会保存旧版本。")
+        warnings.append("已有同名条目且内容不同，请选择覆盖目标或跳过；覆盖前会保存旧版本。")
     return {"format": FORMAT, "version": VERSION, "title": item["title"], "author": item["author"],
             "category_name": package["category_name"], "script": item, "visible": item["visible"],
             "text_blocks": sum(block["kind"] == "text" for block in item["blocks"]),
@@ -113,7 +113,7 @@ def _check_sha(actual, expected):
 def _identified(item, category_id, target_id=None):
     item = copy.deepcopy(item)
     item["id"] = target_id or "script-" + uuid.uuid4().hex
-    item["category_id"] = identifier(category_id, "导入分类")
+    item["category_id"] = identifier(category_id, "导入分组")
     mapping = {block["id"]: "block-" + uuid.uuid4().hex for block in item["blocks"]}
     for block in item["blocks"]:
         block["id"] = mapping[block["id"]]
@@ -156,7 +156,7 @@ def _import_one(store, connection, item, decision, resolve, local_resolve, conte
                 "reason": "duplicate", "script": store._get(connection, "scripts", identical["id"])}
     previous = None
     if action == "new" and comparison["matches"]:
-        raise DomainError("已出现同名剧本，请重新预览并选择覆盖或跳过。", 409, "import_conflict")
+        raise DomainError("已出现同名条目，请重新预览并选择覆盖或跳过。", 409, "import_conflict")
     if action == "overwrite":
         target_id = identifier(decision.get("target_id"), "覆盖目标")
         previous = store._get(connection, "scripts", target_id)
@@ -164,7 +164,7 @@ def _import_one(store, connection, item, decision, resolve, local_resolve, conte
         if not isinstance(expected, str) or expected != _fingerprint(previous, local_resolve):
             raise DomainError("覆盖目标已在预览后变化，请重新预览；当前资料未改变。", 409, "import_target_changed")
         if not any(match["id"] == target_id for match in comparison["matches"]):
-            raise DomainError("只能覆盖预览中明确选定的同名剧本。", 409, "import_conflict")
+            raise DomainError("只能覆盖预览中明确选定的同名条目。", 409, "import_conflict")
     destination = _identified(item, decision.get("category_id"), previous["id"] if previous else None)
     store._get(connection, "categories", destination["category_id"])
     _put_assets(store, destination, content, created)
@@ -213,7 +213,7 @@ def _backup(store, uploaded):
         for block in item["blocks"]:
             if block["kind"] == "image":
                 ref = block["image_path"]
-                decode_background(media[PurePosixPath(ref).name], PurePosixPath(ref).name, label="剧本插图")
+                decode_background(media[PurePosixPath(ref).name], PurePosixPath(ref).name, label="条目插图")
     return imported, media, checksum
 
 
@@ -242,28 +242,28 @@ def preview_backup(store, uploaded):
                        "suggested_category_id": local_categories.get(item["name"].strip().casefold())}
                       for item in imported["categories"]]
     return {"package_sha256": checksum, "items": items, "categories": categories,
-            "warnings": ["合并仅处理当前剧本；不会更改分类、展示设置、待播队列或正在直播的画面。"]}
+            "warnings": ["合并仅处理当前条目；不会更改分组、展示设置、待播队列或正在直播的画面。"]}
 
 
 def import_backup(store, uploaded, expected_sha256, decisions):
     imported, media, checksum = _backup(store, uploaded)
     _check_sha(checksum, expected_sha256)
     if not isinstance(decisions, list) or len(decisions) != len(imported["scripts"]):
-        raise DomainError("请为备份中每篇剧本选择新增、跳过或覆盖。")
+        raise DomainError("请为备份中每篇条目选择新增、跳过或覆盖。")
     decision_map = {}
     allowed = {"source_id", "action", "category_id", "target_id", "expected_target_fingerprint"}
     for decision in decisions:
         if not isinstance(decision, dict) or set(decision) - allowed:
-            raise DomainError("合并剧本选择格式无效。")
-        source_id = identifier(decision.get("source_id"), "来源剧本 ID")
+            raise DomainError("合并条目选择格式无效。")
+        source_id = identifier(decision.get("source_id"), "来源条目 ID")
         if source_id in decision_map:
-            raise DomainError("同一来源剧本只能选择一次。")
+            raise DomainError("同一来源条目只能选择一次。")
         decision_map[source_id] = decision
     if set(decision_map) != {item["id"] for item in imported["scripts"]}:
-        raise DomainError("合并选择与备份中的剧本不一致。")
+        raise DomainError("合并选择与备份中的条目不一致。")
     targets = [identifier(decision.get("target_id"), "覆盖目标") for decision in decisions if decision.get("action") == "overwrite"]
     if len(targets) != len(set(targets)):
-        raise DomainError("每个现有剧本一次只能被一篇来源剧本覆盖。")
+        raise DomainError("每个现有条目一次只能被一篇来源条目覆盖。")
     content = lambda ref: media[PurePosixPath(ref).name]
     resolve = lambda ref: hashlib.sha256(content(ref)).hexdigest()
     created, results = [], []

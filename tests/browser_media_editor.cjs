@@ -83,7 +83,7 @@ async function main() {
     await waitFor(async () => {
       try {
         const response = await fetch(`${base}/api/health`), health = await response.json();
-        return health.app === 'xiwa-workbench' && path.resolve(health.data_dir) === dataDir;
+        return health.app === 'content-workbench' && path.resolve(health.data_dir) === dataDir;
       } catch { return false; }
     }, 'isolated app health', 30000);
     browser = await chromium.launch({ channel: 'msedge', headless: true });

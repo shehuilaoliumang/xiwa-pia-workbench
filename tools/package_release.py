@@ -20,7 +20,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 STAMP = datetime.now().strftime('%Y%m%d-%H%M%S')
 QA = ROOT / '.qa' / 'package' / STAMP
-NAME = '喜娃微PIA工作台'
+NAME = '内容管理工作台'
 STAGE = QA / 'stage' / NAME
 DEST = ROOT / '交付包'
 ARCHIVE_NAME = f'{NAME}_Windows免安装版_{STAMP}.zip'
@@ -83,7 +83,7 @@ def main():
     parser.add_argument('--offline', action='store_true',
                         help='Read-only SQLite snapshot without starting the workbench')
     args = parser.parse_args()
-    desktop_marker = ROOT / 'desktop/runtime/xiwa-runtime.json'
+    desktop_marker = ROOT / 'desktop/runtime/desktop-runtime.json'
     if not desktop_marker.exists() or not (ROOT / 'desktop/runtime/electron.exe').is_file():
         raise SystemExit('桌面交付包缺少运行时；请先运行 tools/prepare_desktop_runtime.py。')
     desktop_info = json.loads(desktop_marker.read_text(encoding='utf-8'))
@@ -105,7 +105,7 @@ def main():
         assert not parsed.username and not parsed.password
         with request(url + 'api/health') as response:
             health = json.load(response)
-        assert health['app'] == 'xiwa-workbench'
+        assert health['app'] == 'content-workbench'
         assert Path(health['data_dir']).resolve() == (ROOT / 'instance').resolve()
         print('Exporting a consistent snapshot from the running workbench...', flush=True)
         with request(url + 'api/backup') as response:
@@ -149,7 +149,7 @@ def main():
     with zipfile.ZipFile(io.BytesIO(snapshot)) as archive:
         assert archive.testzip() is None
         manifest = json.loads(archive.read('manifest.json'))
-        assert manifest['format'] == 'xiwa-workbench-backup'
+        assert manifest['format'] == 'content-workbench-backup'
         for name, expected in manifest['files'].items():
             content = archive.read(name)
             assert len(content) == expected['size'] and digest(content) == expected['sha256']
@@ -182,7 +182,7 @@ def main():
                    'layout_presets': settings.get('layout_presets', [])}
     finally:
         connection.close()
-    info = {'format': 'xiwa-portable-windows', 'built_at': datetime.now().astimezone().isoformat(),
+    info = {'format': 'content-portable-windows', 'built_at': datetime.now().astimezone().isoformat(),
             'snapshot_method': 'read-only-sqlite' if args.offline else 'running-app-backup',
             'snapshot_created_at': manifest['created_at'], 'snapshot_sha256': digest(snapshot),
             'database_sha256': digest(database.read_bytes()),

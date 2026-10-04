@@ -460,7 +460,7 @@
         {
           "number": 2,
           "meaning": "拖动媒体进度可重新定位；不等同于台词翻页。",
-          "selector": "iframe .pia-media-progress"
+          "selector": "iframe .wb-media-progress"
         },
         {
           "number": 3,

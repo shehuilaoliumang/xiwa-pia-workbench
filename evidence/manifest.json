@@ -1,27 +1,34 @@
 {
   "schema_version": 1,
   "archived_at_utc": "2026-09-17T10:01:53.7082644+00:00",
-  "purpose": "User-provided original PPT evidence for local PIA script selection and Douyin display project",
+  "purpose": "User-provided original source-deck evidence for local script selection and short-video display project",
   "hash_algorithm": "SHA-256",
   "method": "Byte-preserving filesystem copy; compared source before and after copy and destination",
+  "distribution": "原始 PPT 属于项目来源证据，已归档到本地 .local-archive/evidence-originals/，不随模板分发。模板内文件名已通用化，字节内容未改动。",
   "files": [
     {
-      "file_name": "喜娃微pia剧场.pptx",
-      "source_path": "C:\\Users\\Lu\\Downloads\\喜娃微pia剧场.pptx",
-      "project_path": "evidence/originals/喜娃微pia剧场.pptx",
+      "file_name": "示例内容源-A.pptx",
+      "source_path": "C:\\Users\\Lu\\Downloads\\示例内容源-A.pptx",
+      "project_path": "evidence/originals/示例内容源-A.pptx",
+      "archived_local_path": ".local-archive/evidence-originals/示例内容源-A.pptx",
       "size_bytes": 64310849,
       "sha256": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
       "source_last_write_time_utc": "2026-09-17T09:36:23.1678431Z",
-      "copy_verified": true
+      "copy_verified": true,
+      "in_template": false,
+      "note": "已归档到本地，不在模板内"
     },
     {
-      "file_name": "直播间滚屏.pptx",
-      "source_path": "C:\\Users\\Lu\\Downloads\\直播间滚屏.pptx",
-      "project_path": "evidence/originals/直播间滚屏.pptx",
+      "file_name": "示例内容源-B.pptx",
+      "source_path": "C:\\Users\\Lu\\Downloads\\示例内容源-B.pptx",
+      "project_path": "evidence/originals/示例内容源-B.pptx",
+      "archived_local_path": ".local-archive/evidence-originals/示例内容源-B.pptx",
       "size_bytes": 45332305,
       "sha256": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9",
       "source_last_write_time_utc": "2026-09-17T09:36:23.3219436Z",
-      "copy_verified": true
+      "copy_verified": true,
+      "in_template": false,
+      "note": "已归档到本地，不在模板内"
     }
   ]
 }

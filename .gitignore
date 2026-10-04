@@ -23,3 +23,12 @@ tools/exe-build/dist/
 tools/__pycache__/
 tools/exe-build/__pycache__/
 tools/exe-build/work/
+
+# Template customization / packaging work directories (never delivered).
+.backup/
+.local-archive/
+dist/
+.build-tmp-*/
+
+# PyInstaller 工作目录（本地构建产物，不入库）。
+tools/exe-build/

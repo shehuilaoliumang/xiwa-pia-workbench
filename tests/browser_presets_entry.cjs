@@ -16,8 +16,8 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
   const context=await browser.newContext({viewport:{width:1600,height:1120}}),errors=[];
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   await context.addInitScript(()=>{
-    try{if(!localStorage.getItem('pia-preview-preferences'))localStorage.setItem('pia-preview-preferences',JSON.stringify({placement:'outside',feedback:'realtime'}))}catch{}
-    window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='pia-preview')window.observedPresetSnapshot=event.data.snapshot});
+    try{if(!localStorage.getItem('wb-preview-preferences'))localStorage.setItem('wb-preview-preferences',JSON.stringify({placement:'outside',feedback:'realtime'}))}catch{}
+    window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='wb-preview')window.observedPresetSnapshot=event.data.snapshot});
   });
   const lib=async()=> (await context.request.get(base+'/api/library')).json();
   const state=async()=> (await context.request.get(base+'/api/state')).json();

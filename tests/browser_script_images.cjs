@@ -58,7 +58,7 @@ async function get(endpoint) {
 }
 const library = () => get('/api/library');
 const state = () => get('/api/state');
-const draft = () => page.evaluate(() => window.piaEditor.getDraft());
+const draft = () => page.evaluate(() => window.wbEditor.getDraft());
 const row = id => page.locator(`.body-editor-row[data-block-id="${id}"]`);
 const ids = blocks => blocks.map(block => block.id);
 async function stored(id) { return (await library()).scripts.find(script => script.id === id); }
@@ -137,7 +137,7 @@ async function main() {
     await until(async () => { try { return path.resolve((await (await fetch(base + '/api/health')).json()).data_dir) === dataDir; } catch (_) { return false; } }, 'isolated server', 30000);
     browser = await chromium.launch({channel: 'msedge', headless: true});
     context = await browser.newContext({viewport: {width: 1500, height: 1050}, serviceWorkers: 'block'});
-    await context.addInitScript(() => { if (location.origin === 'http://127.0.0.1:8924') localStorage.setItem('pia-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'})); });
+    await context.addInitScript(() => { if (location.origin === 'http://127.0.0.1:8924') localStorage.setItem('wb-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'})); });
     await context.route('**/*', route => {
       const url = new URL(route.request().url());
       if (url.protocol.startsWith('http') && url.origin !== base) { result.blocked_external.push(url.href); return route.abort('blockedbyclient'); }
@@ -150,7 +150,7 @@ async function main() {
     page.on('dialog', dialog => dialog.dismiss());
     await page.goto(base + '/manage');
     await newDraft('手动图片浏览器验收');
-    const textA = '甲：新增图片必须与文字保持顺序。春风经过剧场，我们继续核对完整的台词。\n'.repeat(24);
+    const textA = '甲：新增图片必须与文字保持顺序。春风经过，我们继续核对完整的台词。\n'.repeat(24);
     const textB = '乙：最后一段仍保留原文，图片只是正文中的独立段落。';
     const a = await addText(textA);
     const firstUpload = await upload('#add-image-block', imageA);

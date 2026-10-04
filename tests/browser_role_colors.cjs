@@ -25,9 +25,9 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
     {kind:'text',role:'旧名',color:'#663399',text:'前半后半'},
     {kind:'text',role:'别名',color:'#aa1122',text:'保留强调颜色'}
   ];
-  let response=await context.request.post(base+'/api/scripts',{headers,data:{title:'角色配色专项',category_id:initial.categories[0].id,blocks}});
+  let response=await context.request.post(base+'/api/scripts',{headers,data:{title:'条目配色专项',category_id:initial.categories[0].id,blocks}});
   assert(response.ok(),await response.text());
-  const fixture=(await lib()).scripts.find(item=>item.title==='角色配色专项');assert(fixture);
+  const fixture=(await lib()).scripts.find(item=>item.title==='条目配色专项');assert(fixture);
   fixture.blocks[3].runs=[{text:fixture.blocks[3].text,color:'#22aa44'}];
   fixture.blocks[4].runs=[{text:'前半',color:'#663399'},{text:'后半',color:'#1122aa',bold:true}];
   fixture.blocks[5].runs=[{text:'保留',color:'#aa1122'},{text:'强调颜色',color:'#445566',bold:true}];
@@ -35,9 +35,9 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
   // A legacy paragraph may have run colours without its own base colour.
   execFileSync(python,['-X','utf8','-c',"import sys,sqlite3,json\nc=sqlite3.connect(sys.argv[1])\ns=json.loads(c.execute('select data from scripts where id=?',(sys.argv[2],)).fetchone()[0])\ns['blocks'][3]['color']=''\nc.execute('update scripts set data=? where id=?',(json.dumps(s,ensure_ascii=False),sys.argv[2]))\nc.commit()",path.join(data,'workbench.sqlite3'),fixture.id],{cwd:root,windowsHide:true});
   const original=(await lib()).scripts.find(item=>item.id===fixture.id);
-  await page.goto(base+'/manage');await page.waitForFunction(()=>typeof window.piaEditor?.getDraft==='function');
+  await page.goto(base+'/manage');await page.waitForFunction(()=>typeof window.wbEditor?.getDraft==='function');
   await page.locator(`[data-edit-script="${fixture.id}"]`).click();await page.locator('#body-editor-details').evaluate(element=>{element.open=true});
-  const draft=()=>page.evaluate(()=>window.piaEditor.getDraft());
+  const draft=()=>page.evaluate(()=>window.wbEditor.getDraft());
   const picker=index=>page.locator(`[data-block-color="${index}"]`),role=index=>page.locator(`[data-block-role="${index}"]`);
   const text=index=>page.locator(`[data-block-text="${index}"]`);
   const added=async()=>{await page.locator('#add-block').click();return (await draft()).blocks.length-1};

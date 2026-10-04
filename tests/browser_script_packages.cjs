@@ -62,7 +62,7 @@ try {
   assert(mediaUpload.ok(),await mediaUpload.text());
   await api('/api/scripts/'+fixture.id+'/media/cues','PUT',{duration:2,cues:[{id:'cue-package-check',at:.5,label:'一起走本',block_ids:fixture.blocks.slice(0,2).map(b=>b.id)}]});
   let source=(await library()).scripts.find(s=>s.id===fixture.id);const packageTitle=source.title,beforeState=await get('/api/state'),beforeCount=(await library()).scripts.length;
-  await page.goto(base+'/manage');await page.waitForFunction(()=>window.piaScriptPackages&&window.piaEditor);
+  await page.goto(base+'/manage');await page.waitForFunction(()=>window.wbScriptPackages&&window.wbEditor);
   const downloadPromise=page.waitForEvent('download');await page.locator('[data-export-script="'+fixture.id+'"]').click();
   const download=await downloadPromise,filename=path.join(data,'exported-script.zip');await download.saveAs(filename);
   assert(fs.statSync(filename).size>0);assert.equal((await library()).scripts.length,beforeCount);assert.deepEqual(await get('/api/state'),beforeState);
@@ -154,7 +154,7 @@ try {
   await screenshot('script-package-ai-prompt-desktop.png');
   await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await screenshot('script-package-ai-prompt-mobile.png');
   await page.locator('#import-fill-editor').click();await page.locator('#import-editor-dialog').waitFor({state:'hidden'});
-  const draft=await page.evaluate(()=>window.piaEditor.getDraft());assert.equal(draft.blocks.length,6);assert.deepEqual(draft.blocks.map(b=>b.role),['','','甲','甲','','乙']);
+  const draft=await page.evaluate(()=>window.wbEditor.getDraft());assert.equal(draft.blocks.length,6);assert.deepEqual(draft.blocks.map(b=>b.role),['','','甲','甲','','乙']);
   assert.equal(draft.blocks.map(b=>b.text).join(''),sample.replace('\n\n','\n'));
   await page.locator('#script-form button[type="submit"]').click();await page.locator('#script-dialog').waitFor({state:'hidden'});
   const saved=(await library()).scripts.find(s=>s.title==='AI格式验收');assert(saved);assert.deepEqual(saved.blocks.map(b=>b.text),draft.blocks.map(b=>b.text));assert.deepEqual(await get('/api/state'),beforeState);

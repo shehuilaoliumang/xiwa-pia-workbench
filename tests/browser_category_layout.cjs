@@ -21,12 +21,12 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
     window.categoryDiagnostics={messages:[],motion:null,motionCount:0};
     window.addEventListener('message',event=>{
       if(event.origin!==location.origin)return;
-      if(event.data?.type==='pia-preview')window.observedPreviewSnapshot=event.data.snapshot;
-      if(['pia-preview-live-binding','pia-preview-position','pia-preview-rendered'].includes(event.data?.type)){
+      if(event.data?.type==='wb-preview')window.observedPreviewSnapshot=event.data.snapshot;
+      if(['wb-preview-live-binding','wb-preview-position','wb-preview-rendered'].includes(event.data?.type)){
         window.categoryDiagnostics.messages.push(event.data);window.categoryDiagnostics.messages=window.categoryDiagnostics.messages.slice(-12);
       }
     });
-    const monitor=new BroadcastChannel('pia-live-display-v1');
+    const monitor=new BroadcastChannel('wb-live-display-v1');
     monitor.onmessage=event=>{if(event.data?.type==='motion'){window.categoryDiagnostics.motion=event.data;window.categoryDiagnostics.motionCount++}};
   });
   const lib=async()=> (await context.request.get(base+'/api/library')).json();
@@ -36,10 +36,10 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
     assert(response.ok(),await response.text());return response.json();
   };
   const initial=await lib(),script=initial.scripts.find(item=>item.id==='script-01');
-  const featured=await send('/api/categories',{name:'布局验收分类',description:'四篇资料用于验证最多三篇摘要',color:'#8b6645',visible:true});
-  const empty=await send('/api/categories',{name:'布局验收空分类',description:'暂无剧本',color:'#55746c',visible:true});
+  const featured=await send('/api/categories',{name:'布局验收分组',description:'四篇资料用于验证最多三篇摘要',color:'#8b6645',visible:true});
+  const empty=await send('/api/categories',{name:'布局验收空分组',description:'暂无条目',color:'#55746c',visible:true});
   for(let i=1;i<=4;i++)await send('/api/scripts',{
-    title:'布局验收剧本 '+i,category_id:featured.id,author:'验收作者',synopsis:'这是一段较长的测试简介，用于检查分类摘要的文字排列及边界。',
+    title:'布局验收条目 '+i,category_id:featured.id,author:'验收作者',synopsis:'这是一段较长的测试简介，用于检查分组摘要的文字排列及边界。',
     cast_note:'两人配音',tags:['测试'],notes:'',visible:true,blocks:[{id:'layout-test-block-'+i,kind:'text',text:'验收对白 '+i}]
   });
   await fs.mkdir(path.join(root,'.qa','browser'),{recursive:true});

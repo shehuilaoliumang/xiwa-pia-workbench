@@ -41,12 +41,12 @@
   async function open() {
     if (dialog.open) return;
     invalidate(); localCategories = []; $('#library-merge-file').value = ''; const epoch = ++openGeneration;
-    dialog.showModal(); controls(); text('#library-merge-status','正在读取本地分类…');
+    dialog.showModal(); controls(); text('#library-merge-status','正在读取本地分组…');
     try {
-      const categories = await window.piaScriptPackages.categories();
+      const categories = await window.wbScriptPackages.categories();
       if (epoch !== openGeneration || !dialog.open) return;
       localCategories = categories; text('#library-merge-status','先选择完整备份，再检查。检查和取消都不会写入资料。'); controls(); $('#library-merge-file').focus();
-    } catch (failure) { if (epoch === openGeneration && dialog.open) text('#library-merge-error','无法读取本地分类：' + failure.message); }
+    } catch (failure) { if (epoch === openGeneration && dialog.open) text('#library-merge-error','无法读取本地分组：' + failure.message); }
   }
   async function request(path, body, signal) {
     let csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -64,39 +64,39 @@
     }
   }
   function categoryOptions(select, chosen = '') {
-    select.replaceChildren(new Option('请选择本地已有分类',''),...localCategories.map(category => new Option(category.name + (category.visible === false || category.visible === 0 ? '（已隐藏）' : ''),category.id)));
+    select.replaceChildren(new Option('请选择本地已有分组',''),...localCategories.map(category => new Option(category.name + (category.visible === false || category.visible === 0 ? '（已隐藏）' : ''),category.id)));
     if (validCategory(chosen)) select.value = chosen;
   }
   function altered() { $('#library-merge-overwrite-confirm').checked = false; text('#library-merge-error',''); controls(); }
   function renderComparison(item, holder, selected = '') {
     const rows = (item.matches || []).filter(match => !selected || match.id === selected).map(match => {
-      const row = node('article','library-merge-match',''); row.append(node('strong','',`${match.title || item.title} · ${match.category_name || '未分类'}`));
-      row.append(node('p','',`现有剧本标识：${match.id}`));
+      const row = node('article','library-merge-match',''); row.append(node('strong','',`${match.title || item.title} · ${match.category_name || '未分组'}`));
+      row.append(node('p','',`现有条目标识：${match.id}`));
       const changes = (match.changes || []).map(value => typeof value === 'string' ? value : value.label || value.field);
       row.append(node('p','',match.identical ? '内容和关联资源完全相同，本次跳过。' : '将变化：' + (changes.join('、') || '资料或正文内容'))); return row;
     }); holder.replaceChildren(...rows);
   }
   function render(data, saved = {}) {
-    if (!Array.isArray(data.items) || !Array.isArray(data.categories) || !/^[a-f0-9]{64}$/i.test(data.package_sha256 || '') || new Set(data.items.map(item => item.source_id)).size !== data.items.length) throw new Error('检查结果缺少剧本或校验信息，请重新检查。');
+    if (!Array.isArray(data.items) || !Array.isArray(data.categories) || !/^[a-f0-9]{64}$/i.test(data.package_sha256 || '') || new Set(data.items.map(item => item.source_id)).size !== data.items.length) throw new Error('检查结果缺少条目或校验信息，请重新检查。');
     candidate = data; requestId = crypto.randomUUID();
     for (const category of data.categories) categoryMapping.set(category.id, validCategory(saved.categories?.[category.id]) ? saved.categories[category.id] : (validCategory(category.suggested_category_id) ? category.suggested_category_id : ''));
     const mappings = data.categories.map(category => {
-      const label = node('label','field',`备份分类：${category.name || '未分类'} → 本地分类`), select = node('select','','');
-      select.dataset.sourceCategory = category.id; select.setAttribute('aria-label',`接收分类：${category.name || '未分类'}`); categoryOptions(select,categoryMapping.get(category.id));
+      const label = node('label','field',`备份分组：${category.name || '未分组'} → 本地分组`), select = node('select','','');
+      select.dataset.sourceCategory = category.id; select.setAttribute('aria-label',`接收分组：${category.name || '未分组'}`); categoryOptions(select,categoryMapping.get(category.id));
       select.addEventListener('change',() => { categoryMapping.set(category.id,select.value); altered(); }); label.append(select); return label;
     }); $('#library-merge-categories').replaceChildren(...mappings);
     const rows = data.items.map((item,index) => {
-      const prior = saved.items?.[item.source_id] || {}, actions = item.status === 'new' ? [['new','新增剧本'],['skip','跳过']] : item.status === 'conflict' ? [['skip','跳过，保留现有资料'],['overwrite','覆盖所选本地剧本']] : [['skip','跳过完全相同的剧本']];
+      const prior = saved.items?.[item.source_id] || {}, actions = item.status === 'new' ? [['new','新增条目'],['skip','跳过']] : item.status === 'conflict' ? [['skip','跳过，保留现有资料'],['overwrite','覆盖所内容管理地条目']] : [['skip','跳过完全相同的条目']];
       const choice = {action:actions.some(([value]) => value === prior.action) ? prior.action : (item.default_action || (item.status === 'new' ? 'new' : 'skip')),target_id:(item.matches || []).some(match => match.id === prior.target_id) ? prior.target_id : '',category_id:validCategory(prior.category_id) ? prior.category_id : ''};
       selections.set(item.source_id,choice);
       const row = node('article','library-merge-item',''); row.dataset.sourceId = item.source_id;
-      row.append(node('h4','',`${index+1}. ${item.title}`)); row.append(node('p','help',`备份分类：${item.category_name || '未分类'} · ${item.status === 'duplicate' ? '完全相同，跳过' : item.status === 'conflict' ? '同名但内容不同，默认跳过' : '可新增'}`));
-      if (item.package_title_conflict) row.append(node('p','help','备份中有另一篇同名剧本：此篇默认跳过。同一批次只能选择其中一篇新增。'));
+      row.append(node('h4','',`${index+1}. ${item.title}`)); row.append(node('p','help',`备份分组：${item.category_name || '未分组'} · ${item.status === 'duplicate' ? '完全相同，跳过' : item.status === 'conflict' ? '同名但内容不同，默认跳过' : '可新增'}`));
+      if (item.package_title_conflict) row.append(node('p','help','备份中有另一篇同名条目：此篇默认跳过。同一批次只能选择其中一篇新增。'));
       const fields = node('div','library-merge-item-fields',''), actionLabel = node('label','field','处理方式'), actionSelect = node('select','','');
       actionSelect.dataset.mergeAction = item.source_id; actionSelect.setAttribute('aria-label',`处理方式：${item.title}`); actionSelect.replaceChildren(...actions.map(([value,label]) => new Option(label,value))); actionSelect.value = choice.action; actionLabel.append(actionSelect); fields.append(actionLabel);
-      const targetLabel = node('label','field','明确选择要覆盖的本地剧本'), target = node('select','',''); target.dataset.mergeTarget = item.source_id; target.setAttribute('aria-label',`覆盖目标：${item.title}`);
-      target.replaceChildren(new Option('请选择一篇，系统不会自动选择',''),...(item.matches || []).map(match => new Option(`${match.title || item.title} · ${match.category_name || '未分类'} · ${match.id}`,match.id))); target.value = choice.target_id; targetLabel.append(target); fields.append(targetLabel);
-      const categoryLabel = node('label','field','覆盖后保存在本地分类'), category = node('select','',''); category.dataset.mergeCategory = item.source_id; categoryOptions(category,choice.category_id); categoryLabel.append(category); fields.append(categoryLabel); row.append(fields);
+      const targetLabel = node('label','field','明确选择要覆盖的本地条目'), target = node('select','',''); target.dataset.mergeTarget = item.source_id; target.setAttribute('aria-label',`覆盖目标：${item.title}`);
+      target.replaceChildren(new Option('请选择一篇，系统不会自动选择',''),...(item.matches || []).map(match => new Option(`${match.title || item.title} · ${match.category_name || '未分组'} · ${match.id}`,match.id))); target.value = choice.target_id; targetLabel.append(target); fields.append(targetLabel);
+      const categoryLabel = node('label','field','覆盖后保存在本地分组'), category = node('select','',''); category.dataset.mergeCategory = item.source_id; categoryOptions(category,choice.category_id); categoryLabel.append(category); fields.append(categoryLabel); row.append(fields);
       const comparison = node('div','',''); row.append(comparison);
       const updateVisibility = () => { targetLabel.hidden = choice.action !== 'overwrite'; categoryLabel.hidden = choice.action !== 'overwrite'; renderComparison(item,comparison,choice.target_id); };
       actionSelect.addEventListener('change',() => { choice.action = actionSelect.value; updateVisibility(); altered(); });
@@ -110,19 +110,19 @@
   function renderReview(values, repeated, repeatedNew) {
     const added = values.filter(value=>value.action==='new').length, overwritten = values.filter(value=>value.action==='overwrite').length, skipped = values.filter(value=>value.action==='skip').length;
     const holder = $('#library-merge-review'); holder.replaceChildren(node('strong','',`本次计划：新增 ${added} 篇 · 覆盖 ${overwritten} 篇 · 跳过 ${skipped} 篇`));
-    if (repeated) holder.append(node('p','form-error','两篇备份不能同时覆盖同一个本地剧本，请调整覆盖目标或跳过其中一篇。'));
-    if (repeatedNew) holder.append(node('p','form-error','同一批次有多篇同名剧本选择了新增，请只保留一篇新增，其他同名篇先跳过。'));
+    if (repeated) holder.append(node('p','form-error','两篇备份不能同时覆盖同一个本地条目，请调整覆盖目标或跳过其中一篇。'));
+    if (repeatedNew) holder.append(node('p','form-error','同一批次有多篇同名条目选择了新增，请只保留一篇新增，其他同名篇先跳过。'));
     const list = node('ul','','');
     for (const value of values.filter(value=>value.action==='overwrite')) {
       const item = currentItems().find(item=>item.source_id===value.source_id), match = (item.matches || []).find(match=>match.id===value.target_id);
-      list.append(node('li','',`${item.title} → ${match ? `${match.title}（${match.category_name}，${match.id}）` : '尚未选择目标'}；接收分类：${localCategories.find(category=>category.id===value.category_id)?.name || '尚未选择'}；变化：${(match?.changes || []).map(change=>typeof change==='string'?change:change.label || change.field).join('、') || '请先选择目标查看'}`));
+      list.append(node('li','',`${item.title} → ${match ? `${match.title}（${match.category_name}，${match.id}）` : '尚未选择目标'}；接收分组：${localCategories.find(category=>category.id===value.category_id)?.name || '尚未选择'}；变化：${(match?.changes || []).map(change=>typeof change==='string'?change:change.label || change.field).join('、') || '请先选择目标查看'}`));
     } if (overwritten) holder.append(list);
   }
   async function check(saved = {}) {
     if (importing || checking || !localCategories.length) return;
     invalidate(); const file = $('#library-merge-file').files[0];
     if (!file || !/\.zip$/i.test(file.name)) { text('#library-merge-error','请选择本项目导出的完整备份 ZIP。'); return; }
-    const epoch = generation; checking = true; controller = new AbortController(); controls(); text('#library-merge-status','正在核对备份剧本和关联资源…');
+    const epoch = generation; checking = true; controller = new AbortController(); controls(); text('#library-merge-status','正在核对备份条目和关联资源…');
     const body = new FormData(); body.append('file',file);
     try { const data = await request('/api/library-merge/preview',body,controller.signal); if (epoch !== generation || !dialog.open) return; render(data,saved); }
     catch (failure) { if (epoch === generation && failure.name !== 'AbortError') { candidate = null; text('#library-merge-error',failure.message); text('#library-merge-status',''); } }
@@ -137,7 +137,7 @@
     try {
       const result = await request('/api/library-merge/import',body); finished = true;
       text('#library-merge-status',`已完成：新增 ${result.added || 0} 篇，覆盖 ${result.overwritten || 0} 篇，跳过 ${result.skipped || 0} 篇。`);
-      try { await window.piaScriptPackages.refreshLibrary(); }
+      try { await window.wbScriptPackages.refreshLibrary(); }
       catch (failure) { text('#library-merge-error','合并已完成，列表刷新暂未完成：' + failure.message + ' 请关闭此窗口后刷新页面。'); }
     } catch (failure) {
       stale = failure.status === 409 && /changed|stale|conflict|preview_required/.test(failure.code || '');

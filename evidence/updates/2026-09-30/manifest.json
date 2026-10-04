@@ -1,14 +1,17 @@
 {
   "schema_version": 1,
   "archived_at_utc": "2026-09-30T04:11:56.124105+00:00",
-  "purpose": "User-provided updated PPT for script content comparison; original evidence retained",
+  "purpose": "User-provided updated source PPT for script content comparison; original evidence retained",
   "method": "Byte-preserving copy with source/destination SHA-256 checks",
-  "file_name": "喜娃微pia剧场 (1).pptx",
-  "source_path": "C:\\Users\\Lu\\Downloads\\喜娃微pia剧场 (1).pptx",
-  "project_path": "evidence/updates/2026-09-30/喜娃微pia剧场 (1).pptx",
+  "file_name": "示例内容源-A-更新版-2026-09-30.pptx",
+  "source_path": "C:\\Users\\Lu\\Downloads\\示例内容源-A-更新版-2026-09-30.pptx",
+  "project_path": "evidence/updates/2026-09-30/示例内容源-A-更新版-2026-09-30.pptx",
+  "archived_local_path": ".local-archive/evidence-originals/示例内容源-A-更新版-2026-09-30.pptx",
   "size_bytes": 64352127,
   "sha256": "86a191a9fdebbe8fa0ecdd4b9cad3bb5c6d59bda9b6a0016bc9ca7a646d72371",
-  "previous_project_path": "evidence/originals/喜娃微pia剧场.pptx",
+  "previous_project_path": "evidence/originals/示例内容源-A.pptx",
   "previous_sha256": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
-  "copy_verified": true
+  "copy_verified": true,
+  "in_template": false,
+  "note": "已归档到本地，不在模板内"
 }

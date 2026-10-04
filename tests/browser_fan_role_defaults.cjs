@@ -9,7 +9,7 @@ const net = require('node:net');
 const {spawn, execFileSync} = require('node:child_process');
 const {chromium} = require('playwright');
 const root = path.resolve(__dirname, '..');
-const fan = path.join(root, '喜娃剧本粉丝编辑器');
+const fan = path.join(root, '内容编辑器');
 const python = path.join(root, 'runtime', 'python.exe');
 const port = 9044;
 const base = 'http://127.0.0.1:' + port;
@@ -35,7 +35,7 @@ async function ownHealth() {
   const response = await fetch(base + '/api/health');
   if (!response.ok) return false;
   const health = await response.json();
-  assert.equal(health.app, 'xiwa-fan-editor');
+  assert.equal(health.app, 'content-editor');
   assert.equal(health.ok, true);
   assert.equal(health.version, '0.2.1');
   assert.equal(path.resolve(health.data_dir), data);
@@ -88,7 +88,7 @@ audio=audio_io.getvalue()
 sha=lambda blob:hashlib.sha256(blob).hexdigest()
 image_ref='/media/'+sha(image)+'.png';audio_ref='/media/'+sha(audio)+'.wav'
 script={'id':'role-default-script','title':'角色默认色专项','category_id':'role-default-category','author':'验收',
- 'role_colors':{'甲':'#bb6633'},'source_pages':[7],'source_category':'测试分类',
+ 'role_colors':{'甲':'#bb6633'},'source_pages':[7],'source_category':'测试分组',
  'blocks':[{'id':'role-default-primary','kind':'text','role':'甲','text':'保留原多色台词','color':'#aa2244',
   'runs':[{'text':'保留','color':'#aa2244','bold':True},{'text':'原多色台词','color':'#2288aa'}],
   'source_file':'角色来源.pptx','source_page':7,'original_text':'保留原多色台词'},
@@ -103,7 +103,7 @@ def write_package(item,name):
  content=encode(item).encode('utf-8');files={'script.json':{'size':len(content),'sha256':sha(content),'mime':'application/json'}};mapping={}
  for ref,(blob,mime)in blobs.items():
   member='assets/'+ref.rsplit('/',1)[1];mapping[ref]=member;files[member]={'size':len(blob),'sha256':sha(blob),'mime':mime}
- manifest={'format':package.FORMAT,'version':package.VERSION,'created_at':'2026-09-30T00:00:00+00:00','category_name':'测试分类','files':files,'resources':mapping}
+ manifest={'format':package.FORMAT,'version':package.VERSION,'created_at':'2026-09-30T00:00:00+00:00','category_name':'测试分组','files':files,'resources':mapping}
  with zipfile.ZipFile(folder/name,'w',zipfile.ZIP_DEFLATED)as archive:
   archive.writestr('script.json',content);archive.writestr('manifest.json',encode(manifest))
   for ref,(blob,mime)in blobs.items():archive.writestr(mapping[ref],blob)

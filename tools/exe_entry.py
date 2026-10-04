@@ -28,6 +28,8 @@ FROZEN = bool(getattr(sys, "frozen", False))
 MEIPASS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 EXE_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent
 
+from template_config import APP_NAME  # noqa: E402
+
 LOG_FILE = None  # assigned once the data directory is known
 
 
@@ -63,7 +65,7 @@ def resolve_base():
         return EXE_DIR
     if _writable(EXE_DIR):
         return EXE_DIR
-    fallback = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "喜娃微PIA工作台"
+    fallback = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / APP_NAME
     log(f"exe 所在目录不可写，运行文件将保存在：{fallback}")
     return fallback
 
@@ -99,7 +101,7 @@ class _NullWriter:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="喜娃微 PIA 本地工作台（单文件版）")
+    parser = argparse.ArgumentParser(description="内容管理 本地工作台（单文件版）")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true", help="只运行本地服务，不打开界面")
     parser.add_argument("--browser", action="store_true", help="使用浏览器界面，不启动桌面组件")

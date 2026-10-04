@@ -18,6 +18,8 @@ import stat
 import tempfile
 import threading
 import uuid
+
+from template_config import BACKUP_FORMAT, TERMS
 import warnings
 import zipfile
 from contextlib import contextmanager
@@ -27,6 +29,8 @@ from pathlib import Path, PurePosixPath
 
 SCHEMA_VERSION = 1
 UNCATEGORIZED = "uncategorized"
+#: 系统「未分组」的显示名，统一由配置中心提供。
+UNCATEGORIZED_NAME = TERMS.get("uncategorized", "未分组")
 BACKGROUND_MAX_BYTES = 12 * 1024 * 1024
 BACKGROUND_MAX_PIXELS = 25_000_000
 MEDIA_MAX_BYTES = 200 * 1024 * 1024
@@ -305,7 +309,7 @@ def normalize_layout(value, orientation, base=None):
     if "category_columns" in value:
         columns = value["category_columns"]
         if type(columns) is not int or not 0 <= columns <= 4:
-            raise DomainError("分类列数须为 0（自动）或 1–4 的整数。")
+            raise DomainError("分组列数须为 0（自动）或 1–4 的整数。")
         result["category_columns"] = columns
     if "body_mode" in value:
         mode = value["body_mode"]
@@ -367,7 +371,7 @@ def default_media_state():
 
 def normalize_media_state(value, snapshot):
     if not is_media(snapshot) or len(snapshot.get("scripts", [])) != 1 or not snapshot["scripts"][0].get("media"):
-        raise DomainError("当前展示不是已配音视频的剧本。", 400, "invalid_media_state")
+        raise DomainError("当前展示不是已配音视频的条目。", 400, "invalid_media_state")
     if not isinstance(value, dict) or not {"position", "caption_index", "cue_id"} <= set(value):
         raise DomainError("媒体状态须包含播放位置、字幕序号和时间点。", 400, "invalid_media_state")
     script = snapshot["scripts"][0]
@@ -416,26 +420,26 @@ def normalize_page_state(state):
 
 def normalize_category(data, existing=None):
     if not isinstance(data, dict):
-        raise DomainError("分类资料格式无效。")
+        raise DomainError("分组资料格式无效。")
     previous = existing or {}
     result = {
         "id": identifier(previous.get("id") or data.get("id") or "cat-" + uuid.uuid4().hex[:12]),
-        "name": text(data.get("name", previous.get("name")), "分类名称", 80, True, True),
-        "description": text(data.get("description", previous.get("description", "")), "分类说明", 5000),
+        "name": text(data.get("name", previous.get("name")), "分组名称", 80, True, True),
+        "description": text(data.get("description", previous.get("description", "")), "分组说明", 5000),
         "color": color(data.get("color", previous.get("color"))),
         "background": asset_path(data.get("background", previous.get("background", ""))),
-        "sort_order": number(data.get("sort_order", previous.get("sort_order", 0)), "分类顺序", 0, 1000000, True),
-        "visible": boolean(data.get("visible", previous.get("visible", True)), "分类显示状态"),
+        "sort_order": number(data.get("sort_order", previous.get("sort_order", 0)), "分组顺序", 0, 1000000, True),
+        "visible": boolean(data.get("visible", previous.get("visible", True)), "分组显示状态"),
         "system": (previous.get("id") or data.get("id")) == UNCATEGORIZED,
     }
     if result["id"] == UNCATEGORIZED:
-        result.update(name="未分类", visible=True, system=True)
+        result.update(name=UNCATEGORIZED_NAME, visible=True, system=True)
     return result
 
 
 def normalize_script(data, existing=None, source_import=False):
     if not isinstance(data, dict):
-        raise DomainError("剧本资料格式无效。")
+        raise DomainError("条目资料格式无效。")
     previous = existing or {}
     result = copy.deepcopy(previous)
     result["id"] = identifier(previous.get("id") or data.get("id") or "script-" + uuid.uuid4().hex[:12])
@@ -445,7 +449,7 @@ def normalize_script(data, existing=None, source_import=False):
         result[field] = text(data.get(field, previous.get(field, "")), title, limit, field == "title", field == "title")
     result["category_id"] = identifier(data.get("category_id", previous.get("category_id", UNCATEGORIZED)))
     visible = data.get("visible", data.get("enabled", previous.get("visible", True)))
-    result["visible"] = boolean(visible, "剧本显示状态")
+    result["visible"] = boolean(visible, "条目显示状态")
     tags = data.get("tags", previous.get("tags", []))
     if not isinstance(tags, list) or len(tags) > 100:
         raise DomainError("标签须为不超过 100 项的列表。")
@@ -463,7 +467,7 @@ def normalize_script(data, existing=None, source_import=False):
         result["role_colors"][role] = color(value)
     # Source fields are write-protected after import. Edits retain a full history.
     source = data if source_import else previous
-    result["source_category"] = text(source.get("source_category", "用户新增"), "原分类", 200)
+    result["source_category"] = text(source.get("source_category", "用户新增"), "原分组", 200)
     pages = source.get("source_pages", [])
     if not isinstance(pages, list) or len(pages) > 5000:
         raise DomainError("来源页码格式无效。")
@@ -524,7 +528,7 @@ def normalize_script(data, existing=None, source_import=False):
     elif "media" in result:
         result.pop("media")
     if len(encode(result)) > 8 * 1024 * 1024:
-        raise DomainError("单篇剧本数据过大。")
+        raise DomainError("单篇条目数据过大。")
     return result
 
 
@@ -718,7 +722,7 @@ class Store:
         assert table in {"categories", "scripts"}
         row = connection.execute(f"SELECT data FROM {table} WHERE id=?", (item_id,)).fetchone()
         if not row:
-            raise DomainError("所选分类或剧本已不存在，请刷新后重试。", 404, "not_found")
+            raise DomainError("所选分组或条目已不存在，请刷新后重试。", 404, "not_found")
         return json.loads(row[0])
 
     def _initialize(self):
@@ -741,8 +745,8 @@ class Store:
                     seed = json.load(handle)
                 categories = [normalize_category(item) for item in seed.get("categories", [])]
                 if any(item["id"] == UNCATEGORIZED for item in categories):
-                    raise DomainError("初始分类不能占用系统未分类 ID。")
-                categories.append(normalize_category({"id": UNCATEGORIZED, "name": "未分类", "sort_order": 1000000}))
+                    raise DomainError("初始分组不能占用系统未分组 ID。")
+                categories.append(normalize_category({"id": UNCATEGORIZED, "name": UNCATEGORIZED_NAME, "sort_order": 1000000}))
                 for item in categories:
                     self._category(connection, item)
                 for item in seed.get("scripts", []):
@@ -929,11 +933,11 @@ class Store:
                     if item is None:
                         raise DomainError("背景素材已不存在，请刷新后重试。", 404, "not_found")
                     if item["builtin"]:
-                        raise DomainError("原始 PPT 背景保留为内置素材，不能删除；可以替换分类背景。", 409, "builtin_background")
+                        raise DomainError("原始 PPT 背景保留为内置素材，不能删除；可以替换分组背景。", 409, "builtin_background")
                     if not item["can_delete"]:
                         reasons = []
                         if item["usage"]["categories"]:
-                            reasons.append("分类：" + "、".join(item["usage"]["categories"]))
+                            reasons.append("分组：" + "、".join(item["usage"]["categories"]))
                         if item["usage"]["scripts"]:
                             reasons.append("正文：" + "、".join(item["usage"]["scripts"]))
                         if item["usage"]["live"]:
@@ -966,34 +970,34 @@ class Store:
         with self.transaction(write=True) as connection:
             previous = self._get(connection, "categories", item_id) if item_id else None
             if previous and previous["id"] == UNCATEGORIZED and ("name" in data or "visible" in data):
-                if data.get("name", "未分类") != "未分类" or data.get("visible", True) is not True:
-                    raise DomainError("系统未分类不能改名或隐藏。")
+                if data.get("name", UNCATEGORIZED_NAME) != UNCATEGORIZED_NAME or data.get("visible", True) is not True:
+                    raise DomainError("系统未分组不能改名或隐藏。")
             if not item_id and data.get("id") == UNCATEGORIZED:
-                raise DomainError("不能创建系统未分类。")
+                raise DomainError("不能创建系统未分组。")
             item = normalize_category(data, previous)
             if not item_id:
                 item["sort_order"] = data.get("sort_order", len(connection.execute("SELECT id FROM categories").fetchall()))
                 if connection.execute("SELECT 1 FROM categories WHERE id=?", (item["id"],)).fetchone():
-                    raise DomainError("分类 ID 已存在。", 409)
+                    raise DomainError("分组 ID 已存在。", 409)
             self._assert_assets(item)
             try:
                 self._category(connection, item)
             except sqlite3.IntegrityError as error:
-                raise DomainError("已有同名分类，请换一个名称。", 409, "duplicate_name") from error
+                raise DomainError("已有同名分组，请换一个名称。", 409, "duplicate_name") from error
             return item
 
     def delete_category(self, item_id, target_id=None):
         if item_id == UNCATEGORIZED:
-            raise DomainError("系统未分类不可删除。")
+            raise DomainError("系统未分组不可删除。")
         with self.transaction(write=True) as connection:
             self._get(connection, "categories", item_id)
             scripts = [json.loads(row[0]) for row in connection.execute("SELECT data FROM scripts WHERE category_id=?", (item_id,))]
             if scripts:
                 if not target_id or target_id == item_id:
-                    raise DomainError("请先选择接收这些剧本的分类或未分类。", 409, "transfer_required")
+                    raise DomainError("请先选择接收这些条目的分组或未分组。", 409, "transfer_required")
                 target = self._get(connection, "categories", identifier(target_id))
                 if not target["visible"]:
-                    raise DomainError("接收分类必须处于显示状态。")
+                    raise DomainError("接收分组必须处于显示状态。")
                 for script in scripts:
                     self._record_history(connection, script)
                     script["category_id"] = target_id
@@ -1002,14 +1006,14 @@ class Store:
             return {"deleted": item_id, "transferred": len(scripts), "target_id": target_id}
 
     def reorder_categories(self, values):
-        ids = id_list(values, "分类顺序")
+        ids = id_list(values, "分组顺序")
         with self.transaction(write=True) as connection:
             current = {row[0] for row in connection.execute("SELECT id FROM categories")}
             # The reserved fallback may be omitted by navigation-based editors.
             if set(ids) == current - {UNCATEGORIZED}:
                 ids.append(UNCATEGORIZED)
             if set(ids) != current:
-                raise DomainError("分类列表已变化，请刷新后重排。", 409, "stale_categories")
+                raise DomainError("分组列表已变化，请刷新后重排。", 409, "stale_categories")
             for index, item_id in enumerate(ids):
                 item = self._get(connection, "categories", item_id)
                 item["sort_order"] = index
@@ -1027,7 +1031,7 @@ class Store:
             self._get(connection, "categories", item["category_id"])
             self._assert_assets(item)
             if not item_id and connection.execute("SELECT 1 FROM scripts WHERE id=?", (item["id"],)).fetchone():
-                raise DomainError("剧本 ID 已存在。", 409)
+                raise DomainError("条目 ID 已存在。", 409)
             if previous:
                 self._record_history(connection, previous)
             self._script(connection, item)
@@ -1096,7 +1100,7 @@ class Store:
         with self.transaction(write=True) as connection:
             previous = self._get(connection, "scripts", item_id)
             if not previous.get("media"):
-                raise DomainError("请先为剧本上传音视频。", 409, "media_required")
+                raise DomainError("请先为条目上传音视频。", 409, "media_required")
             item = copy.deepcopy(previous)
             media = item["media"]
             media["duration"] = media_duration(data.get("duration", media.get("duration")))
@@ -1117,7 +1121,7 @@ class Store:
             previous = self._get(connection, "scripts", item_id)
             row = connection.execute("SELECT data FROM history WHERE id=? AND script_id=?", (history_id, item_id)).fetchone()
             if not row:
-                raise DomainError("该历史版本不存在或不属于此剧本。", 404, "history_not_found")
+                raise DomainError("该历史版本不存在或不属于此条目。", 404, "history_not_found")
             candidate = json.loads(row[0])
             candidate["id"] = previous["id"]
             if not connection.execute("SELECT 1 FROM categories WHERE id=?", (candidate.get("category_id"),)).fetchone():
@@ -1197,36 +1201,36 @@ class Store:
         if not isinstance(level, str) or level not in {"categories", "scripts"}:
             raise DomainError("目录层级无效。")
         if focus is not None:
-            focus = identifier(focus, "当前分类")
+            focus = identifier(focus, "当前分组")
         layout = normalize_layout(data.get("layout", {}), orientation, library["layouts"][orientation])
         visible_categories = [item for item in library["categories"] if item["visible"] and
                               (item["id"] != UNCATEGORIZED or item["visible_count"])]
         category_map = {item["id"]: item for item in visible_categories}
         if focus is not None and focus not in category_map:
-            raise DomainError("当前分类已删除或隐藏，请重新选择。", 409, "unavailable_selection")
+            raise DomainError("当前分组已删除或隐藏，请重新选择。", 409, "unavailable_selection")
         available = {item["id"]: item for item in library["scripts"] if item["visible"] and item["category_id"] in category_map}
         if mode == "script":
-            script_id = identifier(data.get("script_id"), "剧本 ID")
+            script_id = identifier(data.get("script_id"), "条目 ID")
             if script_id not in available:
-                raise DomainError("该剧本已隐藏或不在可用分类中，请重新选择。", 409, "unavailable_selection")
+                raise DomainError("该条目已隐藏或不在可用分组中，请重新选择。", 409, "unavailable_selection")
             scripts = [available[script_id]]
             actual_category = scripts[0]["category_id"]
             if focus is not None and focus != actual_category:
-                raise DomainError("剧本已不属于当前分类，请刷新预览。", 409, "unavailable_selection")
+                raise DomainError("条目已不属于当前分组，请刷新预览。", 409, "unavailable_selection")
             level, focus = "scripts", actual_category
             categories = [category_map[actual_category]]
             selection = {"mode": mode, "script_id": script_id, "category_ids": [], "script_ids": []}
         else:
-            category_ids = id_list(data.get("category_ids", []), "所选分类")
-            script_ids = id_list(data.get("script_ids", []), "所选剧本")
+            category_ids = id_list(data.get("category_ids", []), "所选分组")
+            script_ids = id_list(data.get("script_ids", []), "所选条目")
             if any(item_id not in category_map for item_id in category_ids):
-                raise DomainError("所选分类已删除或隐藏，请刷新预览。", 409, "unavailable_selection")
+                raise DomainError("所选分组已删除或隐藏，请刷新预览。", 409, "unavailable_selection")
             list_source = data.get("list_source", "queue" if "script_ids" in data else "categories")
             if not isinstance(list_source, str) or list_source not in {"queue", "categories"}:
                 raise DomainError("目录来源无效。")
             if level == "categories":
                 if focus is not None:
-                    raise DomainError("分类总览不能同时指定当前分类。")
+                    raise DomainError("分组总览不能同时指定当前分组。")
                 categories = [item for item in visible_categories if not category_ids or item["id"] in category_ids]
             elif focus is not None:
                 # The explicit focused category is authoritative at the second level.
@@ -1245,7 +1249,7 @@ class Store:
         selection.update(directory_level=level, focus_category_id=focus)
         if mode == "script" and layout["body_mode"] == "media":
             if not scripts[0].get("media"):
-                raise DomainError("该剧本尚未关联音视频，请先配本或选择纯正文模式。", 409, "media_required")
+                raise DomainError("该条目尚未关联音视频，请先配本或选择纯正文模式。", 409, "media_required")
             scripts[0]["media"] = normalize_media(scripts[0]["media"], scripts[0]["blocks"])
             self._assert_assets(scripts[0]["media"])
             if self.resource_file(scripts[0]["media"]["path"]).stat().st_size != scripts[0]["media"]["size"]:
@@ -1274,11 +1278,11 @@ class Store:
             raise DomainError("请提交完整编辑草稿。")
         with self.transaction() as connection:
             script_id = data.get("script_id")
-            existing = self._get(connection, "scripts", identifier(script_id, "剧本 ID")) if script_id is not None else None
+            existing = self._get(connection, "scripts", identifier(script_id, "条目 ID")) if script_id is not None else None
             candidate = copy.deepcopy(draft)
             draft_title = text(candidate.get("title", ""), "剧名", 200)
             if not draft_title.strip():
-                candidate["title"] = "未命名剧本"
+                candidate["title"] = "未命名条目"
             item = normalize_script(candidate, existing)
             item.pop("media", None)
             category = self._get(connection, "categories", item["category_id"])
@@ -1507,7 +1511,7 @@ class Store:
                     raise DomainError("备份未完成：音视频文件校验失败，请重新上传。", 409, "invalid_media")
             if sum(len(value) for value in files.values()) > 512 * 1024 * 1024:
                 raise DomainError("备份超过 512 MB，请联系维护者整理资源。")
-            manifest = {"format": "xiwa-workbench-backup", "version": SCHEMA_VERSION, "created_at": now(),
+            manifest = {"format": BACKUP_FORMAT, "version": SCHEMA_VERSION, "created_at": now(),
                         "files": {name: {"sha256": hashlib.sha256(content).hexdigest(), "size": len(content)}
                                   for name, content in files.items()}, "resources": resource_map}
             stream = io.BytesIO()
@@ -1531,7 +1535,7 @@ class Store:
             if not version or version[0] != str(SCHEMA_VERSION):
                 raise DomainError("备份版本不受支持。")
             if connection.execute("PRAGMA foreign_key_check").fetchone():
-                raise DomainError("备份中的分类关联已损坏。")
+                raise DomainError("备份中的分组关联已损坏。")
             if any(connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] > maximum
                    for table, maximum in [("categories", 5000), ("scripts", 10000), ("history", 100000), ("settings", 10)]):
                 raise DomainError("备份的数据量超过当前版本限制。")
@@ -1539,12 +1543,12 @@ class Store:
             categories = [normalize_category(item) for item in exported["categories"]]
             category_ids = {item["id"] for item in categories}
             if len(category_ids) != len(categories) or UNCATEGORIZED not in category_ids:
-                raise DomainError("备份分类记录无效。")
+                raise DomainError("备份分组记录无效。")
             if len({item["name"].casefold() for item in categories}) != len(categories):
-                raise DomainError("备份包含同名分类。")
+                raise DomainError("备份包含同名分组。")
             scripts = [normalize_script(item, source_import=True) for item in exported["scripts"]]
             if len({item["id"] for item in scripts}) != len(scripts) or any(item["category_id"] not in category_ids for item in scripts):
-                raise DomainError("备份剧本关联无效。")
+                raise DomainError("备份条目关联无效。")
             settings = exported["settings"]
             if not {"layouts", "queue", "state"} <= set(settings) or set(settings) - {"layouts", "queue", "state", "backgrounds", "layout_presets"}:
                 raise DomainError("备份缺少必要配置。")
@@ -1560,7 +1564,7 @@ class Store:
             settings["queue"] = {"script_ids": id_list(settings["queue"]["script_ids"], "待展示列表")}
             script_ids = {item["id"] for item in scripts}
             if any(item_id not in script_ids for item_id in settings["queue"]["script_ids"]):
-                raise DomainError("备份待展示列表引用了不存在的剧本。")
+                raise DomainError("备份待展示列表引用了不存在的条目。")
             state = settings["state"]
             for field in ["revision", "seek_version"]:
                 state[field] = number(state[field], field, 0, 9007199254740990, True)
@@ -1575,7 +1579,7 @@ class Store:
                 snapshot["scripts"] = [normalize_script(item, source_import=True) for item in snapshot["scripts"]]
                 snapshot["layout"] = normalize_snapshot_layout(snapshot["layout"], snapshot["orientation"])
                 if snapshot["mode"] == "script" and len(snapshot["scripts"]) != 1:
-                    raise DomainError("备份剧本展示状态无效。")
+                    raise DomainError("备份条目展示状态无效。")
                 selection = snapshot.get("selection", {})
                 if not isinstance(selection, dict):
                     raise DomainError("备份目录选择格式无效。")
@@ -1584,16 +1588,16 @@ class Store:
                 if not isinstance(level, str) or level not in {"categories", "scripts"}:
                     raise DomainError("备份目录层级无效。")
                 if focus is not None:
-                    focus = identifier(focus, "当前分类")
+                    focus = identifier(focus, "当前分组")
                 frozen_categories = {item["id"] for item in snapshot["categories"]}
                 if focus is not None and focus not in frozen_categories:
-                    raise DomainError("备份当前分类不属于已保存的展示内容。")
+                    raise DomainError("备份当前分组不属于已保存的展示内容。")
                 if snapshot["mode"] == "script":
                     level, focus = "scripts", snapshot["scripts"][0]["category_id"]
                 elif level == "categories" and focus is not None:
-                    raise DomainError("备份分类总览不能同时指定当前分类。")
+                    raise DomainError("备份分组总览不能同时指定当前分组。")
                 elif focus is not None and any(item["category_id"] != focus for item in snapshot["scripts"]):
-                    raise DomainError("备份当前分类与目录内容不一致。")
+                    raise DomainError("备份当前分组与目录内容不一致。")
                 snapshot.update(directory_level=level, focus_category_id=focus)
                 selection.update(directory_level=level, focus_category_id=focus)
                 snapshot["selection"] = selection
@@ -1638,7 +1642,7 @@ class Store:
                 if "manifest.json" not in names or archive.getinfo("manifest.json").file_size > 1024 * 1024:
                     raise DomainError("缺少有效备份清单。")
                 manifest = json.loads(archive.read("manifest.json"))
-                if not isinstance(manifest, dict) or manifest.get("format") != "xiwa-workbench-backup" or manifest.get("version") != SCHEMA_VERSION:
+                if not isinstance(manifest, dict) or manifest.get("format") != BACKUP_FORMAT or manifest.get("version") != SCHEMA_VERSION:
                     raise DomainError("这不是当前工作台支持的备份。")
                 if not isinstance(manifest.get("files"), dict) or not isinstance(manifest.get("resources"), dict):
                     raise DomainError("备份清单格式无效。")

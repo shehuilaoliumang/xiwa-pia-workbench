@@ -23,12 +23,12 @@ def docx(body, additions=None, compression=zipfile.ZIP_DEFLATED):
 
 class ImportParserTests(unittest.TestCase):
     def test_role_metadata_preserves_source_and_nonempty_lines(self):
-        source = '剧名：雪夜\r\n作者：小云\r\n\r\n小喜：  第一段。\n旁白:窗外下雪。\n没有指定角色的原文\n12:30\n'
+        source = '剧名：雪夜\r\n作者：小云\r\n\r\n小甲：  第一段。\n旁白:窗外下雪。\n没有指定角色的原文\n12:30\n'
         result = parse_text(source)
         candidate = result['candidate']
         self.assertEqual(candidate['title'], '雪夜')
         self.assertEqual(candidate['author'], '小云')
-        self.assertEqual(result['roles'], ['小喜', '旁白'])
+        self.assertEqual(result['roles'], ['小甲', '旁白'])
         self.assertEqual([block['text'] for block in candidate['blocks']], [line for line in source.splitlines(keepends=True) if line.strip()])
         self.assertEqual(candidate['source_text'], source)
         self.assertEqual(candidate['blocks'][0]['role'], '')

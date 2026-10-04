@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Rebuild the source-derived seed without changing the archived PPTX files.
 
+维护者专用：模板交付里不含原始 PPT，需先把归档副本放到
+``.local-archive/evidence-originals/``（见 evidence/README.md）再运行。
+本脚本会改写 data/seed.json 与 data/source_extraction.json，运行前请先备份。
+
 Uses only the Python standard library. Run from any directory:
     python tools/import_sources.py
 No application database is read or written. Re-running replaces only generated
@@ -24,68 +28,68 @@ NS = {
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 }
 RID = "{" + NS["r"] + "}"
-CATALOG = "喜娃微pia剧场.pptx"
-SCROLL = "直播间滚屏.pptx"
+CATALOG = "示例内容源-A.pptx"
+SCROLL = "示例内容源-B.pptx"
 CATEGORIES = [
-    ("cat-sweet", "甜本", "#B64C70"),
-    ("cat-bitter", "苦本", "#426FA6"),
-    ("cat-calm", "淡本", "#54756A"),
-    ("cat-comedy", "搞笑本", "#B57422"),
-    ("cat-suspense", "悬疑恐怖本", "#735A91"),
-    ("cat-screen", "动漫影视本", "#5B64A2"),
+    ("cat-sweet", "示例分组一", "#B64C70"),
+    ("cat-bitter", "示例分组二", "#426FA6"),
+    ("cat-calm", "示例分组三", "#54756A"),
+    ("cat-comedy", "示例分组四", "#B57422"),
+    ("cat-suspense", "示例分组五", "#735A91"),
+    ("cat-screen", "示例分组六", "#5B64A2"),
 ]
 # Metadata is transcribed from directory pages. Empty synopsis means no actual
 # synopsis was supplied. Doubts are preserved, never silently corrected.
 SCRIPTS = [
-    dict(title="万有引力", category="甜本", author="紫熙", pages=(65,70), directory_page=1,
+    dict(title="万有引力", category="示例分组一", author="紫熙", pages=(65,70), directory_page=1,
          synopsis="假面舞会上的相遇，让他对她一面倾心", cast_note="一男一女", tags=["民国本"],
          remark="小孩子不要选 民国本 一男一女  假面舞会上的相遇，让他对她一面倾心",
          issues="SRC-01：p70 疑似错序，未确认，保留 p65–70 原顺序。"),
-    dict(title="老同", category="甜本", author="茶朔洵", pages=(71,75), directory_page=1,
+    dict(title="老同", category="示例分组一", author="茶朔洵", pages=(71,75), directory_page=1,
          synopsis="旧时代两个女孩子的故事", cast_note="两女", tags=["旧时代"],
          remark="旧时代 两女  旧时代两个女孩子的故事",
          issues="SRC-02：另有旁白、路人、德音及温惠，原音效署名保留；未提供录音。SRC-06：收录片段从‘此后’开始。"),
-    dict(title="吃花的女人", category="甜本", author="药点笔莲", pages=(13,17), directory_page=1,
+    dict(title="吃花的女人", category="示例分组一", author="药点笔莲", pages=(13,17), directory_page=1,
          synopsis="一个女人结婚前的幻想", cast_note="两女", tags=["有点难度"],
          remark="有点难度 两女  一个女人结婚前的幻想", issues=""),
-    dict(title="平凡人生", category="苦本", author="妖奈奈", pages=(56,60), directory_page=2,
+    dict(title="平凡人生", category="示例分组二", author="妖奈奈", pages=(56,60), directory_page=2,
          synopsis="重案组警察因为公事牵扯到孩子，导致孩子意外去世，现在面对妻子", cast_note="一男一女", tags=[],
          remark="一男一女 重案组警察因为公事牵扯到孩子，导致孩子意外去世，现在面对妻子", issues=""),
-    dict(title="终于暮色", category="苦本", author="6598", pages=(50,55), directory_page=2,
+    dict(title="终于暮色", category="示例分组二", author="6598", pages=(50,55), directory_page=2,
          synopsis="救赎与被救赎的故事", cast_note="两女", tags=[], remark="两女 救赎与被救赎的故事", issues=""),
-    dict(title="青春", category="苦本", author="十三", pages=(18,21), directory_page=2,
+    dict(title="青春", category="示例分组二", author="十三", pages=(18,21), directory_page=2,
          synopsis="男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆", cast_note="一男一女", tags=[],
          remark="一男一女 男主因为打架丢了安排好的工作，原因是看到了女朋友跟着老同学去了宾馆",
          issues="SRC-06：正文从‘我？我怎么了？’开始，仅声明 PPT 收录内容。"),
-    dict(title="五毛钱的事", category="搞笑本", author="摘自（吵架发泄咆哮本）", pages=(61,64), directory_page=3,
+    dict(title="五毛钱的事", category="示例分组四", author="摘自（吵架发泄咆哮本）", pages=(61,64), directory_page=3,
          synopsis="因为五毛钱吵起来的故事", cast_note="不分性别，两男两女皆可走", tags=[],
          remark="因为五毛钱吵起来的故事 ， 不分性别，两男两女皆可走",
          issues="SRC-03：正文只有‘男’‘女’两角色，原人数备注有歧义，不自动转换为四人本。"),
-    dict(title="爱情公寓", category="搞笑本", author="", pages=(28,30), directory_page=3,
+    dict(title="爱情公寓", category="示例分组四", author="", pages=(28,30), directory_page=3,
          synopsis="", cast_note="一男一女", tags=["台湾腔"], remark="台湾腔 一男一女",
          issues="SRC-04：目录括注‘欧浩辰，迟早早’，正文为悠悠/张伟扮演欧皓辰/池早早，保留原写法。SRC-06：正文明确标‘节选’。7 张正文插图按原图保留，其中图中文字未另作 OCR 转写，不计入可编辑文字覆盖率。"),
-    dict(title="远方", category="淡本", author="沈如深", pages=(35,39), directory_page=4,
+    dict(title="远方", category="示例分组三", author="沈如深", pages=(35,39), directory_page=4,
          synopsis="", cast_note="一男一女", tags=[], remark="一男一女 自行理解", issues="未提供实质剧情简介；‘自行理解’保留为原备注。"),
-    dict(title="不单是真实，不单是想象", category="淡本", author="天空没有之城", pages=(31,34), directory_page=4,
+    dict(title="不单是真实，不单是想象", category="示例分组三", author="天空没有之城", pages=(31,34), directory_page=4,
          synopsis="一个失聪一个失明的两个好朋友惺惺相惜的故事", cast_note="两女", tags=[],
          remark="两女一个失聪一个失明的两个好朋友惺惺相惜的故事",
          issues="SRC-02：p33 另有院长和新闻播报，不假定已经提供对应录音或演员分工。"),
-    dict(title="执子之手", category="淡本", author="一尾鱼；摘自《如许年华似水》", pages=(22,27), directory_page=4,
+    dict(title="执子之手", category="示例分组三", author="一尾鱼；摘自《如许年华似水》", pages=(22,27), directory_page=4,
          synopsis="民国时期的夫妻俩，面对错误的改革制度", cast_note="", tags=["近代"],
          remark="民国时期的夫妻俩，面对错误的改革制度",
          issues="目录未单列配音人数，不自动填充。SRC-06：p22 从【1:26】开始，保留提示，不把它视为演出总时长。"),
-    dict(title="凶杀沉溺", category="悬疑恐怖本", author="糊涂荼", pages=(44,49), directory_page=5,
+    dict(title="凶杀沉溺", category="示例分组五", author="糊涂荼", pages=(44,49), directory_page=5,
          synopsis="为了求生而谋害他人的两个亡命之徒", cast_note="两女", tags=[],
          remark="两女 为了求生而谋害他人的两个亡命之徒",
          issues="SRC-02：p44–46 还有王叔台词；‘两女’不等于全部发声角色数。"),
-    dict(title="催眠大师", category="悬疑恐怖本", author="摘自我就是演员", pages=(40,43), directory_page=5,
+    dict(title="催眠大师", category="示例分组五", author="摘自我就是演员", pages=(40,43), directory_page=5,
          synopsis="心理治疗师和女病人之间发生的故事", cast_note="一男一女", tags=[],
          remark="一男一女 心理治疗师和女病人之间发生的故事",
          issues="SRC-05：目录简介与选段的治疗者关系有落差；p43‘七年前’与‘去年’并存，未经确认不改写。"),
-    dict(title="鱼玄机与绿翘", category="悬疑恐怖本", author="佚名", pages=(7,12), directory_page=5,
+    dict(title="鱼玄机与绿翘", category="示例分组五", author="佚名", pages=(7,12), directory_page=5,
          synopsis="鱼玄机相思成疾杀死侍女的故事", cast_note="两女", tags=["古风"],
          remark="古风 两女 鱼玄机相思成疾杀死侍女的故事",
-         issues="SRC-08：网页使用独立剧本 ID，不复用目录中的遗留外部链接。"),
+         issues="SRC-08：网页使用独立条目 ID，不复用目录中的遗留外部链接。"),
 ]
 
 
@@ -306,7 +310,13 @@ def main():
     media_dir = root / "static" / "media"
     media_dir.mkdir(parents=True, exist_ok=True)
     (root / "data").mkdir(exist_ok=True)
-    sources = [root / "evidence" / "originals" / name for name in (CATALOG, SCROLL)]
+    # 模板交付不带原始 PPT：归档副本在 .local-archive/evidence-originals/。
+    source_dir = root / ".local-archive" / "evidence-originals"
+    if not source_dir.is_dir():
+        raise SystemExit(
+            f"找不到归档的原始 PPT：{source_dir}" + '\n' +
+            "该脚本只用于维护者重建种子数据，请先把原始 PPT 放回该目录。")
+    sources = [source_dir / name for name in (CATALOG, SCROLL)]
     before = {p.name:file_hash(p) for p in sources}
     decks = [Deck(p, media_dir).extract() for p in sources]
     catalog, scroll = decks
@@ -392,7 +402,7 @@ def main():
 ## 生成入口与产物
 
 - [导入脚本](../tools/import_sources.py)：标准库实现，运行 `python tools/import_sources.py` 可重建内容产物；不读写应用数据库。
-- [seed.json](../data/seed.json)：`schema_version: 1`，6 类、14 篇剧本、{text_count} 个非空文字块、7 个正文图片块。
+- [seed.json](../data/seed.json)：`schema_version: 1`，6 类、14 篇条目、{text_count} 个非空文字块、7 个正文图片块。
 - [source_extraction.json](../data/source_extraction.json)：两份 PPT 全部 91 页的原始段落、runs、颜色来源 XML、形状位置、背景继承与关系、媒体哈希，以及覆盖核对结果。
 - 原始图像位于 `static/media/`，同一字节内容按 SHA-256 复用，共 {media_count} 个资源。网页 URL 为 `/static/media/ppt-<哈希前16位>.<原扩展名>`。所有图像直接提取原字节，没有重绘或压缩。
 
@@ -406,18 +416,18 @@ def main():
 
 正文图片为《爱情公寓》p28 的 1 张、p29 的 2 张、p30 的 4 张，共 7 张。图片中的文字保留原图，未作未经核验的 OCR 转写；文字覆盖结论仅针对 PPT 可编辑文字。网页初始阅读流把每页插图按上/左顺序置于该页文字之后；原始坐标与对象顺序仍在提取文件，可供版式调整。
 
-六类背景从《直播间滚屏》各页的背景关系与当前突出分类匹配，不把导航装饰图误作背景。滚屏页序为甜本、苦本、淡本、搞笑本、悬疑恐怖本、动漫影视本；剧场目录中搞笑与淡本页序不同，按名称对应。原背景的透明度与继承信息另存提取文件，网页主题颜色为界面配色配置，不声称是原背景的精确采样值。
+六类背景从《直播间滚屏》各页的背景关系与当前突出分组匹配，不把导航装饰图误作背景。滚屏页序为示例分组一、示例分组二、示例分组三、示例分组四、示例分组五、示例分组六；目录中搞笑与示例分组三页序不同，按名称对应。原背景的透明度与继承信息另存提取文件，网页主题颜色为界面配色配置，不声称是原背景的精确采样值。
 
 ## 元数据与未决问题
 
-- 分类、作者/来源、人数原备注和剧情简介依据目录逐条转写。作者/来源字段允许记录‘摘自’来源；未提供编剧的《爱情公寓》留空，不写成佚名。
+- 分组、作者/来源、人数原备注和剧情简介依据目录逐条转写。作者/来源字段允许记录‘摘自’来源；未提供编剧的《爱情公寓》留空，不写成佚名。
 - 《爱情公寓》没有目录剧情简介，简介留空；《远方》‘自行理解’保留为备注，不伪造剧情简介。《执子之手》未单列人数，人数字段留空。
 - 目录导航、原始空格和所有空白段落在原始提取中保存；seed 的 notes 保留目录备注与疑点。元数据展示字段只做必要的空格整理，不覆盖源文本。
-- 《万有引力》保持 p65–70 原序；《五毛钱的事》保留有歧义的原配音备注；《爱情公寓》人名差异、《催眠大师》简介和年份差异均保留；未决项详见[来源内容核查](来源内容核查.md)。
+- 《万有引力》保持 p65–70 原序；《五毛钱的事》保留有歧义的原备注；《爱情公寓》人名差异、《催眠大师》简介和年份差异均保留；未决项详见[来源内容核查](来源内容核查.md)。
 - role 只是从段首发言标签推导的展示注记，不代表新增演员分工；原标签仍在 text/runs 中。配角、旁白、混响、动作、音效与署名全部保留，不把它们当执行指令。
 - runs 保存原文片段及可解析的直接/段落默认颜色；没有可靠颜色值时为空，由 UI 提供可读配色。完整原始颜色 XML 留在提取文件，不能宣称已经像素级复刻所有母版字体继承。
-- 没有嵌入音视频，不生成时长、配套音源、年龄等级或外部完整剧本声明。视频功能仍仅为后续结构预留。
-- p76–85 无正文的背景占位页不成为剧本，空动漫影视本分类保留。
+- 没有嵌入音视频，不生成时长、配套音源、年龄等级或外部完整条目声明。视频功能仍仅为后续结构预留。
+- p76–85 无正文的背景占位页不成为条目，空示例分组六分组保留。
 
 ## 原件完整性
 

@@ -84,51 +84,51 @@
         caption_index: this._captionIndex, caption_page_index: this._captionPageIndex, cue_id: this._cueId};
     }
     _button(action, text, label) {
-      const button = node('button', 'pia-media-button', text);
+      const button = node('button', 'wb-media-button', text);
       button.type = 'button'; button.dataset.mediaAction = action; button.setAttribute('aria-label', label);
       return button;
     }
     _build() {
-      this.root = node('div', 'pia-media-player');
+      this.root = node('div', 'wb-media-player');
       this.root.dataset.mediaSide = this.layout.media_side === 'right' ? 'right' : 'left';
       this.root.dataset.captionMode = this.captionMode;
       this.root.dataset.captionLayout = this.captionLayout;
       this.root.dataset.mediaKind = this.script.media?.kind === 'audio' ? 'audio' : 'video';
-      this.root.style.setProperty('--pia-caption-font', clamp(number(this.layout.font_size, 34), 16, 96) + 'px');
-      this.root.style.setProperty('--pia-caption-line', clamp(number(this.layout.line_height, 1.7), 1.1, 3));
-      this.root.style.setProperty('--pia-caption-padding', clamp(number(this.layout.padding, 56) * .4, 18, 48) + 'px');
-      this.visual = node('section', 'pia-media-visual'); this.visual.setAttribute('aria-label', '媒体画面');
+      this.root.style.setProperty('--wb-caption-font', clamp(number(this.layout.font_size, 34), 16, 96) + 'px');
+      this.root.style.setProperty('--wb-caption-line', clamp(number(this.layout.line_height, 1.7), 1.1, 3));
+      this.root.style.setProperty('--wb-caption-padding', clamp(number(this.layout.padding, 56) * .4, 18, 48) + 'px');
+      this.visual = node('section', 'wb-media-visual'); this.visual.setAttribute('aria-label', '媒体画面');
       this.media = document.createElement(this.root.dataset.mediaKind === 'audio' ? 'audio' : 'video');
-      this.media.className = 'pia-media-element'; this.media.preload = 'metadata'; this.media.playsInline = true;
+      this.media.className = 'wb-media-element'; this.media.preload = 'metadata'; this.media.playsInline = true;
       this.media.controls = false; this.media.muted = this.preview;
-      this.media.setAttribute('aria-label', String(this.script.media?.name || '剧本媒体')); this.visual.append(this.media);
+      this.media.setAttribute('aria-label', String(this.script.media?.name || '条目媒体')); this.visual.append(this.media);
       if (this.root.dataset.mediaKind === 'audio') {
-        const art = node('div', 'pia-media-audio-art');
-        art.append(node('span', 'pia-media-audio-symbol', '♪'), node('p', 'pia-media-audio-name', this.script.media?.name || '音频走本'));
+        const art = node('div', 'wb-media-audio-art');
+        art.append(node('span', 'wb-media-audio-symbol', '♪'), node('p', 'wb-media-audio-name', this.script.media?.name || '音频走本'));
         this.visual.append(art);
       }
-      this.status = node('p', 'pia-media-status', '正在加载媒体…');
+      this.status = node('p', 'wb-media-status', '正在加载媒体…');
       this.status.setAttribute('role', 'status'); this.status.setAttribute('aria-live', 'polite'); this.visual.append(this.status);
-      this.controls = node('div', 'pia-media-controls');
+      this.controls = node('div', 'wb-media-controls');
       this.controls.setAttribute('role', 'group'); this.controls.setAttribute('aria-label', '媒体播放控制');
       this.playButton = this._button('play', '播放', '播放或暂停媒体'); this.muteButton = this._button('mute', '', '切换媒体声音');
-      const buttons = node('div', 'pia-media-button-row'); buttons.append(this.playButton, this.muteButton);
-      this.time = node('output', 'pia-media-time'); this.time.setAttribute('aria-label', '当前时间和媒体时长'); buttons.append(this.time);
+      const buttons = node('div', 'wb-media-button-row'); buttons.append(this.playButton, this.muteButton);
+      this.time = node('output', 'wb-media-time'); this.time.setAttribute('aria-label', '当前时间和媒体时长'); buttons.append(this.time);
       this.progress = document.createElement('input'); this.progress.type = 'range';
       this.progress.min = '0'; this.progress.max = String(this.duration || 1); this.progress.step = '.01'; this.progress.value = '0';
-      this.progress.className = 'pia-media-progress'; this.progress.setAttribute('aria-label', '媒体进度');
+      this.progress.className = 'wb-media-progress'; this.progress.setAttribute('aria-label', '媒体进度');
       this.controls.append(buttons, this.progress); this.visual.append(this.controls);
-      this.captions = node('section', 'pia-media-captions'); this.captions.setAttribute('aria-label', '走本台词');
-      const heading = node('header', 'pia-media-caption-heading'); this.captionLabel = node('span', 'pia-media-caption-label');
+      this.captions = node('section', 'wb-media-captions'); this.captions.setAttribute('aria-label', '走本台词');
+      const heading = node('header', 'wb-media-caption-heading'); this.captionLabel = node('span', 'wb-media-caption-label');
       this.previousButton = this._button('previous-caption', '上一组', '上一组台词');
       this.nextButton = this._button('next-caption', '下一组', '下一组台词');
-      const navigation = node('div', 'pia-media-caption-navigation'); navigation.append(this.previousButton, this.nextButton);
+      const navigation = node('div', 'wb-media-caption-navigation'); navigation.append(this.previousButton, this.nextButton);
       heading.append(this.captionLabel, navigation);
-      this.captionScroll = node('div', 'pia-media-caption-scroll'); this.captionScroll.tabIndex = 0;
+      this.captionScroll = node('div', 'wb-media-caption-scroll'); this.captionScroll.tabIndex = 0;
       this.captionScroll.setAttribute('role', 'region'); this.captionScroll.setAttribute('aria-label', '当前台词内容');
-      this.captionPageNavigation=node('nav','pia-media-page-navigation');this.captionPageNavigation.setAttribute('aria-label','台词组内翻页');
+      this.captionPageNavigation=node('nav','wb-media-page-navigation');this.captionPageNavigation.setAttribute('aria-label','台词组内翻页');
       this.previousPageButton=this._button('previous-caption-page','上一页','上一页台词');this.nextPageButton=this._button('next-caption-page','下一页','下一页台词');
-      this.captionPageLabel=node('output','pia-media-page-label');this.captionPageLabel.setAttribute('aria-live','polite');
+      this.captionPageLabel=node('output','wb-media-page-label');this.captionPageLabel.setAttribute('aria-live','polite');
       this.captionPageNavigation.append(this.previousPageButton,this.captionPageLabel,this.nextPageButton);
       this.captions.append(heading, this.captionScroll, this.captionPageNavigation); this.root.append(this.visual, this.captions); this.container.append(this.root);
     }
@@ -290,14 +290,14 @@
       this._captionIndex = next; this._captionPageIndex = 0; this._renderCaption(); this._refreshUI(); if (notify) this._emit('caption');
     }
     _block(block) {
-      const wrapper = node(block.kind === 'image' ? 'figure' : 'div', 'pia-media-block'); wrapper.dataset.blockId = String(block.id);
+      const wrapper = node(block.kind === 'image' ? 'figure' : 'div', 'wb-media-block'); wrapper.dataset.blockId = String(block.id);
       if (block.kind === 'image') {
         const source = localUrl(block.image_path);
-        if (source) { const image = document.createElement('img'); image.src = source; image.alt = block.text || '剧本原图'; wrapper.append(image); }
+        if (source) { const image = document.createElement('img'); image.src = source; image.alt = block.text || '条目原图'; wrapper.append(image); }
         return wrapper;
       }
-      if (block.role) wrapper.append(node('span', 'pia-media-role', block.role));
-      const text = node('div', 'pia-media-block-text'); if (color(block.color)) text.style.color = readableColor(block.color);
+      if (block.role) wrapper.append(node('span', 'wb-media-role', block.role));
+      const text = node('div', 'wb-media-block-text'); if (color(block.color)) text.style.color = readableColor(block.color);
       if (Array.isArray(block.runs) && block.runs.map(run => run.text || '').join('') === String(block.text || '')) {
         for (const run of block.runs) { const span = node('span', '', run.text || ''); if (color(run.color)) span.style.color = readableColor(run.color); text.append(span); }
       } else text.textContent = block.text || '';
@@ -338,14 +338,14 @@
       const version=++this._captionRenderVersion,cue=this.cues[this._captionIndex];
       const blocks=this.cues.length?(cue?.block_ids||[]).map(id=>this.blockMap.get(id)).filter(Boolean):this.blocks[this._captionIndex]?[this.blocks[this._captionIndex]]:[];
       const source=node('div');source.append(...blocks.map(block=>this._block(block)));
-      if(!blocks.length)source.append(node('p','pia-media-caption-empty',this.cues.length?'此时间点未关联台词。':'暂无正文台词。'));
+      if(!blocks.length)source.append(node('p','wb-media-caption-empty',this.cues.length?'此时间点未关联台词。':'暂无正文台词。'));
       this.captionLabel.textContent=this.groupCount?'台词组 '+(this._captionIndex+1)+' / '+this.groupCount+(cue?.label?' · '+cue.label:''):'台词';
       this._captionPages=[];this._captionPagingFailed=false;this.root.dataset.captionLayout=this.captionLayout;
       this.captionScroll.scrollTop=0;this._refreshCaptionPages();
       if(this.captionLayout==='scroll'){
         this._captionPageIndex=0;this.captionScroll.replaceChildren(...source.childNodes);this._captionReadyPromise=Promise.resolve();return;
       }
-      this.captionScroll.replaceChildren(node('p','pia-media-caption-loading','正在排版台词…'));
+      this.captionScroll.replaceChildren(node('p','wb-media-caption-loading','正在排版台词…'));
       this._captionReadyPromise=this._paginateCaption(source,version);
     }
     async _paginateCaption(source,version) {
@@ -364,7 +364,7 @@
       }catch(error){
         if(this._destroyed||version!==this._captionRenderVersion)return;
         this._captionPagingFailed=true;this._captionPageIndex=0;this._captionPages=[];this.root.dataset.captionLayout='scroll';
-        const notice=node('p','pia-media-caption-notice','当前台词区域暂时无法分页，已显示完整可滚动台词。');notice.setAttribute('role','status');
+        const notice=node('p','wb-media-caption-notice','当前台词区域暂时无法分页，已显示完整可滚动台词。');notice.setAttribute('role','status');
         this.captionScroll.replaceChildren(notice,...source.childNodes);this._refreshCaptionPages();this._emit('caption-layout');
       }
     }

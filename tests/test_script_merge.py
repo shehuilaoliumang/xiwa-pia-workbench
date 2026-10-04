@@ -118,7 +118,7 @@ class ScriptMergeTests(unittest.TestCase):
 
     def test_batch_new_duplicate_conflict_only_updates_selected_documents(self):
         self.media()
-        self.store.save_script({"id": "new-one", "title": "全新剧本", "category_id": "cat-a", "blocks": []})
+        self.store.save_script({"id": "new-one", "title": "全新条目", "category_id": "cat-a", "blocks": []})
         content = self.store.backup()
         target = self.make_app(self.root / "merge target")
         target_store = target.extensions["store"]
@@ -196,7 +196,7 @@ class ScriptMergeTests(unittest.TestCase):
         self.assertNotIn("content_token", snapshot)
         self.assertEqual(self.frozen(), before)
         empty = self.write("/api/editor-preview", {"draft": {"title": "", "category_id": "cat-a", "blocks": []}})
-        self.assertEqual(empty["snapshot"]["scripts"][0]["title"], "未命名剧本")
+        self.assertEqual(empty["snapshot"]["scripts"][0]["title"], "未命名条目")
         self.assertEqual(self.frozen(), before)
         for change in [{"script_id": []}, {"script_id": 0}, {"orientation": []}, {"body_mode": "media"}, {"draft": None}]:
             self.write("/api/editor-preview", {"draft": draft, **change}, expected=400)

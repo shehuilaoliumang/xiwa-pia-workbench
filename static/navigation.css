@@ -1,14 +1,14 @@
 /* Transition the content, keeping the navigation and browser history usable. */
 .workspace.page-leaving {
   pointer-events: none;
-  animation: pia-page-leave 140ms ease-in both;
+  animation: wb-page-leave 140ms ease-in both;
 }
-.workspace.page-entering { animation: pia-page-enter 240ms ease-out both; }
-@keyframes pia-page-leave {
+.workspace.page-entering { animation: wb-page-enter 240ms ease-out both; }
+@keyframes wb-page-leave {
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(-8px); }
 }
-@keyframes pia-page-enter {
+@keyframes wb-page-enter {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }

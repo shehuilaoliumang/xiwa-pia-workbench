@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ bootstrap.csrf_token }}">
-  <title>{% block title %}喜娃微 PIA · 选本工作台{% endblock %}</title>
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='navigation.css') }}">
   <script id="bootstrap" type="application/json">{{ bootstrap|tojson }}</script>
@@ -14,12 +14,12 @@
 <body data-page="{% block page %}catalog{% endblock %}">
 <a class="skip-link" href="#main">跳到主要内容</a>
 <header class="site-header">
-  <a class="brand" href="/" aria-label="喜娃微 PIA 选本首页"><span class="brand-mark">喜</span><span><strong>喜娃微 PIA</strong><small>把故事，交给声音</small></span></a>
-  <nav class="main-nav" aria-label="主要导航"><a href="/" data-nav="catalog">选本工作台</a><a href="/control" data-nav="control">播控台</a><a href="/manage" data-nav="manage">内容管理</a></nav>
-  <div class="local-badge"><span></span>本地工作台</div>
+  <a class="brand" href="/" aria-label="{{ app_name }}首页"><span class="brand-mark">{{ brand_mark }}</span><span><strong>{{ app_name }}</strong><small>{{ tagline }}</small></span></a>
+  <nav class="main-nav" aria-label="主要导航"><a href="/" data-nav="catalog">{{ terms.catalog }}</a><a href="/control" data-nav="control">{{ terms.control }}</a><a href="/manage" data-nav="manage">{{ terms.manage }}</a></nav>
+  <div class="local-badge"><span></span>本地{{ app_short_name }}</div>
 </header>
 <main id="main" class="workspace">{% block content %}{% endblock %}</main>
-<footer class="site-footer"><span>喜娃微 PIA 剧场</span><span>内容源自已归档 PPT · 原稿疑点保留待核</span></footer>
+<footer class="site-footer"><span>{{ app_name }}</span><span>内容来源与版本由使用者自行维护</span></footer>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="confirm-dialog" class="dialog confirm-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="confirm-title">确认操作</h2></div><p id="confirm-message"></p><div id="confirm-extra"></div><div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button value="confirm" class="button primary" id="confirm-yes">确认</button></div></form></dialog>
 {% block dialogs %}{% endblock %}

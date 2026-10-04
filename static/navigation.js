@@ -5,7 +5,7 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const workspace = document.getElementById('main');
   let leaving = false;
-  const key = 'pia-page-transition';
+  const key = 'wb-page-transition';
 
   function reset() {
     leaving = false;

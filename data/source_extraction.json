@@ -2,7 +2,7 @@
   "schema_version": 1,
   "sources": [
     {
-      "source_file": "喜娃微pia剧场.pptx",
+      "source_file": "示例内容源-A.pptx",
       "sha256": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
       "size_emu": {
         "cx": "12192000",
@@ -20622,7 +20622,7 @@
       ]
     },
     {
-      "source_file": "直播间滚屏.pptx",
+      "source_file": "示例内容源-B.pptx",
       "sha256": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9",
       "size_emu": {
         "cx": "12192000",
@@ -21981,12 +21981,12 @@
   ],
   "verification": {
     "source_sha256_before": {
-      "喜娃微pia剧场.pptx": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
-      "直播间滚屏.pptx": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9"
+      "示例内容源-A.pptx": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
+      "示例内容源-B.pptx": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9"
     },
     "source_sha256_after": {
-      "喜娃微pia剧场.pptx": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
-      "直播间滚屏.pptx": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9"
+      "示例内容源-A.pptx": "fabab19006b0317a945c707bfbc36145f554fb6abfd834252b59ddef85af73e0",
+      "示例内容源-B.pptx": "cdc7e3a240066b69d6a996c287f20e46cd38895dec3842d16ee45a422a838dc9"
     },
     "sources_unchanged": true,
     "body_pages": [
@@ -22259,16 +22259,17 @@
     ],
     "normalized_text_matches_all_69_pages": true,
     "category_counts": {
-      "甜本": 3,
-      "苦本": 3,
-      "搞笑本": 2,
-      "淡本": 3,
-      "悬疑恐怖本": 3
+      "示例分组一": 3,
+      "示例分组二": 3,
+      "示例分组四": 2,
+      "示例分组三": 3,
+      "示例分组五": 3
     },
     "notes": [
       "Blank-only paragraphs remain in raw extraction; nonblank text blocks preserve exact paragraph text.",
       "Image text is retained as original image bytes, not OCR-transcribed.",
-      "Explicit paragraph breaks and run text/colors are preserved; unresolved inherited colors remain empty."
+      "Explicit paragraph breaks and run text/colors are preserved; unresolved inherited colors remain empty.",
+      "Category labels in this verification summary use the template's generic group names; raw page text keeps the source deck's original labels."
     ]
   }
 }

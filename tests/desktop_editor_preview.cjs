@@ -96,7 +96,7 @@ async function resize(width,height,zoom) {
   const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
   app=await electron.launch({executablePath:path.join(root,'desktop','runtime','electron.exe'),args:[path.join(root,'desktop','main.cjs'),'--url='+base+'/','--data-dir='+data,'--diagnostics','--no-show'],cwd:root,env,timeout:30000});
   page=await app.firstWindow();page.on('pageerror',error=>result.errors.push(error.message));
-  await page.goto(base+'/manage');await page.waitForFunction(()=>!!window.piaEditorTools);
+  await page.goto(base+'/manage');await page.waitForFunction(()=>!!window.wbEditorTools);
   // Keep the editor focus and selection intact; suppress only caret blinking
   // during pixel comparison so an otherwise settled frame can be stable.
   await page.addStyleTag({content:'input,textarea{caret-color:transparent!important}'});

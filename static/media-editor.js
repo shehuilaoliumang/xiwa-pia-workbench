@@ -77,7 +77,7 @@
   }
   function acceptScript(result) {
     const next=Array.isArray(result.scripts)?result.scripts.find(item=>item.id===scriptId):result.script||result;
-    if(!next||next.id!==scriptId)throw new Error('返回的剧本资料不完整，请刷新页面检查。');
+    if(!next||next.id!==scriptId)throw new Error('返回的条目资料不完整，请刷新页面检查。');
     script=next; savedCues=clone(script.media?.cues||[]);cues=clone(savedCues);timeInputs.clear();
     activeId=cues.some(cue=>cue.id===activeId)?activeId:cues[0]?.id||null;dirty=false;
     $('#media-script-title').textContent=script.title+' · 音视频配本';
@@ -143,7 +143,7 @@
   function blockDisplay(block,index,summary=false) {
     const group=create('div');group.append(create('span','media-block-label',`第 ${index+1} 段 · ${block.kind==='image'?'图片':block.role||'正文'}`));
     if(block.kind==='image'){
-      const path=safeMedia(block.image_path);if(path){const img=create('img');img.src=path;img.alt='剧本插图';img.loading='lazy';group.append(img)}else group.append(create('p','muted','这张插图暂时无法显示。'));
+      const path=safeMedia(block.image_path);if(path){const img=create('img');img.src=path;img.alt='条目插图';img.loading='lazy';group.append(img)}else group.append(create('p','muted','这张插图暂时无法显示。'));
     }else{const body=create('div','media-block-text');if(summary)body.dataset.blockSummary='';appendBlockText(body,block);group.append(body)}
     return group;
   }
@@ -203,7 +203,7 @@
     }
     const payload={cues:clone(cues).sort((a,b)=>a.at-b.at)};if(duration()!=null)payload.duration=duration();
     acceptScript(await api('/api/scripts/'+encodeURIComponent(scriptId)+'/media/cues',payload,'PUT'));
-    $('#media-save-state').textContent='全部时间点已保存';$('#media-upload-status').textContent='配本已保存，可前往播控台预览。';
+    $('#media-save-state').textContent='全部时间点已保存';$('#media-upload-status').textContent='配本已保存，可前往展示控制预览。';
   }));
   window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
   document.addEventListener('click',async event=>{
@@ -211,6 +211,6 @@
     const url=new URL(link.href,location.href);if(url.origin!==location.origin||url.href===location.href)return;
     event.preventDefault();if(await confirmAction('离开配本编辑页？','当前还有未保存的修改。离开后这些修改会丢失。','放弃修改并离开')){dirty=false;location.assign(url.href)}
   });
-  if(!script){error('剧本不存在，请返回选本页。');root.querySelectorAll('button,input').forEach(node=>node.disabled=true);return;}
+  if(!script){error('条目不存在，请返回内容管理页。');root.querySelectorAll('button,input').forEach(node=>node.disabled=true);return;}
   acceptScript(script);renderPlayer();$('#media-upload-status').textContent=hasMedia()?'拖动播放器进度条定位，再点击“暂停并标记当前时间”。':'支持 MP4、WebM、MP3、WAV、M4A、OGG，单个文件不超过 200 MB。';
 })();

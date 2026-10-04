@@ -22,7 +22,7 @@ fs.mkdirSync(output, {recursive: true});
 
 function installRafGate() {
   if (window.__qaRaf) return;
-  if (location.origin === 'http://127.0.0.1:8925') localStorage.setItem('pia-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'}));
+  if (location.origin === 'http://127.0.0.1:8925') localStorage.setItem('wb-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'}));
   const nativeRaf = window.requestAnimationFrame.bind(window);
   const nativeCancel = window.cancelAnimationFrame.bind(window);
   const pending = new Map();
@@ -94,7 +94,7 @@ async function apply(payload, position = {}) {
 }
 const scrollTop = () => audience.locator('#stage-scroll').evaluate(element => element.scrollTop);
 const pageIndex = () => audience.locator('.stage-page.is-current').getAttribute('data-page-index').then(Number);
-const captionIndex = () => audience.locator('.pia-media-caption-page.is-current').getAttribute('data-caption-page-index').then(Number);
+const captionIndex = () => audience.locator('.wb-media-caption-page.is-current').getAttribute('data-caption-page-index').then(Number);
 const rafStats = () => audience.evaluate(() => window.__qaRaf.stats());
 async function auditFrozen(label, before, visibility = 'hidden') {
   const after = await rafStats();
@@ -107,7 +107,7 @@ async function auditFrozen(label, before, visibility = 'hidden') {
 async function diagnostic() {
   return audience.evaluate(async () => {
     const element = document.querySelector('#stage-scroll');
-    const channel = new BroadcastChannel('pia-live-display-v1');
+    const channel = new BroadcastChannel('wb-live-display-v1');
     const health = await new Promise(resolve => {
       const timeout = setTimeout(() => resolve(null), 1200);
       channel.onmessage = event => {
@@ -155,7 +155,7 @@ async function main() {
     await context.addInitScript(installRafGate);
     // Observe closure-only timing guards without changing product behavior.
     // This route inserts bounded diagnostic data, never changes a branch/value.
-    if (process.env.PIA_QA_TRACE === '1') await context.route('**/static/display.js', async route => {
+    if (process.env._QA_TRACE === '1') await context.route('**/static/display.js', async route => {
       const response = await route.fetch(); let source = await response.text();
       const marker = '  function advanceAudience(timestamp, backgroundTick = false) {';
       assert(source.includes(marker), 'advanceAudience diagnostic marker');
@@ -182,9 +182,9 @@ async function main() {
     context.on('request', request => { if (request.method() !== 'GET') result.writes.push({method: request.method(), path: new URL(request.url()).pathname}); });
     const initial = await library();
     const image = initial.scripts.flatMap(script => script.blocks).find(block => block.kind === 'image'); assert(image);
-    const category = await send('/api/categories', {name: '后台冻结回归分类', description: '只在隔离资料目录中存在', color: '#705544'});
+    const category = await send('/api/categories', {name: '后台冻结回归分组', description: '只在隔离资料目录中存在', color: '#705544'});
     const scriptA = await send('/api/scripts', {title: '后台长正文 A', category_id: category.id,
-      blocks: Array.from({length: 50}, (_, i) => ({kind: 'text', role: i % 2 ? '乙' : '甲', text: `第${i + 1}段：后台切换和连续滚动应继续处理最新状态，不依赖浏览器的动画帧。` + '灯光照着剧场，声音沿着长廊传来。'.repeat(4)}))});
+      blocks: Array.from({length: 50}, (_, i) => ({kind: 'text', role: i % 2 ? '乙' : '甲', text: `第${i + 1}段：后台切换和连续滚动应继续处理最新状态，不依赖浏览器的动画帧。` + '灯光照着，声音沿着长廊传来。'.repeat(4)}))});
     const scriptB = await send('/api/scripts', {title: '后台最新正文 B', category_id: category.id,
       blocks: [{kind: 'text', role: '丙', text: '最新正文必须覆盖较早的布局结果。'.repeat(170)}, {kind: 'image', image_path: image.image_path, text: '后台插图'}, {kind: 'text', text: '最后一段：状态已经更新。'}]});
     const mediaScript = await send('/api/scripts', {title: '后台媒体分页', category_id: category.id,
@@ -200,7 +200,7 @@ async function main() {
     // it later. The opener stays on management during the core poll tests.
     controller = await context.newPage(); await controller.goto(base + '/manage');
     const popup = context.waitForEvent('page');
-    await controller.evaluate(() => window.open('/display', 'pia-display', 'popup=yes,width=560,height=960'));
+    await controller.evaluate(() => window.open('/display', 'wb-display', 'popup=yes,width=560,height=960'));
     audience = await popup; await audience.waitForLoadState();
     await until(() => result.writes.filter(item => item.path === '/api/display/connect').length === 1, 'one audience connection');
     result.connect_count_initial = 1;
@@ -313,22 +313,22 @@ async function main() {
     await audience.evaluate(() => window.__qaRaf.hide()); const mediaRafStart = await rafStats();
     const mediaPayload = {mode: 'script', script_id: mediaScript.id, orientation: 'portrait', layout: {body_mode: 'media', media_caption_layout: 'pages', media_caption_mode: 'manual', font_size: 40}};
     applied = await apply(mediaPayload, {preview_media_state: {position: 1, caption_index: 0, caption_page_index: 0, cue_id: 'bg-cue-1'}});
-    await until(async () => await audience.locator('.pia-media-caption-page').count() > 3 && await audience.locator('.pia-media-caption-page.is-current').count() === 1, 'hidden media caption pagination');
-    const mediaPages = await audience.locator('.pia-media-caption-page').count();
+    await until(async () => await audience.locator('.wb-media-caption-page').count() > 3 && await audience.locator('.wb-media-caption-page.is-current').count() === 1, 'hidden media caption pagination');
+    const mediaPages = await audience.locator('.wb-media-caption-page').count();
     let currentState = await state();
     await send('/api/command', {action: 'media', snapshot_id: currentState.snapshot.id, revision: currentState.revision, playing: false, media_state: {position: 2, caption_index: 0, caption_page_index: 2, cue_id: 'bg-cue-1'}});
     await until(async () => await captionIndex() === 2, 'hidden media same-group page 3');
     currentState = await state();
     await send('/api/command', {action: 'media', snapshot_id: currentState.snapshot.id, revision: currentState.revision, playing: false, media_state: {position: 6, caption_index: 1, caption_page_index: 0, cue_id: 'bg-cue-2'}});
-    await until(async () => await audience.locator('.pia-media-caption-page').count() === 1 && (await audience.locator('.pia-media-caption-scroll').textContent()).includes('媒体第二组'), 'hidden media changes group');
+    await until(async () => await audience.locator('.wb-media-caption-page').count() === 1 && (await audience.locator('.wb-media-caption-scroll').textContent()).includes('媒体第二组'), 'hidden media changes group');
     currentState = await state();
     await send('/api/command', {action: 'media', snapshot_id: currentState.snapshot.id, revision: currentState.revision, playing: false, media_state: {position: 2, caption_index: 0, caption_page_index: 1, cue_id: 'bg-cue-1'}});
-    await until(async () => await audience.locator('.pia-media-caption-page').count() === mediaPages && await captionIndex() === 1, 'hidden media returns to selected group/page');
-    const captionText = await audience.locator('.pia-media-caption-page.is-current').textContent();
+    await until(async () => await audience.locator('.wb-media-caption-page').count() === mediaPages && await captionIndex() === 1, 'hidden media returns to selected group/page');
+    const captionText = await audience.locator('.wb-media-caption-page.is-current').textContent();
     await auditFrozen('hidden media groups and pages', mediaRafStart);
     await audience.evaluate(() => window.__qaRaf.show()); await delay(1000);
-    assert.equal(await captionIndex(), 1); assert.equal(await audience.locator('.pia-media-caption-page.is-current').textContent(), captionText);
-    const mediaState = await audience.locator('.pia-media-element').evaluate(element => ({position: element.currentTime, paused: element.paused}));
+    assert.equal(await captionIndex(), 1); assert.equal(await audience.locator('.wb-media-caption-page.is-current').textContent(), captionText);
+    const mediaState = await audience.locator('.wb-media-element').evaluate(element => ({position: element.currentTime, paused: element.paused}));
     assert(mediaState.paused && Math.abs(mediaState.position - 2) < .1);
     result.media_summary = {caption_pages: mediaPages, current_page_index: await captionIndex(), ...mediaState};
     await screenshot('background-display-media');
@@ -378,7 +378,7 @@ async function main() {
     assert.deepEqual(result.page_errors, []);
     result.expected_stale_checkpoints = result.http_errors.filter(error => error.status === 409 && error.code === 'stale_revision' && error.url === base + '/api/checkpoint');
     assert.deepEqual(result.http_errors, result.expected_stale_checkpoints, 'Only explicitly rejected stale-revision checkpoints are expected during rapid state changes');
-    result.diagnostic_source_injection = process.env.PIA_QA_TRACE === '1';
+    result.diagnostic_source_injection = process.env._QA_TRACE === '1';
     result.display_sha256 = createHash('sha256').update(fs.readFileSync(path.join(root,'static','display.js'))).digest('hex');
     result.passed = true;
   } catch (error) {

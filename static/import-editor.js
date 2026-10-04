@@ -30,8 +30,8 @@
   }
   function open() {
     try {
-      if (!window.piaEditor) throw new Error('正文编辑器尚未就绪，请稍后重试。');
-      draft = window.piaEditor.getDraft();
+      if (!window.wbEditor) throw new Error('正文编辑器尚未就绪，请稍后重试。');
+      draft = window.wbEditor.getDraft();
       invalidate();
       $('#import-text').value = ''; $('#import-file').value = '';
       $('#import-mode-append').checked = true;
@@ -103,7 +103,7 @@
     let body;
     if (source === 'paste') {
       const text = $('#import-text').value;
-      if (!text.trim()) { error('请先粘贴需要导入的剧本正文。'); $('#import-text').focus(); return; }
+      if (!text.trim()) { error('请先粘贴需要导入的条目正文。'); $('#import-text').focus(); return; }
       body = {text};
     } else {
       const file = $('#import-file').files[0];
@@ -126,11 +126,11 @@
     if (!candidate || !draft) return;
     $('#import-fill-editor').disabled = true; error('');
     try {
-      await window.piaEditor.applyImport({candidate, mode: $('#import-mode-replace').checked ? 'replace' : 'append', session_id: draft.session_id});
+      await window.wbEditor.applyImport({candidate, mode: $('#import-mode-replace').checked ? 'replace' : 'append', session_id: draft.session_id});
       close();
       document.querySelector('#body-editor-details').open = true;
       const status = document.querySelector('#import-editor-status');
-      if (status) status.textContent = '识别内容已填入草稿。可继续修改，点击“保存剧本”后才会入库。';
+      if (status) status.textContent = '识别内容已填入草稿。可继续修改，点击“保存条目”后才会入库。';
     } catch (failure) { error(failure.message || '填入失败，请重新打开导入窗口。'); setBusy(false); }
   }
   $('#copy-import-ai-prompt')?.addEventListener('click', async () => {
@@ -139,11 +139,11 @@
     try {
       if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
       await navigator.clipboard.writeText(field.value);
-      status.textContent = '已复制。粘贴到常用 AI 后，再附上剧本原文。';
+      status.textContent = '已复制。粘贴到常用 AI 后，再附上条目原文。';
     } catch (_) {
       let copied = false;
       try { field.focus(); field.select(); copied = document.execCommand('copy'); } catch (_) { /* selected text remains the final fallback */ }
-      status.textContent = copied ? '已复制。粘贴到常用 AI 后，再附上剧本原文。' : '提示词已选中，请按 Ctrl+C 复制，也可右键选择复制。';
+      status.textContent = copied ? '已复制。粘贴到常用 AI 后，再附上条目原文。' : '提示词已选中，请按 Ctrl+C 复制，也可右键选择复制。';
     }
   });
   document.querySelector('#open-import-editor')?.addEventListener('click', open);

@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs/promises');
 const {spawn,execFileSync}=require('node:child_process'),{chromium}=require('playwright');
-const root=path.resolve(__dirname,'..'),fan=path.join(root,'喜娃剧本粉丝编辑器'),python=path.join(root,'runtime','python.exe'),data=path.join(root,'.qa','fan-editor-'+Date.now()),output=path.join(root,'.qa','browser'),base='http://127.0.0.1:9042';
+const root=path.resolve(__dirname,'..'),fan=path.join(root,'内容编辑器'),python=path.join(root,'runtime','python.exe'),data=path.join(root,'.qa','fan-editor-'+Date.now()),output=path.join(root,'.qa','browser'),base='http://127.0.0.1:9042';
 const result={passed:false,checks:[],errors:[],screenshots:[],data_dir:data},delay=ms=>new Promise(r=>setTimeout(r,ms));let browser,context,page,server,csrf='',release;
 async function until(check,label){for(let i=0;i<180;i++){if(await check())return;await delay(80);}throw Error('Timed out: '+label);}
 // Keep arbitrary user role keys intact across the browser automation bridge.
@@ -17,7 +17,7 @@ import script_package as package
 from storage import encode
 folder=Path(sys.argv[1]);folder.mkdir(parents=True,exist_ok=True)
 out=io.BytesIO();Image.new('RGB',(160,90),(76,132,94)).save(out,format='PNG');image=out.getvalue();sha=hashlib.sha256(image).hexdigest();ref='/media/'+sha+'.png'
-script={'id':'fan-ui-source','title':'粉丝适配专项','category_id':'fan-category','author':'原作者','synopsis':'浏览器真实操作','cast_note':'','notes':'','tags':[],'visible':True,'source_category':'原分类','source_pages':[1],
+script={'id':'fan-ui-source','title':'编辑器适配专项','category_id':'fan-category','author':'原作者','synopsis':'浏览器真实操作','cast_note':'','notes':'','tags':[],'visible':True,'source_category':'原分组','source_pages':[1],
  'role_colors':{'甲':'#bb6633','预设':'#338855','constructor':'#884466','__proto__':'#229955'},
  'blocks':[{'id':'fan-text-original','kind':'text','role':'甲','text':'原稿多色台词','color':'#aa2244','runs':[{'text':'原稿','color':'#aa2244'},{'text':'多色台词','color':'#2288aa'}],'source_file':'source.pptx','source_page':1},
  {'id':'fan-text-keep','kind':'text','role':'甲','text':'保留未改多色','color':'#aa2244','runs':[{'text':'保留','color':'#aa2244'},{'text':'未改多色','color':'#2266bb'}],'source_file':'source.pptx','source_page':1},
@@ -25,7 +25,7 @@ script={'id':'fan-ui-source','title':'粉丝适配专项','category_id':'fan-cat
  {'id':'fan-text-untouched','kind':'text','role':'丙','text':'原多色一直保留','color':'#552244','runs':[{'text':'原多色','color':'#552244'},{'text':'一直保留','color':'#2288aa'}],'source_file':'source.pptx','source_page':1},
  {'id':'fan-image','kind':'image','text':'','image_path':ref,'source_file':'source.pptx','source_page':1}]}
 script=package._normalize(script);content=encode(script).encode('utf-8');member='assets/'+sha+'.png';files={'script.json':{'size':len(content),'sha256':hashlib.sha256(content).hexdigest(),'mime':'application/json'},member:{'size':len(image),'sha256':sha,'mime':'image/png'}}
-manifest={'format':package.FORMAT,'version':package.VERSION,'created_at':'2026-09-30T00:00:00+00:00','category_name':'测试分类','files':files,'resources':{ref:member}}
+manifest={'format':package.FORMAT,'version':package.VERSION,'created_at':'2026-09-30T00:00:00+00:00','category_name':'测试分组','files':files,'resources':{ref:member}}
 with zipfile.ZipFile(folder/'source.zip','w',zipfile.ZIP_DEFLATED)as archive:
  archive.writestr('script.json',content);archive.writestr(member,image);archive.writestr('manifest.json',encode(manifest))
 (folder/'source.png').write_bytes(image)

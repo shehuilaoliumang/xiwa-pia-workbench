@@ -17,9 +17,9 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const lib=async()=> (await context.request.get(base+'/api/library')).json();
   const initial=await lib(),page=await context.newPage();await page.goto(base+'/manage');
-  await page.waitForFunction(()=>typeof window.piaEditor?.getDraft==='function');
+  await page.waitForFunction(()=>typeof window.wbEditor?.getDraft==='function');
   const editor=page.locator('#script-dialog'),importer=page.locator('#import-editor-dialog');
-  const draft=()=>page.evaluate(()=>window.piaEditor.getDraft());
+  const draft=()=>page.evaluate(()=>window.wbEditor.getDraft());
   const openImport=async()=>{await page.locator('#body-editor-details').evaluate(element=>{element.open=true});await page.locator('#open-import-editor').click();await importer.waitFor()};
   const analyze=async()=>{await importer.locator('#import-analyze').click();await importer.locator('#import-result').waitFor();await until(async()=>!await importer.locator('#import-fill-editor').isDisabled(),'import candidate ready')};
   const paste=async text=>{await importer.locator('#import-text').fill(text);await analyze()};
@@ -31,8 +31,8 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
     await importer.locator('[data-import-source="file"]').click();
     await importer.locator('#import-file').setInputFiles({name,mimeType:name.endsWith('.docx')?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'text/plain',buffer});
   };
-  const pasted='剧名：导入验收新剧本\n作者：测试作者\n\n \t \n　\n旁白：窗外下起了雨。\n小喜：你好。\n这是没有角色前缀的续行。\n小北：再见。\n';
-  const pastedBody='剧名：导入验收新剧本\n作者：测试作者\n旁白：窗外下起了雨。\n小喜：你好。\n这是没有角色前缀的续行。\n小北：再见。\n';
+  const pasted='剧名：导入验收新条目\n作者：测试作者\n\n \t \n　\n旁白：窗外下起了雨。\n小甲：你好。\n这是没有角色前缀的续行。\n小北：再见。\n';
+  const pastedBody='剧名：导入验收新条目\n作者：测试作者\n旁白：窗外下起了雨。\n小甲：你好。\n这是没有角色前缀的续行。\n小北：再见。\n';
   const assertSkippedBlanks=async(expectedBody,blocks,skipped)=>{
     const paragraphs=await importer.locator('.import-paragraph-text').allTextContents();
     assert.equal(paragraphs.join(''),expectedBody,'nonempty lines preserve every character and line ending');
@@ -45,28 +45,28 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
   await openImport();await paste(pasted);
   assert.equal(await importer.locator('#import-source-text').textContent(),pasted,'original pasted text remains exact');
   await assertSkippedBlanks(pastedBody,6,3);
-  assert((await importer.locator('#import-role-list').textContent()).includes('小喜'));
+  assert((await importer.locator('#import-role-list').textContent()).includes('小甲'));
   await cancel();assert.deepEqual(await draft(),blank,'canceling the preview leaves the current draft unchanged');
   assert.equal((await lib()).scripts.length,initial.scripts.length,'recognition and cancellation do not create a script');
 
   await openImport();await paste(pasted);assert(await importer.locator('#import-mode-append').isChecked());await fill();
   let currentDraft=await draft();assert.equal(currentDraft.blocks.map(block=>block.text||'').join(''),pastedBody);assert.equal(currentDraft.blocks.length,6);
-  assert.equal(await page.locator('#edit-title').inputValue(),'导入验收新剧本');assert.equal(await page.locator('#edit-author').inputValue(),'测试作者');
+  assert.equal(await page.locator('#edit-title').inputValue(),'导入验收新条目');assert.equal(await page.locator('#edit-author').inputValue(),'测试作者');
   assert.equal((await lib()).scripts.length,initial.scripts.length,'filling the editor is still only a draft');
   const roles=()=>page.locator('#script-role-options option').evaluateAll(items=>items.map(item=>item.value));
-  assert((await roles()).includes('小喜'));assert((await roles()).includes('小北'));
+  assert((await roles()).includes('小甲'));assert((await roles()).includes('小北'));
   const roleInput=page.locator('[data-block-role]').first();assert.equal(await roleInput.getAttribute('list'),'script-role-options');
   await roleInput.fill('新角色');assert((await roles()).includes('新角色'),'newly typed roles are reusable immediately');
-  await page.locator('#add-block').click();await page.locator('[data-block-role]').last().fill('小喜');
+  await page.locator('#add-block').click();await page.locator('[data-block-role]').last().fill('小甲');
   await save();
-  let created=(await lib()).scripts.find(item=>item.title==='导入验收新剧本');assert(created);
+  let created=(await lib()).scripts.find(item=>item.title==='导入验收新条目');assert(created);
   assert.equal(created.blocks.map(block=>block.text||'').join(''),pastedBody,'role edits do not strip or rewrite nonempty dialogue text');
   const stableBlocks=created.blocks;
 
   // TXT content is displayed as text, and append retains every existing block and identifier.
   await openScript(created.id);await openImport();
-  const txt='\n \t \n　\n阿喜：TXT 保真内容。\n<script>window.__importXss=true</script>\n小北：保留 <b>尖括号</b>。\n';
-  const txtBody='阿喜：TXT 保真内容。\n<script>window.__importXss=true</script>\n小北：保留 <b>尖括号</b>。\n';
+  const txt='\n \t \n　\n阿甲：TXT 保真内容。\n<script>window.__importXss=true</script>\n小北：保留 <b>尖括号</b>。\n';
+  const txtBody='阿甲：TXT 保真内容。\n<script>window.__importXss=true</script>\n小北：保留 <b>尖括号</b>。\n';
   await file('导入验收.txt',Buffer.from(txt,'utf8'));await analyze();
   assert.equal(await importer.locator('#import-source-text').textContent(),txt);
   await assertSkippedBlanks(txtBody,3,3);
@@ -82,13 +82,13 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
 
   // A minimal DOCX includes paragraphs, a soft line break, a tab, and table-cell text.
   const docx=path.join(data,'fixture.docx');
-  const documentXml='<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>剧名：导入文档</w:t></w:r></w:p><w:p><w:r><w:t>作者：文档作者</w:t></w:r></w:p><w:p/><w:p><w:r><w:t xml:space="preserve"> </w:t><w:tab/><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:r><w:t>　</w:t></w:r></w:p><w:p><w:r><w:t>阿喜：第一句</w:t><w:tab/><w:t>保留制表。</w:t><w:br/><w:t>这是同段换行。</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>小北：表格里的台词。</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>';
+  const documentXml='<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>剧名：导入文档</w:t></w:r></w:p><w:p><w:r><w:t>作者：文档作者</w:t></w:r></w:p><w:p/><w:p><w:r><w:t xml:space="preserve"> </w:t><w:tab/><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:r><w:t>　</w:t></w:r></w:p><w:p><w:r><w:t>阿甲：第一句</w:t><w:tab/><w:t>保留制表。</w:t><w:br/><w:t>这是同段换行。</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>小北：表格里的台词。</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>';
   execFileSync(python,['-X','utf8','-c',"import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1],'w',zipfile.ZIP_DEFLATED) as z:\n z.writestr('[Content_Types].xml','<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>')\n z.writestr('word/document.xml',sys.stdin.buffer.read())",docx],{cwd:root,windowsHide:true,input:documentXml});
   const illustrated=initial.scripts.find(item=>item.blocks.some(block=>block.kind==='image'));assert(illustrated);
   await openScript(illustrated.id);await page.locator('#edit-author').fill('编辑者保留');const beforeReplace=await draft();
   await openImport();await importer.locator('[data-import-source="file"]').click();await importer.locator('#import-file').setInputFiles(docx);await analyze();
-  const docxText='剧名：导入文档\n作者：文档作者\n\n \t \n　\n阿喜：第一句\t保留制表。\n这是同段换行。\n小北：表格里的台词。';
-  const docxBody='剧名：导入文档\n作者：文档作者\n阿喜：第一句\t保留制表。\n这是同段换行。\n小北：表格里的台词。';
+  const docxText='剧名：导入文档\n作者：文档作者\n\n \t \n　\n阿甲：第一句\t保留制表。\n这是同段换行。\n小北：表格里的台词。';
+  const docxBody='剧名：导入文档\n作者：文档作者\n阿甲：第一句\t保留制表。\n这是同段换行。\n小北：表格里的台词。';
   assert.equal(await importer.locator('#import-source-text').textContent(),docxText);
   await assertSkippedBlanks(docxBody,5,3);
   await importer.locator('#import-mode-replace').check();await fill();currentDraft=await draft();
@@ -116,7 +116,7 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
   await openImport();await importer.locator('#import-text').fill('旁白：取消中的识别。');await importer.locator('#import-analyze').click();
   await until(()=>started,'pending import request');await cancel();release();await delay(250);await page.unroute('**/api/import-preview');
   assert.deepEqual(await draft(),beforeErrors,'a canceled request cannot update the draft');
-  await openImport();await paste('旁白：手机预览。\n阿喜：继续核对。');await page.setViewportSize({width:390,height:844});
+  await openImport();await paste('旁白：手机预览。\n阿甲：继续核对。');await page.setViewportSize({width:390,height:844});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert(await importer.evaluate(element=>element.scrollWidth<=element.clientWidth),'import dialog fits mobile width');
   await fs.mkdir(path.join(root,'.qa','browser'),{recursive:true});await importer.screenshot({path:path.join(root,'.qa','browser','import-editor-mobile.png')});

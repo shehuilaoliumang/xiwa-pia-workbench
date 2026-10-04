@@ -18,7 +18,7 @@ let browser,child,page,audience;const errors=[],checks=[],audits=[];
  const library=async()=>(await context.request.get(base+'/api/library')).json(),state=async()=>(await context.request.get(base+'/api/state')).json();
  const send=async(url,body,method='POST')=>{const lib=await library(),response=await context.request.fetch(base+url,{method,data:body,headers:{'X-CSRF-Token':lib.csrf_token}});assert(response.ok(),await response.text());return response.json()};
  const lib=await library(),sourceImage=lib.scripts.flatMap(script=>script.blocks).find(block=>block.kind==='image');assert(sourceImage);
- const first='甲：雨落在旧城的石板路上，我们站在剧场门口，一起回忆曾经的故事。🌧️\n'.repeat(30),second='乙：长台词跨页时必须完整保留，颜色、标点、换行不能丢失。🎭 e\u0301\n'.repeat(28);
+ const first='甲：雨落在旧城的石板路上，我们站在门口，一起回忆曾经的故事。🌧️\n'.repeat(30),second='乙：长台词跨页时必须完整保留，颜色、标点、换行不能丢失。🎭 e\u0301\n'.repeat(28);
  let fixture=await send('/api/scripts',{title:'媒体组内分页同步验收',category_id:'cat-sweet',cast_note:'两人',blocks:[{kind:'text',role:'甲',text:first+second,runs:[{text:first,color:'#72262F'},{text:second,color:'#18605A'}]},{kind:'image',text:'原稿图片',image_path:sourceImage.image_path},{kind:'text',role:'乙',text:'同组收尾。图文顺序与完整内容都应该保留。'},{kind:'text',role:'甲',text:'第二组短台词。'}]});
  fixture=await send('/api/scripts/'+fixture.id,{blocks:fixture.blocks.map((block,index)=>index===0?{...block,runs:[{text:first,color:'#72262F'},{text:second,color:'#18605A'}]}:block)},'PATCH');
  const upload=await context.request.post(base+'/api/scripts/'+fixture.id+'/media',{headers:{'X-CSRF-Token':lib.csrf_token},multipart:{file:{name:'caption-sync.wav',mimeType:'audio/wav',buffer:wav()}}});assert(upload.ok(),await upload.text());
@@ -28,18 +28,18 @@ let browser,child,page,audience;const errors=[],checks=[],audits=[];
  await page.goto(base+'/control?script='+fixture.id+'&body=media');
  const ready=()=>page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);await ready();
  let frame=page.frames().find(item=>item.url().includes('preview=1'));
- const pageIndex=f=>f.locator('.pia-media-caption-page.is-current').getAttribute('data-caption-page-index').then(Number),pageCount=f=>f.locator('.pia-media-caption-page').count();
- const pagingReady=async(f=frame)=>{await until(async()=>await f.locator('.pia-media-caption-page.is-current').count()===1&&await pageCount(f)>0,'caption pagination ready');await until(async()=>!/正在/.test(await f.locator('.pia-media-page-label').textContent()),'caption pages settled')};
- const media=f=>f.locator('.pia-media-element'),mediaState=f=>media(f).evaluate(element=>({position:element.currentTime,paused:element.paused}));
+ const pageIndex=f=>f.locator('.wb-media-caption-page.is-current').getAttribute('data-caption-page-index').then(Number),pageCount=f=>f.locator('.wb-media-caption-page').count();
+ const pagingReady=async(f=frame)=>{await until(async()=>await f.locator('.wb-media-caption-page.is-current').count()===1&&await pageCount(f)>0,'caption pagination ready');await until(async()=>!/正在/.test(await f.locator('.wb-media-page-label').textContent()),'caption pages settled')};
+ const media=f=>f.locator('.wb-media-element'),mediaState=f=>media(f).evaluate(element=>({position:element.currentTime,paused:element.paused}));
  const ext=action=>page.locator('[data-preview-external="'+action+'"]');
  const internal=(action,f=frame)=>f.locator('[data-media-action="'+action+'"]');
- const press=async key=>{await frame.locator('.pia-media-caption-scroll').focus();await page.keyboard.press(key)};
- const seek=async seconds=>{await frame.locator('.pia-media-player').hover();const range=frame.locator('.pia-media-progress');await range.fill(String(seconds));await range.dispatchEvent('input');await range.dispatchEvent('change');await until(async()=>Math.abs((await mediaState(frame)).position-seconds)<.02,'media seek '+seconds)};
+ const press=async key=>{await frame.locator('.wb-media-caption-scroll').focus();await page.keyboard.press(key)};
+ const seek=async seconds=>{await frame.locator('.wb-media-player').hover();const range=frame.locator('.wb-media-progress');await range.fill(String(seconds));await range.dispatchEvent('input');await range.dispatchEvent('change');await until(async()=>Math.abs((await mediaState(frame)).position-seconds)<.02,'media seek '+seconds)};
  async function audit(label,f=frame){
   await pagingReady(f);const result=await f.evaluate(()=>{
-   const pages=[...document.querySelectorAll('.pia-media-caption-page')],texts={},ranges={},colors={},overflows=[];let images=0;
+   const pages=[...document.querySelectorAll('.wb-media-caption-page')],texts={},ranges={},colors={},overflows=[];let images=0;
    for(const page of pages){const hidden=page.hidden;page.hidden=false;const rect=page.getBoundingClientRect();if(page.scrollHeight>page.clientHeight+1)overflows.push({index:page.dataset.captionPageIndex,scroll:page.scrollHeight,height:page.clientHeight});
-    for(const block of page.querySelectorAll('[data-block-id]')){const id=block.dataset.blockId,text=block.querySelector('.pia-media-block-text');if(text){(texts[id]??=[]).push(text.textContent);(ranges[id]??=[]).push([Number(block.dataset.sourceStart),Number(block.dataset.sourceEnd)]);for(const run of text.querySelectorAll('span'))(colors[id]??=[]).push({text:run.textContent,color:run.style.color})}images+=block.querySelectorAll('img').length;}page.hidden=hidden;
+    for(const block of page.querySelectorAll('[data-block-id]')){const id=block.dataset.blockId,text=block.querySelector('.wb-media-block-text');if(text){(texts[id]??=[]).push(text.textContent);(ranges[id]??=[]).push([Number(block.dataset.sourceStart),Number(block.dataset.sourceEnd)]);for(const run of text.querySelectorAll('span'))(colors[id]??=[]).push({text:run.textContent,color:run.style.color})}images+=block.querySelectorAll('img').length;}page.hidden=hidden;
    }
    return {pages:pages.length,texts,ranges,colors,images,overflows};
   });
@@ -60,16 +60,16 @@ let browser,child,page,audience;const errors=[],checks=[],audits=[];
  assert(await ext('next-page').isDisabled());await press('ArrowRight');await delay(120);assert.equal(await pageIndex(frame),total-1);assert.deepEqual(await mediaState(frame),paused);
  assert.deepEqual(await state(),initial);assert.equal(applies.length,0);checks.push('in-frame/external/left-right paging and boundaries preserve media time; confirmation never publishes');
 
- await press('ArrowDown');await pagingReady();assert.equal(await pageIndex(frame),0);assert.equal(await pageCount(frame),1);assert.equal(await frame.locator('.pia-media-block-text').textContent(),fixture.blocks[3].text);assert.deepEqual(await mediaState(frame),paused);
+ await press('ArrowDown');await pagingReady();assert.equal(await pageIndex(frame),0);assert.equal(await pageCount(frame),1);assert.equal(await frame.locator('.wb-media-block-text').textContent(),fixture.blocks[3].text);assert.deepEqual(await mediaState(frame),paused);
  await press('ArrowUp');await pagingReady();assert.equal(await pageIndex(frame),0);await audit('group return');checks.push('up/down switches cue group and resets to first caption page without seeking media');
- await frame.locator('.pia-media-player').hover();await internal('play').click();await until(async()=>!(await mediaState(frame)).paused,'preview media playing');const started=(await mediaState(frame)).position;
- await ext('next-page').click();await until(async()=>await pageIndex(frame)===1,'paging while playing');assert(!(await mediaState(frame)).paused);await until(async()=> (await mediaState(frame)).position>started+.08,'native time continues across caption page');await frame.locator('.pia-media-player').hover();await internal('play').click();await seek(1.25);
+ await frame.locator('.wb-media-player').hover();await internal('play').click();await until(async()=>!(await mediaState(frame)).paused,'preview media playing');const started=(await mediaState(frame)).position;
+ await ext('next-page').click();await until(async()=>await pageIndex(frame)===1,'paging while playing');assert(!(await mediaState(frame)).paused);await until(async()=> (await mediaState(frame)).position>started+.08,'native time continues across caption page');await frame.locator('.wb-media-player').hover();await internal('play').click();await seek(1.25);
  checks.push('turning a caption page does not pause or restart native media playback');
  await pagingReady();if(await pageIndex(frame)!==1){while(await pageIndex(frame)>1)await ext('previous-page').click();while(await pageIndex(frame)<1)await ext('next-page').click()}
  await page.locator('#apply-display').click();await until(async()=> (await state()).media_state?.caption_page_index===1,'confirm apply carries caption page');await ready();
  assert.equal(applies.at(-1).preview_media_state.caption_page_index,1);assert(!(await state()).playing);
  const popup=context.waitForEvent('page');await page.locator('#open-display').click();audience=await popup;await audience.waitForLoadState();await pagingReady(audience);await until(async()=>await pageIndex(audience)===1,'audience current page restored');await page.bringToFront();
- const currentText=f=>f.locator('.pia-media-caption-page.is-current .pia-media-block-text').allTextContents();
+ const currentText=f=>f.locator('.wb-media-caption-page.is-current .wb-media-block-text').allTextContents();
  assert.deepEqual(await currentText(audience),await currentText(frame),'same page index has the same text across preview and audience scale');
  checks.push('confirmation apply includes caption page; independent audience opens to the same page and text');
 
@@ -86,12 +86,12 @@ let browser,child,page,audience;const errors=[],checks=[],audits=[];
  await page.locator('button[data-orientation="portrait"]').click();await ready();await audit('portrait return');await page.locator('.preview-panel').screenshot({path:path.join(evidence,'media-caption-portrait.png')});
  checks.push('focus and orientation changes retain complete text/runs/image and valid pages without publishing confirmation draft');
 
- await page.locator('#layout-media-caption-layout').selectOption('scroll');await ready();await until(async()=>await frame.locator('.pia-media-caption-page').count()===0,'scroll mode');assert(await ext('next-page').isHidden());assert(await internal('next-caption-page').isHidden());
- const scrollTexts=await frame.locator('.pia-media-block-text').allTextContents();assert.deepEqual(scrollTexts,fixture.blocks.slice(0,3).filter(block=>block.kind==='text').map(block=>block.text));
- await press('ArrowRight');await until(async()=>await frame.locator('.pia-media-block-text').count()===1&&(await frame.locator('.pia-media-block-text').textContent())===fixture.blocks[3].text,'scroll right moves group');await press('ArrowLeft');await until(async()=>await frame.locator('.pia-media-block-text').count()===2,'scroll left returns group');
+ await page.locator('#layout-media-caption-layout').selectOption('scroll');await ready();await until(async()=>await frame.locator('.wb-media-caption-page').count()===0,'scroll mode');assert(await ext('next-page').isHidden());assert(await internal('next-caption-page').isHidden());
+ const scrollTexts=await frame.locator('.wb-media-block-text').allTextContents();assert.deepEqual(scrollTexts,fixture.blocks.slice(0,3).filter(block=>block.kind==='text').map(block=>block.text));
+ await press('ArrowRight');await until(async()=>await frame.locator('.wb-media-block-text').count()===1&&(await frame.locator('.wb-media-block-text').textContent())===fixture.blocks[3].text,'scroll right moves group');await press('ArrowLeft');await until(async()=>await frame.locator('.wb-media-block-text').count()===2,'scroll left returns group');
  await page.locator('#layout-preset-name').fill('媒体组内连续滚动方案');await page.locator('#new-layout-preset').click();await until(async()=> (await library()).layout_presets.some(preset=>preset.name==='媒体组内连续滚动方案'),'preset saved');
  const saved=(await library()).layout_presets.find(preset=>preset.name==='媒体组内连续滚动方案');assert.equal(saved.layouts.portrait.media_caption_layout,'scroll');assert.equal(saved.layouts.landscape.media_caption_layout,'pages');
- await page.locator('#layout-media-caption-layout').selectOption('pages');await ready();await pagingReady();await page.locator('#layout-preset').selectOption(saved.id);await page.locator('#load-layout-preset').click();await ready();assert.equal(await page.locator('#layout-media-caption-layout').inputValue(),'scroll');assert.equal(await frame.locator('.pia-media-caption-page').count(),0);
+ await page.locator('#layout-media-caption-layout').selectOption('pages');await ready();await pagingReady();await page.locator('#layout-preset').selectOption(saved.id);await page.locator('#load-layout-preset').click();await ready();assert.equal(await page.locator('#layout-media-caption-layout').inputValue(),'scroll');assert.equal(await frame.locator('.wb-media-caption-page').count(),0);
  await page.locator('#save-layout').click();await until(async()=> (await library()).layouts.portrait.media_caption_layout==='scroll','current portrait saved');assert.deepEqual(await state(),frozen);
  checks.push('scroll layout restores full group and group arrow keys; presets retain both directions and load as draft; save layout does not publish');
  await page.setViewportSize({width:390,height:844});await page.locator('#layout-media-caption-layout').selectOption('pages');await ready();await audit('390 portrait');assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

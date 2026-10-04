@@ -32,11 +32,11 @@ function wav(seconds=12){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  await send('/api/scripts/script-08/media/cues',{duration:12,cues:blocks.map((b,i)=>({id:'cue-'+i,at:[1,3,6][i],label:'暂停点'+i,block_ids:[b.id]}))},'PUT');
  const page=await context.newPage();await page.goto(base+'/control?script=script-08&body=media');
  const ready=()=>page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);await ready();
- const frame=page.frames().find(f=>f.url().includes('preview=1'));await frame.locator('.pia-media-player').waitFor();
+ const frame=page.frames().find(f=>f.url().includes('preview=1'));await frame.locator('.wb-media-player').waitFor();
  const media=f=>f.locator('audio,video').first();
- const play=async f=>{await f.locator('.pia-media-player').hover();await f.locator('[data-media-action="play"]').click();};
+ const play=async f=>{await f.locator('.wb-media-player').hover();await f.locator('[data-media-action="play"]').click();};
  const status=f=>media(f).evaluate(v=>({position:v.currentTime,paused:v.paused,muted:v.muted}));
- const seek=async(f,value)=>{await f.locator('.pia-media-player').hover();const range=f.locator('.pia-media-progress');await range.fill(String(value));await range.dispatchEvent('input');await range.dispatchEvent('change');};
+ const seek=async(f,value)=>{await f.locator('.wb-media-player').hover();const range=f.locator('.wb-media-progress');await range.fill(String(value));await range.dispatchEvent('input');await range.dispatchEvent('change');};
  const cuePause=async(f,at)=>until(async()=>{const v=await status(f);return v.paused&&Math.abs(v.position-at)<.13},'pause at '+at);
  console.log('sample decoded; preview ready');const baseline=await state();await play(frame);await cuePause(frame,1);await play(frame);await cuePause(frame,3);
  assert.equal((await state()).revision,baseline.revision,'confirmation preview never publishes');
@@ -45,7 +45,7 @@ function wav(seconds=12){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  const audience=await context.newPage();await audience.goto(base+'/display');await media(audience).waitFor({state:'attached'});await cuePause(audience,3);
  await page.bringToFront();await page.locator('.live-details').evaluate(e=>e.open=true);await page.locator('#live-play').click();await cuePause(audience,6);
  await until(async()=>{const s=await state();return !s.playing&&s.media_state.cue_id==='cue-2'},'audience cue persisted');
- if(pic)assert(await audience.locator('.pia-media-caption-scroll img').count(),'image cue shown');
+ if(pic)assert(await audience.locator('.wb-media-caption-scroll img').count(),'image cue shown');
  console.log('audience autonomous cue passed');await page.locator('#preview-feedback-mode').selectOption('realtime');await until(async()=> (await state()).revision>applied.revision+1,'realtime binding');await delay(350);
  await seek(frame,0);await cuePause(frame,0);await delay(350);await play(frame);await cuePause(frame,1);await cuePause(audience,1);
  await until(async()=>!(await state()).playing,'realtime cue saved');
@@ -57,10 +57,10 @@ function wav(seconds=12){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  assert((await status(frame)).position>=hiddenPosition-.2,'without audience, returning preview keeps actual media position');await play(frame);
  const audience2=await context.newPage();await audience2.goto(base+'/display');await page.bringToFront();
  const liveBefore=await state();await page.locator('#layout-media-caption').selectOption('manual');await ready();await until(async()=> (await state()).snapshot?.layout?.media_caption_mode==='manual','manual mode applied');
- await seek(frame,0);await delay(350);await frame.locator('.pia-media-player').hover();for(let i=0;i<2;i++){if(await frame.locator('[data-media-action="previous-caption"]').isEnabled()){await frame.locator('[data-media-action="previous-caption"]').click();await delay(200)}}await frame.locator('[data-media-action="next-caption"]').click();await delay(350);
+ await seek(frame,0);await delay(350);await frame.locator('.wb-media-player').hover();for(let i=0;i<2;i++){if(await frame.locator('[data-media-action="previous-caption"]').isEnabled()){await frame.locator('[data-media-action="previous-caption"]').click();await delay(200)}}await frame.locator('[data-media-action="next-caption"]').click();await delay(350);
  const chosen=(await state()).media_state.caption_index;await play(frame);await cuePause(frame,1);await until(async()=>!(await state()).playing,'manual cue pause saved');assert.equal((await state()).media_state.caption_index,chosen,'manual caption stays selected at cue');
  await page.locator('[data-orientation="landscape"]').click();await ready();await frame.locator('.display-stage.landscape.body-media').waitFor();
- const split=()=>frame.locator('.pia-media-player').evaluate(e=>{const m=e.querySelector('.pia-media-visual').getBoundingClientRect(),c=e.querySelector('.pia-media-caption-scroll').getBoundingClientRect();return {mediaX:m.x,captionX:c.x}});
+ const split=()=>frame.locator('.wb-media-player').evaluate(e=>{const m=e.querySelector('.wb-media-visual').getBoundingClientRect(),c=e.querySelector('.wb-media-caption-scroll').getBoundingClientRect();return {mediaX:m.x,captionX:c.x}});
  let side=await split();assert(side.mediaX<side.captionX,'landscape media on left');
  await page.locator('#layout-media-side').selectOption('right');await ready();await until(async()=>{const b=await split();return b.mediaX>b.captionX},'landscape swap');
  await fs.mkdir(path.join(root,'.qa/browser'),{recursive:true});await page.locator('.preview-panel').screenshot({path:path.join(root,'.qa/browser/media-landscape.png')});

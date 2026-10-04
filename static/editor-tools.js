@@ -1,13 +1,13 @@
 (() => {
   'use strict';
-  const editor=window.piaEditor,dialog=document.querySelector('#script-dialog');
+  const editor=window.wbEditor,dialog=document.querySelector('#script-dialog');
   if(!editor||!dialog)return;
   const $=selector=>dialog.querySelector(selector),clone=value=>JSON.parse(JSON.stringify(value));
   // Exact, stable comparison is also the draft's saved-version fingerprint.
   const stable=value=>JSON.stringify(value,(_,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
   const text=(tag,className,value)=>{const node=document.createElement(tag);node.className=className;node.textContent=value;return node;};
   const tools=document.createElement('section');tools.className='editor-tools';
-  tools.innerHTML='<div class="editor-tools-row"><div class="button-row"><button id="editor-undo" type="button" class="button secondary small" disabled>↶ 撤销</button><button id="editor-redo" type="button" class="button secondary small" disabled>↷ 重做</button></div><p id="editor-draft-status" role="status" aria-live="polite">草稿保护准备中…</p></div><div id="editor-recovery" class="editor-recovery" hidden><p id="editor-recovery-message"></p><div class="button-row"><button id="editor-recover" type="button" class="button primary small">恢复草稿</button><button id="editor-discard" type="button" class="button secondary small">丢弃这份草稿</button></div></div><p class="help">自动草稿只保存在本机当前浏览器或桌面工作台，点击“保存剧本”才正式入库。撤销 / 重做：Ctrl+Z / Ctrl+Y，支持 Ctrl+Shift+Z。</p>';
+  tools.innerHTML='<div class="editor-tools-row"><div class="button-row"><button id="editor-undo" type="button" class="button secondary small" disabled>↶ 撤销</button><button id="editor-redo" type="button" class="button secondary small" disabled>↷ 重做</button></div><p id="editor-draft-status" role="status" aria-live="polite">草稿保护准备中…</p></div><div id="editor-recovery" class="editor-recovery" hidden><p id="editor-recovery-message"></p><div class="button-row"><button id="editor-recover" type="button" class="button primary small">恢复草稿</button><button id="editor-discard" type="button" class="button secondary small">丢弃这份草稿</button></div></div><p class="help">自动草稿只保存在本机当前浏览器或桌面工作台，点击“保存条目”才正式入库。撤销 / 重做：Ctrl+Z / Ctrl+Y，支持 Ctrl+Shift+Z。</p>';
   $('.dialog-heading').after(tools);
   const roles=document.createElement('details');roles.id='editor-role-panel';roles.className='editor-role-panel';
   roles.innerHTML='<summary>角色与默认颜色 <span id="editor-role-count"></span></summary><p class="help">默认颜色用于之后选用该角色的新句，已有句子与原多色文字保持原样。需要修改已有台词时，使用“统一该角色句子”；本句颜色仍可单独设置。</p><div id="editor-role-list"></div><div class="editor-role-add"><label class="field">预设角色<input id="editor-new-role" maxlength="200" placeholder="例如：旁白" autocomplete="off"></label><label class="field">默认色<input id="editor-new-role-color" type="color" value="#4b443a"></label><button id="editor-add-role" type="button" class="button secondary small">添加角色默认色</button></div><p id="editor-role-status" role="status"></p>';
@@ -108,7 +108,7 @@
   function onOpen(draft){
     clearTimeout(persistTimer);current=clone(draft);baseline=stable(current);storageKey=prefix?key(current):'';saved=false;
     stack=[clone(current)];position=0;lastGroup='';lastChangeAt=0;selectedHistory=null;historyItems=[];historyRequest++;
-    $('#editor-history-list').replaceChildren();$('#editor-history-diff').hidden=true;$('#editor-history-status').textContent=current.script_id?'点击查看历史保存版本。':'新增剧本正式保存后才会产生历史版本。';
+    $('#editor-history-list').replaceChildren();$('#editor-history-diff').hidden=true;$('#editor-history-status').textContent=current.script_id?'点击查看历史保存版本。':'新增条目正式保存后才会产生历史版本。';
     $('#editor-role-status').textContent='';$('#editor-new-role').value='';pending=prefix?readPending():null;recovery();if(!pending)status(initializing?'正在确认本机资料库，准备草稿保护…':!prefix?'自动草稿暂未启用，请及时正式保存。':storageProblem||'与已保存资料一致。',!initializing&&(!prefix||Boolean(storageProblem)));renderRoles();controls();
   }
   function step(direction){
@@ -161,7 +161,7 @@
     selectedHistory=item;const panel=$('#editor-history-diff');panel.hidden=false;panel.replaceChildren();
     panel.append(text('h4','','对比：历史版本 → 当前编辑草稿'));
     const old=item.script,now=current,changes=[];
-    for(const [field,label] of [['title','名称'],['category_id','分类'],['author','作者'],['synopsis','简介'],['cast_note','配音备注'],['tags','标签'],['notes','备注'],['visible','可见状态'],['role_colors','角色默认色']]){
+    for(const [field,label] of [['title','名称'],['category_id','分组'],['author','作者'],['synopsis','简介'],['cast_note','备注'],['tags','标签'],['notes','备注'],['visible','可见状态'],['role_colors','角色默认色']]){
       if(stable(old[field]??(field==='role_colors'?{}:''))!==stable(now[field]??(field==='role_colors'?{}:''))){const row=text('div','editor-version-field','');row.append(text('strong','',label),text('pre','',typeof old[field]==='object'?JSON.stringify(old[field]||{}):String(old[field]??'')),text('pre','',typeof now[field]==='object'?JSON.stringify(now[field]||{}):String(now[field]??'')));changes.push(row);}
     }
     const oldBlocks=old.blocks||[],newBlocks=now.blocks||[],oldBy=new Map(oldBlocks.map(b=>[b.id,b])),newBy=new Map(newBlocks.map(b=>[b.id,b]));
@@ -181,7 +181,7 @@
     persist();try{await editor.restoreHistory(id,item.id);}catch(error){$('#editor-history-status').textContent='恢复未完成：'+error.message;}
   }
   async function loadHistory(){
-    if(!current?.script_id){$('#editor-history-status').textContent='请先正式保存这个新剧本。';return;}
+    if(!current?.script_id){$('#editor-history-status').textContent='请先正式保存这个新条目。';return;}
     const id=current.script_id,request=++historyRequest;$('#editor-history-status').textContent='正在读取保存版本…';
     try{
       const response=await editor.history(id);if(request!==historyRequest||current?.script_id!==id||!dialog.open)return;
@@ -197,12 +197,12 @@
       else if(event.type==='change')changed(event);
       else if(event.type==='busy')controls();
       else if(event.type==='saved'){saved=true;lastPersistOkay=true;clearTimeout(persistTimer);memoryDrafts.delete(storageKey);try{localStorage.removeItem(storageKey);}catch{status('正式保存成功，但旧本机草稿清理失败。',true);}pending=null;stack=[];position=0;}
-      else if(event.type==='close'){persist(true);historyRequest++;if(!saved&&(dirty()||pending)){const toast=document.querySelector('#toast');toast.textContent=pending?'未保存草稿已保留，重新打开后可选择恢复。':lastPersistOkay?'未保存草稿已保存在本机，重新打开同一剧本可继续。':'草稿仅在当前窗口暂存，请重新打开并正式保存，避免刷新或关闭程序。';toast.hidden=false;}}
+      else if(event.type==='close'){persist(true);historyRequest++;if(!saved&&(dirty()||pending)){const toast=document.querySelector('#toast');toast.textContent=pending?'未保存草稿已保留，重新打开后可选择恢复。':lastPersistOkay?'未保存草稿已保存在本机，重新打开同一条目可继续。':'草稿仅在当前窗口暂存，请重新打开并正式保存，避免刷新或关闭程序。';toast.hidden=false;}}
   });
   if(dialog.open)onOpen(editor.getFullDraft());
   const ready=(async()=>{
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),4000);
-    try{const response=await fetch('/api/health',{credentials:'same-origin',cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('health');const health=await response.json();if(typeof health.data_dir!=='string'||!health.data_dir)throw new Error('identity');prefix='xiwa.editor.draft.v1:'+location.origin+':'+encodeURIComponent(health.data_dir)+':';}
+    try{const response=await fetch('/api/health',{credentials:'same-origin',cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('health');const health=await response.json();if(typeof health.data_dir!=='string'||!health.data_dir)throw new Error('identity');prefix='workbench.editor.draft.v1:'+location.origin+':'+encodeURIComponent(health.data_dir)+':';}
     catch{prefix=null;}
     finally{clearTimeout(timeout);initializing=false;}
     if(dialog.open&&current){storageKey=prefix?key(current):'';pending=prefix?readPending():null;recovery();renderRoles();if(!prefix)status('无法确认当前资料库，自动草稿暂未启用。请及时正式保存。',true);else if(!pending)status(storageProblem||'与已保存资料一致。',Boolean(storageProblem));}
@@ -211,5 +211,5 @@
   })();
   window.addEventListener('pagehide',persist);
   window.addEventListener('beforeunload',event=>{persist();if(editor.isBusy()||dirty()&&!lastPersistOkay){event.preventDefault();event.returnValue='';}});
-  window.piaEditorTools={ready,flush:()=>{persist();return {saved,dirty:Boolean(dirty()),storageKey};},undo:()=>step(-1),redo:()=>step(1)};
+  window.wbEditorTools={ready,flush:()=>{persist();return {saved,dirty:Boolean(dirty()),storageKey};},undo:()=>step(-1),redo:()=>step(1)};
 })();

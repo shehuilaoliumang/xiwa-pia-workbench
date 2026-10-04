@@ -5,7 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const {spawn} = require('node:child_process');
 const {_electron: electron} = require('playwright');
-const root = path.resolve(__dirname, '..'), fan = path.join(root, '喜娃剧本粉丝编辑器');
+const root = path.resolve(__dirname, '..'), fan = path.join(root, '内容编辑器');
 const data = path.join(root, '.qa', 'fan-desktop-' + Date.now());
 const output = path.join(root, '.qa', 'fan-role-defaults-desktop-20260930');
 const base = 'http://127.0.0.1:9043';
@@ -33,7 +33,7 @@ async function shot(name){
 (async()=>{
   await fs.mkdir(output,{recursive:true});let occupied=false;try{await fetch(base+'/api/health');occupied=true;}catch{}assert(!occupied,'Never reuse an occupied QA service');
   child=spawn(path.join(root,'runtime','python.exe'),['-X','utf8',path.join(fan,'fan_entry.py'),'--no-browser','--port','9043','--data-dir',data],{cwd:root,windowsHide:true,stdio:'ignore'});
-  await until(async()=>{try{const health=await json('/api/health');return health.app==='xiwa-fan-editor'&&path.resolve(health.data_dir)===data&&health.version==='0.2.1';}catch{return false;}},'fan service identity');
+  await until(async()=>{try{const health=await json('/api/health');return health.app==='content-editor'&&path.resolve(health.data_dir)===data&&health.version==='0.2.1';}catch{return false;}},'fan service identity');
   const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;delete env.NODE_OPTIONS;
   app=await electron.launch({executablePath:path.join(root,'desktop','runtime','electron.exe'),args:[path.join(fan,'desktop','main.cjs'),'--url='+base+'/','--data-dir='+data,'--no-show'],cwd:fan,env,timeout:30000});
   page=await app.firstWindow();page.on('pageerror',error=>result.errors.push(error.message));page.on('dialog',dialog=>dialog.accept());

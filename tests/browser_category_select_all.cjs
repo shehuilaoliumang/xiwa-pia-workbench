@@ -35,7 +35,7 @@ let browser,child,page;const errors=[],checks=[];
  assert.equal(calls.slice(beforeCalls).filter(call=>call.path==='/api/preview').length,1);assert.equal(calls.slice(beforeCalls).filter(call=>call.path==='/api/apply').length,0);assert.deepEqual(await state(),liveInitial);
  const populated=visibleCategories.find(category=>initialLib.scripts.some(script=>script.category_id===category.id&&script.visible!==false));
  await frame.locator('[data-preview-category="'+populated.id+'"]').click();await ready();await frame.locator('[data-preview-script]').first().waitFor();
- await button.click();await ready();assert.equal(await frame.locator('[data-preview-category]').count(),visibleCategories.length,'all selection returns from a focused category to overview');assert.match(await page.locator('#directory-path').textContent(),/分类总览 → 分类内剧本/);
+ await button.click();await ready();assert.equal(await frame.locator('[data-preview-category]').count(),visibleCategories.length,'all selection returns from a focused category to overview');assert.match(await page.locator('#directory-path').textContent(),/分组总览 → 分组内条目/);
  checks.push('partial selection expands to every visible category without publishing; nested directory returns to category overview');
 
  for(const checkbox of await boxes().all())await checkbox.uncheck();await ready();assert.equal(await checked(),0);await readCount(0,visibleCategories.length);assert.match(await count.textContent(),/默认全部/);
@@ -53,7 +53,7 @@ let browser,child,page;const errors=[],checks=[];
  beforeCalls=calls.length;await button.click();await button.click();await delay(450);assert.equal(calls.length,beforeCalls,'repeated all click in realtime emits nothing');assert.deepEqual(await state(),allLive);
  await page.locator('#preview-feedback-mode').selectOption('confirm');checks.push('realtime full selection applies correctly; repeated all selection never republishes');
 
- const added=await send('/api/categories',{name:'新增很长的分类名称用于验证窄屏排列与全选同步',visible:true,color:'#725B3E'},'POST');
+ const added=await send('/api/categories',{name:'新增很长的分组名称用于验证窄屏排列与全选同步',visible:true,color:'#725B3E'},'POST');
  await until(async()=>await boxes().count()===visibleCategories.length+1,'passive library refresh sees new category');await ready();await readCount(visibleCategories.length,visibleCategories.length+1);
  assert.equal(await page.locator('#control-categories input[value="'+added.id+'"]').isChecked(),false);await button.click();await ready();assert.equal(await checked(),visibleCategories.length+1);
  await send('/api/categories/'+populated.id,{visible:false});await until(async()=>await boxes().count()===visibleCategories.length,'hidden category disappears');await ready();await readCount(visibleCategories.length,visibleCategories.length);
@@ -63,7 +63,7 @@ let browser,child,page;const errors=[],checks=[];
  checks.push('new/hidden categories update counts after maintenance refresh; long labels and action fit desktop/390/320');
 
  const current=await library();for(const category of current.categories.filter(item=>item.id!=='uncategorized'&&item.visible!==false))await send('/api/categories/'+category.id,{visible:false});
- await until(async()=>await boxes().count()===0,'no visible categories');await ready();assert(await button.isDisabled());assert.match(await count.textContent(),/暂无可见分类/);assert.equal(await frame.locator('[data-preview-category]').count(),0);
+ await until(async()=>await boxes().count()===0,'no visible categories');await ready();assert(await button.isDisabled());assert.match(await count.textContent(),/暂无可见分组/);assert.equal(await frame.locator('[data-preview-category]').count(),0);
  assert.deepEqual(await state(),allLive,'maintenance and confirmation full-select did not replace frozen live state');
  await send('/api/categories/'+added.id,{visible:true});await until(async()=>await boxes().count()===1,'visible category restored');await ready();assert.equal(await button.isDisabled(),false);await readCount(0,1);await button.click();await ready();await readCount(1,1);
  await page.reload();await ready();assert.equal(await checked(),1);await readCount(1,1);assert.deepEqual(await state(),allLive);

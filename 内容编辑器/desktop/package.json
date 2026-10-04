@@ -1,0 +1,7 @@
+{
+  "name": "content-editor-desktop",
+  "version": "0.2.1",
+  "description": "内容编辑器桌面窗口",
+  "main": "main.cjs",
+  "private": true
+}

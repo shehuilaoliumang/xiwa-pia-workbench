@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "_comment": "集中配置中心：全项目只从这里读取应用名、端口、标题、术语、包格式与备份前缀。换领域时优先改这里（或用 tools/customize.py 自动改）。",
+
+  "app": {
+    "name": "内容管理工作台",
+    "short_name": "工作台",
+    "slug": "content-workbench",
+    "app_id": "content-workbench",
+    "version": "0.1.0",
+    "port": 8765,
+    "window_title": "内容管理工作台 · 桌面版",
+    "display_window_title": "内容管理 · 展示窗口",
+    "brand_mark": "内",
+    "tagline": "本地内容管理 · 展示与播控"
+  },
+
+  "backup": {
+    "format": "content-workbench-backup",
+    "filename_prefix": "content-backup-"
+  },
+
+  "package": {
+    "format": "content-package",
+    "temp_prefix": "content-package-",
+    "export_filename_prefix": "条目-"
+  },
+
+  "runtime": {
+    "desktop_marker": "desktop-runtime.json",
+    "python_version": "3.14.7"
+  },
+
+  "desktop": {
+    "package_name": "content-workbench-desktop",
+    "single_instance_key": "content-workbench.desktop.started",
+    "user_agent_brand": "ContentWorkbench",
+    "startup_grace_seconds": 6,
+    "sandbox_retry_args": ["--no-sandbox"]
+  },
+
+  "editor": {
+    "directory": "内容编辑器",
+    "name": "内容编辑器",
+    "app_id": "content-editor",
+    "package_name": "content-editor-desktop",
+    "version": "0.2.1",
+    "single_instance_key": "content-editor.desktop.started"
+  },
+
+  "terms": {
+    "item": "条目",
+    "group": "分组",
+    "manage": "内容管理",
+    "catalog": "内容总览",
+    "control": "展示控制",
+    "display": "展示窗口",
+    "note": "备注",
+    "item_color": "条目配色",
+    "library": "内容库",
+    "uncategorized": "未分组",
+    "collaborator": "协作者"
+  },
+
+  "defaults": {
+    "groups": [
+      "示例分组一",
+      "示例分组二",
+      "示例分组三",
+      "示例分组四",
+      "示例分组五",
+      "示例分组六"
+    ]
+  },
+
+  "modules": {
+    "display_sync": true,
+    "media": true,
+    "content_packages": true,
+    "editor_subproject": true
+  }
+}

@@ -64,14 +64,14 @@ const out = path.resolve('.qa/browser');
   await page.goto(base + '/manage');
   await page.locator('#tab-categories').click();
   await page.locator('#new-category').click();
-  await page.locator('#category-name').fill('浏览器验收分类');
+  await page.locator('#category-name').fill('浏览器验收分组');
   await page.locator('#category-form button[type=submit]').click();
   await page.locator('#category-dialog').waitFor({ state: 'hidden' });
-  assert((await page.locator('#manage-category-list').innerText()).includes('浏览器验收分类'));
+  assert((await page.locator('#manage-category-list').innerText()).includes('浏览器验收分组'));
   await page.screenshot({ path: path.join(out, 'manage-desktop.png'), fullPage: true });
 
   for (let i = 0; i < 23; i++) {
-    await api('/api/categories', { name: `扩展分类${i + 1}——较长分类名称测试`, color: '#54756a', visible: true });
+    await api('/api/categories', { name: `扩展分组${i + 1}——较长分组名称测试`, color: '#54756a', visible: true });
   }
   for (const route of ['/', '/control', '/manage', '/script/script-01']) {
     await page.setViewportSize({ width: 390, height: 844 });

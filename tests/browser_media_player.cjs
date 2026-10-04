@@ -50,7 +50,7 @@ const failures = [], passed = [], events = [];
   const blocks = [
     {id: 'b0', kind: 'text', text: '旁白：第一句\n原文 <script>window.UNSAFE=1</script>', role: '旁白', runs: [{text:'旁白：',color:'#ff0000'},{text:'第一句\n原文 <script>window.UNSAFE=1</script>',color:'#0033ff'}]},
     {id: 'img', kind: 'image', text: '', image_path: '/picture.svg'},
-    {id: 'b1', kind: 'text', text: '小喜：第二句。\n保留换行。', role: '小喜', color: '#226633'},
+    {id: 'b1', kind: 'text', text: '小甲：第二句。\n保留换行。', role: '小甲', color: '#226633'},
     {id: 'b2', kind: 'text', text: '最后一组正文。\t空格与制表符  都保留。', runs: [{text:'错误的旧内容',color:'#ff0000'}]}
   ];
   const cues = [
@@ -71,17 +71,17 @@ const failures = [], passed = [], events = [];
   }
   const state = () => page.evaluate(() => ({...player.getState(),playing:player.playing,muted:player.media.muted,changes:window.changes.filter(c=>c.reason!=='caption-layout').map(c=>c.reason)}));
   const action = name => page.locator(`[data-media-action="${name}"]`);
-  const click = async name => { await page.locator('.pia-media-player').hover(); await action(name).click(); };
+  const click = async name => { await page.locator('.wb-media-player').hover(); await action(name).click(); };
   const waitCue = id => until(async()=>{const s=await state();return s.cue_id===id&&!s.playing},'cue '+id);
   const mark = name => {passed.push(name); console.log('PASS ' + name);};
 
   await create();
   assert.equal((await state()).muted,true); assert.equal((await state()).playing,false);
-  assert.equal(await page.locator('.pia-media-block-text').textContent(),blocks[0].text);
-  assert.equal(await page.locator('.pia-media-block img').count(),1);
-  assert.equal(await page.locator('.pia-media-block-text span').first().evaluate(el=>getComputedStyle(el).color),'rgb(191, 0, 0)','source red keeps its hue and is darkened for readable contrast');
+  assert.equal(await page.locator('.wb-media-block-text').textContent(),blocks[0].text);
+  assert.equal(await page.locator('.wb-media-block img').count(),1);
+  assert.equal(await page.locator('.wb-media-block-text span').first().evaluate(el=>getComputedStyle(el).color),'rgb(191, 0, 0)','source red keeps its hue and is darkened for readable contrast');
   assert.equal(await page.evaluate(()=>window.UNSAFE),undefined);
-  await page.locator('.pia-media-block img').evaluate(image=>image.decode());
+  await page.locator('.wb-media-block img').evaluate(image=>image.decode());
   mark('preview muted; caption text, runs, image and inert HTML preserved');
 
 
@@ -91,20 +91,20 @@ const failures = [], passed = [], events = [];
     {id:'dark',kind:'text',text:'已验收深色原样显示',color:'#72262F',runs:[{text:'已验收深色原样显示',color:'#18605A'}]}
   ];
   await create({cues:[{id:'contrast-cue',at:1,label:'多段配色',block_ids:lightBlocks.map(block=>block.id)}],blocks:lightBlocks});
-  const contrast = await page.locator('.pia-media-block-text').evaluateAll(items=>{
+  const contrast = await page.locator('.wb-media-block-text').evaluateAll(items=>{
     const luminance=rgb=>rgb.map(channel=>{const c=channel/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4}).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
     const channels=css=>css.match(/[\d.]+/g).slice(0,3).map(Number);
-    const background=luminance(channels(getComputedStyle(document.querySelector('.pia-media-captions')).backgroundColor));
+    const background=luminance(channels(getComputedStyle(document.querySelector('.wb-media-captions')).backgroundColor));
     return items.flatMap(item=>[...item.querySelectorAll('span')].length?[...item.querySelectorAll('span')]:[item]).map(element=>{
       const rgb=channels(getComputedStyle(element).color);return {ratio:(background+.05)/(luminance(rgb)+.05),color:rgb};
     });
   });
   assert(contrast.every(item=>item.ratio>=4.5),'white and light yellow text meets 4.5:1 on the actual caption background');
   assert(contrast[1].color[0]===contrast[1].color[1]&&contrast[1].color[2]<contrast[1].color[0],'yellow hue remains yellow when darkened');
-  assert.deepEqual(await page.locator('.pia-media-block-text').allTextContents(),lightBlocks.map(block=>block.text));
+  assert.deepEqual(await page.locator('.wb-media-block-text').allTextContents(),lightBlocks.map(block=>block.text));
   assert.deepEqual(await page.evaluate(()=>player.script.blocks),lightBlocks,'rendering does not rewrite source text or source colors');
-  assert.equal(await page.locator('[data-block-id="dark"] .pia-media-block-text').evaluate(el=>el.style.color),'rgb(114, 38, 47)');
-  assert.equal(await page.locator('[data-block-id="dark"] .pia-media-block-text span').evaluate(el=>el.style.color),'rgb(24, 96, 90)');
+  assert.equal(await page.locator('[data-block-id="dark"] .wb-media-block-text').evaluate(el=>el.style.color),'rgb(114, 38, 47)');
+  assert.equal(await page.locator('[data-block-id="dark"] .wb-media-block-text span').evaluate(el=>el.style.color),'rgb(24, 96, 90)');
   mark('white and light yellow block/run colors meet readable contrast; short hex accepted; source text/colors and dark samples unchanged');
   await create();
 
@@ -112,7 +112,7 @@ const failures = [], passed = [], events = [];
   assert.equal((await state()).position,0); assert.equal(await action('play').textContent(),'读完继续');
   await click('play'); await waitCue('cue1');
   assert.equal((await state()).position,.25); assert.equal((await state()).caption_index,1);
-  assert.equal(await page.locator('.pia-media-block-text').textContent(),blocks[2].text);
+  assert.equal(await page.locator('.wb-media-block-text').textContent(),blocks[2].text);
   assert.equal(await page.evaluate(()=>changes.filter(c=>c.reason==='cue'&&c.media_state.cue_id==='cue0').length),1);
   await page.evaluate(()=>player.setState({position:.24,caption_index:0,cue_id:'cue0'},true,{remote:true}));
   assert.equal((await state()).playing,false); assert.equal((await state()).cue_id,'cue1'); assert.equal((await state()).caption_index,1);
@@ -137,10 +137,10 @@ const failures = [], passed = [], events = [];
   mark('manual mode pauses at cues without changing chosen caption');
 
   await create({cues:[]});
-  assert.deepEqual(await page.locator('.pia-media-block-text').allTextContents(),[blocks[0].text]);
-  assert.equal(await page.locator('.pia-media-block img').count(),0);
+  assert.deepEqual(await page.locator('.wb-media-block-text').allTextContents(),[blocks[0].text]);
+  assert.equal(await page.locator('.wb-media-block img').count(),0);
   await click('next-caption'); assert.equal((await state()).caption_index,1);
-  await page.evaluate(()=>player.whenCaptionReady());assert.equal(await page.locator('.pia-media-block').getAttribute('data-block-id'),'img');
+  await page.evaluate(()=>player.whenCaptionReady());assert.equal(await page.locator('.wb-media-block').getAttribute('data-block-id'),'img');
   await page.evaluate(()=>{changes=[];player.seek(.5,{remote:true})});
   await page.evaluate(()=>player.setState({position:.7,caption_index:2,cue_id:null},false,{remote:true}));
   assert(Math.abs((await state()).position-.5)<.01,'small remote drift is not corrected');
@@ -163,8 +163,8 @@ const failures = [], passed = [], events = [];
   mark('follower bypasses autonomous pauses while renewed; 350ms expiry restores cue authority');
 
   await create({cues:[]});
-  await page.locator('.pia-media-player').hover();
-  await page.locator('.pia-media-progress').focus(); await page.keyboard.press('End');
+  await page.locator('.wb-media-player').hover();
+  await page.locator('.wb-media-progress').focus(); await page.keyboard.press('End');
   await until(async()=> (await state()).changes.includes('seek'),'keyboard progress seek');
   assert((await state()).position>2.15);
   await page.evaluate(()=>{changes=[];player.progress.value='1.1';player.progress.dispatchEvent(new Event('input',{bubbles:true}))});
@@ -180,17 +180,17 @@ const failures = [], passed = [], events = [];
   await page.evaluate(()=>{player.media.play=()=>Promise.reject(new DOMException('Test autoplay policy','NotAllowedError'))});
   await page.evaluate(()=>player.setState({position:0,caption_index:0,cue_id:null},true,{remote:true}));
   assert.deepEqual((await state()).changes,['blocked']); assert.equal((await state()).playing,false);
-  assert.match(await page.locator('.pia-media-status').textContent(),/点按/);
+  assert.match(await page.locator('.wb-media-status').textContent(),/点按/);
   const blockedPosition=(await state()).position; await delay(120); assert.equal((await state()).position,blockedPosition);
   mark('remote browser play rejection reports blocked with actual paused state and no fake clock');
 
   await create({preview:false,cues:[]}); assert.equal((await state()).muted,false);
   await click('play'); await until(async()=> (await state()).position>.05,'audience gesture plays sound'); await click('play');
   await create({cues:[],media:{path:'/missing.wav'},expectError:true});
-  await page.locator('.pia-media-player.has-error').waitFor(); assert.equal(await action('play').isDisabled(),true);
-  assert.match(await page.locator('.pia-media-status').textContent(),/无法加载/);
+  await page.locator('.wb-media-player.has-error').waitFor(); assert.equal(await action('play').isDisabled(),true);
+  assert.match(await page.locator('.wb-media-status').textContent(),/无法加载/);
   await create({cues:[],media:{path:'https://example.invalid/external.wav'},expectError:true});
-  assert.match(await page.locator('.pia-media-status').textContent(),/地址无效/);
+  assert.match(await page.locator('.wb-media-status').textContent(),/地址无效/);
   mark('audience audio on by default; missing and nonlocal source failures are visible');
 
   // Produce a tiny local video in the browser, avoiding external media and codecs installed outside the test browser.
@@ -204,33 +204,33 @@ const failures = [], passed = [], events = [];
     recorder.stop();stream.getTracks().forEach(track=>track.stop());return complete;
   });
   await create({media:{kind:'video',path:video},cues:[]});
-  assert.equal(await page.locator('video.pia-media-element').count(),1);
+  assert.equal(await page.locator('video.wb-media-element').count(),1);
   assert.equal(await page.locator('video').evaluate(el=>getComputedStyle(el).objectFit),'contain');
   await click('play'); await until(async()=>await page.evaluate(()=>player.media.videoWidth===320&&player.media.currentTime>.05),'video decodes and advances');
   await page.evaluate(()=>player.pause());
   mark('local video decodes; native clock and contain fit');
 
   const boxes=()=>page.evaluate(()=>{
-    const root=document.querySelector('.pia-media-player'),visual=root.querySelector('.pia-media-visual').getBoundingClientRect(),captions=root.querySelector('.pia-media-captions').getBoundingClientRect(),scroll=root.querySelector('.pia-media-caption-scroll').getBoundingClientRect(),controls=root.querySelector('.pia-media-controls').getBoundingClientRect(),rect=root.getBoundingClientRect();
+    const root=document.querySelector('.wb-media-player'),visual=root.querySelector('.wb-media-visual').getBoundingClientRect(),captions=root.querySelector('.wb-media-captions').getBoundingClientRect(),scroll=root.querySelector('.wb-media-caption-scroll').getBoundingClientRect(),controls=root.querySelector('.wb-media-controls').getBoundingClientRect(),rect=root.getBoundingClientRect();
     return {visual:{x:visual.x,y:visual.y,right:visual.right,bottom:visual.bottom},captions:{x:captions.x,y:captions.y,right:captions.right,bottom:captions.bottom},height:scroll.height,width:scroll.width,root:{x:rect.x,y:rect.y,right:rect.right,bottom:rect.bottom},controls:{x:controls.x,right:controls.right,y:controls.y,bottom:controls.bottom}};
   });
   let geometry=await boxes();assert(geometry.captions.y>=geometry.visual.bottom-1);assert(geometry.height>200);assert(geometry.controls.y>=geometry.visual.y);
-  await page.locator('.pia-media-player').hover(); await page.locator('#frame').screenshot({path:path.join(evidence,'media-player-portrait.png')});
+  await page.locator('.wb-media-player').hover(); await page.locator('#frame').screenshot({path:path.join(evidence,'media-player-portrait.png')});
   for(const side of ['left','right']){
     await page.evaluate(()=>{const stage=document.querySelector('.stage');stage.className='stage landscape';stage.style.cssText='width:1920px;height:1080px;transform:scale(.5);--stage-scale:.5';document.querySelector('#frame').style.cssText='width:960px;height:540px'});
     await create({layout:{media_side:side},media:{kind:'video',path:video},cues:[]});
     geometry=await boxes();assert(Math.abs(geometry.captions.y-geometry.visual.y)<1);
     if(side==='left')assert(geometry.captions.x>=geometry.visual.right-1);else assert(geometry.visual.x>=geometry.captions.right-1);
-    assert(geometry.height>400);await page.locator('.pia-media-player').hover();await page.locator('#frame').screenshot({path:path.join(evidence,'media-player-landscape-'+side+'.png')});
+    assert(geometry.height>400);await page.locator('.wb-media-player').hover();await page.locator('#frame').screenshot({path:path.join(evidence,'media-player-landscape-'+side+'.png')});
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>{const stage=document.querySelector('.stage');stage.className='stage portrait';stage.style.cssText='width:1080px;height:1920px;transform:scale(.32);--stage-scale:.32';document.querySelector('#frame').style.cssText='width:345.6px;height:614.4px'});
   geometry=await boxes();assert(geometry.height>150);assert(geometry.controls.y>=geometry.visual.y);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.locator('.pia-media-player').hover();await page.screenshot({path:path.join(evidence,'media-player-mobile.png')});
+  await page.locator('.wb-media-player').hover();await page.screenshot({path:path.join(evidence,'media-player-mobile.png')});
   mark('portrait, landscape left/right and mobile keep captions accessible and controls within media region');
 
   const beforeDestroy=await page.evaluate(()=>changes.length);await page.evaluate(()=>player.destroy());await delay(80);
-  assert.equal(await page.locator('.pia-media-player').count(),0);assert.equal(await page.evaluate(()=>changes.length),beforeDestroy);
+  assert.equal(await page.locator('.wb-media-player').count(),0);assert.equal(await page.evaluate(()=>changes.length),beforeDestroy);
   assert.deepEqual(failures,[]);mark('destroy stops callbacks and removes player; no browser errors');
   await fs.writeFile(path.join(evidence,'media-player-result.json'),JSON.stringify({passed,errors:failures},null,2));
   console.log(JSON.stringify({passed:passed.length,errors:failures}));

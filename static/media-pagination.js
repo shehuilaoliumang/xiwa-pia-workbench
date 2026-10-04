@@ -1,9 +1,9 @@
 // Real DOM measurements, isolated from the main script pagination classes.
 // Range cloning keeps the source runs, including a cut inside one colored span.
 export function paginateCaptions(source, host, width, height) {
-  const measure=document.createElement('div');measure.className='pia-media-pagination-measure';measure.style.width=width+'px';host.append(measure);
+  const measure=document.createElement('div');measure.className='wb-media-pagination-measure';measure.style.width=width+'px';host.append(measure);
   const pages=[];let page;
-  const createPage=()=>{page=document.createElement('section');page.className='pia-media-caption-page';page.style.height=height+'px';page.dataset.captionPageIndex=String(pages.length);measure.append(page);pages.push(page);};
+  const createPage=()=>{page=document.createElement('section');page.className='wb-media-caption-page';page.style.height=height+'px';page.dataset.captionPageIndex=String(pages.length);measure.append(page);pages.push(page);};
   const fits=(item,keep=false)=>{page.append(item);const fit=page.scrollHeight<=height+1;if(!fit||!keep)item.remove();return fit;};
   const boundaries=value=>{if(typeof Intl.Segmenter==='function')return[0,...Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(value),part=>part.index+part.segment.length)];const result=[0];for(const character of value)result.push(result.at(-1)+character.length);return result;};
   const slice=(target,start,end)=>{
@@ -24,8 +24,8 @@ export function paginateCaptions(source, host, width, height) {
         if(!fits(imageBlock,true)){if(page.childNodes.length)createPage();if(!fits(imageBlock,true))throw Error('插图无法放入当前台词页');}
         continue;
       }
-      const target=sourceBlock.querySelector('.pia-media-block-text')||sourceBlock,value=target.textContent||'';
-      const fragment=(start,end)=>{const copy=sourceBlock.cloneNode(true);if(start!==0||end!==value.length)(copy.querySelector('.pia-media-block-text')||copy).replaceChildren(slice(target,start,end));copy.dataset.sourceStart=String(start);copy.dataset.sourceEnd=String(end);return copy;};
+      const target=sourceBlock.querySelector('.wb-media-block-text')||sourceBlock,value=target.textContent||'';
+      const fragment=(start,end)=>{const copy=sourceBlock.cloneNode(true);if(start!==0||end!==value.length)(copy.querySelector('.wb-media-block-text')||copy).replaceChildren(slice(target,start,end));copy.dataset.sourceStart=String(start);copy.dataset.sourceEnd=String(end);return copy;};
       if(fits(fragment(0,value.length),true))continue;
       if(!value.length){if(page.childNodes.length)createPage();if(!fits(fragment(0,0),true))throw Error('当前台词页无法容纳段落');continue;}
       const edges=boundaries(value);let startIndex=0;

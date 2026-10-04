@@ -1,4 +1,5 @@
 """Request shutdown of this project only; never terminate unrelated processes."""
+import sys
 import json
 from pathlib import Path
 import urllib.request
@@ -7,6 +8,10 @@ import argparse
 import time
 
 root = Path(__file__).resolve().parents[1]
+if str(root) not in sys.path:
+    sys.path.insert(0, str(root))
+
+from template_config import APP_ID  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("--data-dir", type=Path)
 args = parser.parse_args()
@@ -23,7 +28,7 @@ try:
         raise ValueError("本地地址无效")
     with urllib.request.urlopen(url + "api/health", timeout=3) as response:
         health = json.load(response)
-    if health.get("app") != "xiwa-workbench" or Path(health.get("data_dir", "")).resolve() != data_dir:
+    if health.get("app") != APP_ID or Path(health.get("data_dir", "")).resolve() != data_dir:
         raise ValueError("该服务不属于当前项目资料目录，未执行停止")
     with urllib.request.urlopen(url + "api/library", timeout=3) as response:
         token = json.load(response)["csrf_token"]

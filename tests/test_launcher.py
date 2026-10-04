@@ -44,7 +44,7 @@ class LauncherTests(unittest.TestCase):
                         time.sleep(0.1)
                 else:
                     self.fail("launcher did not become ready")
-                self.assertEqual(health["app"], "xiwa-workbench")
+                self.assertEqual(health["app"], "content-workbench")
                 self.assertEqual(Path(health["data_dir"]), data)
                 self.assertNotIn(f":{first_port}/", info["url"])
 

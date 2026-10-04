@@ -34,14 +34,14 @@ def sound():
 
 class ScriptPackageTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="xiwa-packages-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="wb-packages-")
         self.root = Path(self.temporary.name)
         source = self.root / "static/media"
         source.mkdir(parents=True)
         (source / "source.jpeg").write_bytes(picture())
-        seed = {"categories": [{"id": "cat-a", "name": "原分类"}, {"id": "cat-b", "name": "接收分类"}],
+        seed = {"categories": [{"id": "cat-a", "name": "原分组"}, {"id": "cat-b", "name": "接收分组"}],
                 "scripts": [{"id": "script-a", "title": "原稿 / 分享", "author": "原作者", "category_id": "cat-a",
-                    "source_category": "PPT 原始分类", "source_pages": [7], "notes": "保留原备注", "tags": ["双人"],
+                    "source_category": "PPT 原始分组", "source_pages": [7], "notes": "保留原备注", "tags": ["双人"],
                     "blocks": [
                         {"id": "text-a", "kind": "text", "role": "甲", "text": "保留  空格\n和换行", "color": "#224466",
                          "runs": [{"text": "保留  空格\n", "color": "#aa2233", "bold": True}, {"text": "和换行", "color": "#3344aa", "bold": False}],
@@ -56,7 +56,7 @@ class ScriptPackageTests(unittest.TestCase):
     def make_app(self, root, seed=None):
         root.mkdir(parents=True, exist_ok=True)
         seed_path = root / "seed.json"
-        seed_path.write_text(json.dumps(seed or {"categories": [{"id": "cat-target", "name": "目标分类"}], "scripts": []}, ensure_ascii=False), encoding="utf-8")
+        seed_path.write_text(json.dumps(seed or {"categories": [{"id": "cat-target", "name": "目标分组"}], "scripts": []}, ensure_ascii=False), encoding="utf-8")
         return create_app({"TESTING": True, "DATABASE": str(root / "instance/workbench.sqlite3"),
                            "INSTANCE_PATH": str(root / "instance"), "SEED_PATH": str(seed_path), "PROJECT_ROOT": str(root)})
 
@@ -68,7 +68,7 @@ class ScriptPackageTests(unittest.TestCase):
         self.assertEqual(response.status_code, expected, response.get_data(as_text=True))
         return response.get_json()
 
-    def upload(self, client, token, path, content, fields=None, expected=200, filename="剧本包.zip"):
+    def upload(self, client, token, path, content, fields=None, expected=200, filename="条目包.zip"):
         response = client.post(path, data={"file": (io.BytesIO(content), filename), **(fields or {})},
                                headers={"X-CSRF-Token": token})
         try:
@@ -143,8 +143,8 @@ class ScriptPackageTests(unittest.TestCase):
         before = self.frozen()
         archive = self.export()
         manifest, files = self.unpack(archive)
-        self.assertEqual(manifest["format"], "xiwa-script-package")
-        self.assertEqual(manifest["category_name"], "原分类")
+        self.assertEqual(manifest["format"], "content-package")
+        self.assertEqual(manifest["category_name"], "原分组")
         self.assertEqual(set(files), {"script.json", *manifest["resources"].values()})
         self.assertEqual(len(manifest["resources"]), 2)
         self.assertFalse(any("sqlite" in name or "pptx" in name or "history" in name for name in files))
@@ -284,7 +284,7 @@ class ScriptPackageTests(unittest.TestCase):
 
     def test_wrong_version_full_backup_and_duplicate_json_fields_rejected(self):
         archive = self.export(); manifest, files = self.unpack(archive); before = self.frozen()
-        for field, value in [("version", True), ("version", 2), ("format", "xiwa-workbench-backup"), ("scripts", [])]:
+        for field, value in [("version", True), ("version", 2), ("format", "content-workbench-backup"), ("scripts", [])]:
             altered = {**manifest, field: value}
             self.preview(self.repack(altered, files), expected=400)
         bad_files = dict(files); bad_files["script.json"] = b'{"id":"a","id":"b"}'
@@ -382,7 +382,7 @@ class ScriptPackageTests(unittest.TestCase):
 
     def test_existing_damaged_hash_file_is_not_overwritten_or_deleted(self):
         archive = self.export(); manifest, files = self.unpack(archive)
-        archive = self.changed_script(archive, lambda item: item.update(title="新的独立剧本"))
+        archive = self.changed_script(archive, lambda item: item.update(title="新的独立条目"))
         member = next(name for name in files if name.startswith("assets/"))
         target = self.store.media_dir / Path(member).name
         target.write_bytes(b"existing damage")

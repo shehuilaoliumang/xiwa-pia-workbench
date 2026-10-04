@@ -14,7 +14,7 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
  await until(async()=>{try{return(await(await fetch(base+'/api/health')).json()).data_dir===data}catch{return false}},'server');
  browser=await chromium.launch({channel:'msedge',headless:true});
  const context=await browser.newContext({viewport:{width:1600,height:1120}}),errors=[],writes=[];
- await context.addInitScript(()=>{window.lastPreviewPosition=null;window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='pia-preview-position')window.lastPreviewPosition=e.data})});
+ await context.addInitScript(()=>{window.lastPreviewPosition=null;window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='wb-preview-position')window.lastPreviewPosition=e.data})});
  context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
  const lib=async()=> (await context.request.get(base+'/api/library')).json();
  const state=async()=> (await context.request.get(base+'/api/state')).json();

@@ -18,7 +18,7 @@ function wav(seconds=30){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  const library=async()=>(await context.request.get(base+'/api/library')).json(),state=async()=>(await context.request.get(base+'/api/state')).json();
  const send=async(url,body)=>{const lib=await library(),r=await context.request.post(base+url,{data:body,headers:{'X-CSRF-Token':lib.csrf_token}});assert(r.ok(),await r.text());return r.json()};
  const lib=await library();
- const script=await send('/api/scripts',{title:'频率验收剧本',category_id:lib.categories[0].id,blocks:Array.from({length:70},(_,i)=>({kind:'text',role:i%2?'乙':'甲',text:'用于确认连续滚动、频率计数与媒体独立时钟。'.repeat(12)}))});
+ const script=await send('/api/scripts',{title:'频率验收条目',category_id:lib.categories[0].id,blocks:Array.from({length:70},(_,i)=>({kind:'text',role:i%2?'乙':'甲',text:'用于确认连续滚动、频率计数与媒体独立时钟。'.repeat(12)}))});
  const page=await context.newPage();await page.goto(base+'/control?script='+script.id);
  const ready=()=>page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);await ready();
  assert.equal(await page.locator('#preview-sync-rate').inputValue(),'60');
@@ -29,7 +29,7 @@ function wav(seconds=30){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  await page.locator('#preview-feedback-mode').selectOption('realtime');
  await until(async()=>(await state()).snapshot?.scripts[0]?.id===script.id,'realtime apply');await delay(1200);
  await until(async()=>(await page.locator('#preview-sync-metrics').getAttribute('data-state'))==='idle','stationary status');
- await page.evaluate(()=>{window.__motions=[];window.__channel=new BroadcastChannel('pia-live-display-v1');window.__channel.onmessage=e=>{if(e.data?.type==='motion')window.__motions.push({at:performance.now(),data:e.data})};});
+ await page.evaluate(()=>{window.__motions=[];window.__channel=new BroadcastChannel('wb-live-display-v1');window.__channel.onmessage=e=>{if(e.data?.type==='motion')window.__motions.push({at:performance.now(),data:e.data})};});
  const frame=page.frames().find(f=>f.url().includes('preview=1'));
  await page.locator('[data-preview-external="play"]').click();await until(async()=>(await state()).playing,'scroll starts');await delay(700);
  const mutations=[];page.on('request',r=>{if(['POST','PATCH','PUT','DELETE'].includes(r.method()))mutations.push(r.url())});
@@ -51,9 +51,9 @@ function wav(seconds=30){const rate=8000,n=seconds*rate,b=Buffer.alloc(44+n*2);b
  // The same 120 Hz preference must leave media clock corrections near 10 Hz.
  const csrf=(await library()).csrf_token;const uploaded=await context.request.post(base+'/api/scripts/'+script.id+'/media',{multipart:{file:{name:'sync-clock.wav',mimeType:'audio/wav',buffer:wav()}},headers:{'X-CSRF-Token':csrf}});assert(uploaded.ok(),await uploaded.text());
  await page.goto(base+'/control?script='+script.id+'&body=media');await ready();
- const mediaFrame=page.frames().find(f=>f.url().includes('preview=1'));await mediaFrame.locator('.pia-media-player').waitFor();
+ const mediaFrame=page.frames().find(f=>f.url().includes('preview=1'));await mediaFrame.locator('.wb-media-player').waitFor();
  await page.locator('#preview-feedback-mode').selectOption('realtime');await until(async()=>(await state()).snapshot?.layout?.body_mode==='media','media applied');await delay(500);
- await page.evaluate(()=>{window.__motions=[];window.__channel=new BroadcastChannel('pia-live-display-v1');window.__channel.onmessage=e=>{if(e.data?.type==='motion')window.__motions.push({at:performance.now()})}});
+ await page.evaluate(()=>{window.__motions=[];window.__channel=new BroadcastChannel('wb-live-display-v1');window.__channel.onmessage=e=>{if(e.data?.type==='motion')window.__motions.push({at:performance.now()})}});
  await page.locator('[data-preview-external="play"]').click();await until(async()=>(await state()).playing,'media plays');await delay(1000);
  await page.evaluate(()=>{window.__motions=[];window.__sampleAt=performance.now()});await delay(2200);
  const media=await page.evaluate(()=>({count:window.__motions.length,elapsed:performance.now()-window.__sampleAt}));media.hz=media.count*1000/media.elapsed;assert(media.hz>=8&&media.hz<=12,JSON.stringify(media));

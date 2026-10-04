@@ -20,7 +20,7 @@ from storage import DomainError
 
 class WorkbenchTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='xiwa-backend-')
+        self.temporary = tempfile.TemporaryDirectory(prefix='wb-backend-')
         self.root = Path(self.temporary.name)
         (self.root / 'static' / 'media').mkdir(parents=True)
         (self.root / 'static' / 'media' / 'source.png').write_bytes(b'\x89PNG\r\nsource-image')
@@ -30,7 +30,7 @@ class WorkbenchTests(unittest.TestCase):
                 {'id': 'cat-b', 'name': '淡本', 'sort_order': 1, 'visible': True},
             ],
             'scripts': [
-                {'id': 'script-a', 'title': '示例剧本', 'category_id': 'cat-a', 'source_category': '甜本',
+                {'id': 'script-a', 'title': '示例条目', 'category_id': 'cat-a', 'source_category': '甜本',
                  'author': '原作者', 'source_pages': [7, 8], 'blocks': [
                      {'id': 'para-1', 'kind': 'text', 'text': '甲：第一句。', 'role': '甲', 'source_page': 7, 'source_file': '来源.pptx', 'runs': [{'text': '甲：第一句。', 'color': '#c06080'}]},
                      {'id': 'para-2', 'kind': 'text', 'text': '乙：第二句。', 'role': '乙', 'source_page': 8, 'source_file': '来源.pptx'},
@@ -112,7 +112,7 @@ class WorkbenchTests(unittest.TestCase):
         return output.getvalue()
 
     def test_two_level_directory_preserves_empty_categories_and_distinct_anchors(self):
-        self.write('/api/categories', {'id': 'cat-empty', 'name': '空分类'}, expected=201)
+        self.write('/api/categories', {'id': 'cat-empty', 'name': '空分组'}, expected=201)
         payload = {'mode': 'list', 'directory_level': 'categories', 'list_source': 'categories'}
         preview = self.write('/api/preview', payload)
         self.assertEqual({item['id'] for item in preview['categories']}, {'cat-a', 'cat-b', 'cat-empty'})
@@ -405,7 +405,7 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/categories', json={'name': '注入'}, headers={'X-CSRF-Token': 'é'}).status_code, 403)
         self.assertEqual(len(self.library()['categories']), 3)
         health = self.client.get('/api/health').get_json()
-        self.assertEqual(health['app'], 'xiwa-workbench')
+        self.assertEqual(health['app'], 'content-workbench')
         self.assertEqual(health['version'], '0.1.0')
         self.assertEqual(Path(health['data_dir']), self.root / 'instance')
 
@@ -425,7 +425,7 @@ class WorkbenchTests(unittest.TestCase):
         current = self.client.get('/api/state').get_json()
         self.assertEqual(preview['scripts'][0]['title'], '编辑中的标题')
         self.assertEqual(current, playing)
-        self.assertEqual(current['snapshot']['scripts'][0]['title'], '示例剧本')
+        self.assertEqual(current['snapshot']['scripts'][0]['title'], '示例条目')
         self.assertEqual(current['snapshot']['id'], state['snapshot']['id'])
 
     def test_verified_preview_rejects_unseen_edits_without_changing_live(self):
@@ -676,7 +676,7 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(current['state']['anchor'], 'para-2')
         self.assertFalse(current['state']['playing'])
         history = self.client.get('/api/scripts/script-a/history').get_json()['history']
-        self.assertEqual(history[0]['script']['title'], '示例剧本')
+        self.assertEqual(history[0]['script']['title'], '示例条目')
         self.assertEqual(history[0]['script']['blocks'][0]['text'], '甲：第一句。')
 
     def test_layout_presets_crud_isolated_from_saved_layout_and_live(self):
@@ -758,8 +758,8 @@ class WorkbenchTests(unittest.TestCase):
 
     def test_import_preview_json_txt_docx_are_readonly_and_candidate_can_be_saved(self):
         from test_import_parser import docx
-        source = '剧名：导入的本\r\n作者：原作者\r\n\r\n \t \n　\n小喜：你好。\n旁白：夜深了。\n未指定角色原文'
-        expected_text = '剧名：导入的本\r\n作者：原作者\r\n小喜：你好。\n旁白：夜深了。\n未指定角色原文'
+        source = '剧名：导入的本\r\n作者：原作者\r\n\r\n \t \n　\n小甲：你好。\n旁白：夜深了。\n未指定角色原文'
+        expected_text = '剧名：导入的本\r\n作者：原作者\r\n小甲：你好。\n旁白：夜深了。\n未指定角色原文'
         self.apply_script()
         self.write('/api/command', {'action': 'play'})
         store = self.app.extensions['store']
@@ -767,7 +767,7 @@ class WorkbenchTests(unittest.TestCase):
             before = store._export(connection)
         result = self.write('/api/import-preview', {'text': source})
         self.assertEqual(result['candidate']['title'], '导入的本')
-        self.assertEqual(result['roles'], ['小喜', '旁白'])
+        self.assertEqual(result['roles'], ['小甲', '旁白'])
         self.assertEqual(''.join(block['text'] for block in result['candidate']['blocks']), expected_text)
         self.assertEqual(result['candidate']['source_text'], source)
         self.assertEqual(len(result['candidate']['blocks']), 5)
@@ -1104,7 +1104,7 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
         restored = client.get('/api/library').get_json()
         self.assertEqual(restored['scripts'][0]['title'], '备份中的标题')
-        self.assertEqual(restored['state']['snapshot']['scripts'][0]['title'], '示例剧本')
+        self.assertEqual(restored['state']['snapshot']['scripts'][0]['title'], '示例条目')
         self.assertEqual(restored['state']['anchor'], 'para-2')
         self.assertFalse(restored['state']['playing'])
         image_url = restored['scripts'][0]['blocks'][2]['image_path']

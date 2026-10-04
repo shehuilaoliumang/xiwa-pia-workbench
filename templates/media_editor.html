@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}音视频配本 · 喜娃微 PIA{% endblock %}
+{% block title %}音视频配本 · {{ app_name }}{% endblock %}
 {% block page %}media-editor{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='media-editor.css') }}">
 <script src="{{ url_for('static', filename='media-editor.js') }}" defer></script>
 <div id="media-editor" data-script-id="{{ script_id }}">
-  <div class="breadcrumb"><a id="media-back" href="/script/{{ script_id }}">← 返回剧本</a><span>音视频配本</span></div>
+  <div class="breadcrumb"><a id="media-back" href="/script/{{ script_id }}">← 返回条目</a><span>音视频配本</span></div>
   <section class="media-editor-heading"><div><div class="eyebrow">让声音与台词相遇</div><h1 id="media-script-title">音视频配本</h1><p>播放到需要的位置，标记时间，再选择对应台词。</p></div><a id="media-control-link" class="button secondary" href="/control?script={{ script_id }}&body=media" hidden>去播控预览 ↗</a></section>
   <div id="media-editor-error" class="media-editor-error" role="alert" hidden></div>
   <div class="media-editor-grid">

@@ -85,7 +85,7 @@ const checks = [];
     if (mode === 'large') { response.end('x'.repeat(17000)); return; }
     if (mode === 'invalid-json') { response.end('not JSON'); return; }
     response.setHeader('Content-Type', 'application/json');
-    response.end(JSON.stringify({app: mode === 'wrong-app' ? 'unrelated-local-app' : 'xiwa-workbench',
+    response.end(JSON.stringify({app: mode === 'wrong-app' ? 'unrelated-local-app' : 'content-workbench',
       data_dir: mode === 'wrong-directory' ? path.join(temporaryRoot, 'other-data') : dataDir}));
   });
   await new Promise((resolve, reject) => {
@@ -94,7 +94,7 @@ const checks = [];
   });
   const serviceOrigin = 'http://127.0.0.1:' + server.address().port;
   const options = host.parseArgs(args(serviceOrigin + '/'));
-  assert.deepEqual(await host.requestHealth(options), {app: 'xiwa-workbench', data_dir: dataDir});
+  assert.deepEqual(await host.requestHealth(options), {app: 'content-workbench', data_dir: dataDir});
   for (mode of ['wrong-app', 'wrong-directory', 'redirect', 'large', 'invalid-json']) {
     await assert.rejects(() => host.requestHealth(options), undefined, 'Reject invalid health response: ' + mode);
   }

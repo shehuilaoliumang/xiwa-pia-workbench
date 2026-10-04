@@ -67,7 +67,7 @@ async function focused(frame,id) {
   page.on('request', request => {
     if (request.method() !== 'GET' && !request.url().endsWith('/api/editor-preview')) mutations.push(request.url());
   });
-  await page.goto(base + '/manage'); await page.waitForFunction(() => !!window.piaEditor?.getFullDraft);
+  await page.goto(base + '/manage'); await page.waitForFunction(() => !!window.wbEditor?.getFullDraft);
   await page.locator(`[data-edit-script="${fixture.id}"]`).click();
   await page.locator('#editor-preview-panel').evaluate(element => { element.open = true; });
   await rendered();
@@ -159,7 +159,7 @@ async function focused(frame,id) {
   await lastText.focus();await lastText.evaluate(element=>element.setSelectionRange(4,8));await focused(frame,last.block.id);
   await frame.locator('.stage-page.is-current [data-anchor="'+last.block.id+'"]').first().click();
   caret=await selection(lastText);assert(caret.active&&caret.start===4&&caret.end===8,'same-sentence preview click preserves current caret');
-  await page.evaluate(()=>{window.__editorFocusAcks=0;window.addEventListener('message',event=>{if(event.data?.type==='pia-editor-focused')window.__editorFocusAcks++;});});
+  await page.evaluate(()=>{window.__editorFocusAcks=0;window.addEventListener('message',event=>{if(event.data?.type==='wb-editor-focused')window.__editorFocusAcks++;});});
   const clickTarget=await frame.locator('.stage-page.is-current [data-anchor]').evaluateAll(elements=>elements.find(element=>element.dataset.anchor!==elements.at(-1)?.dataset.anchor)?.dataset.anchor || null);
   if (clickTarget && clickTarget!==last.block.id) {
     const clickBlock=textBlocks.find(({block})=>block.id===clickTarget);assert(clickBlock,'visible preview anchor maps to an editable source row');

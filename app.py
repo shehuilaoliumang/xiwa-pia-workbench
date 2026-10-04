@@ -16,6 +16,8 @@ from storage import DomainError, Store, MEDIA_FORMATS, BACKGROUND_MAX_BYTES
 from import_parser import parse_text, parse_upload
 from script_package import export_package, preview_package, import_package, PACKAGE_MAX_BYTES
 from script_merge import preview_backup, import_backup
+from template_config import (APP_ID, APP_VERSION, BACKUP_PREFIX, DEFAULT_GROUPS,
+                             TERMS, template_globals)
 
 
 def create_app(test_config=None):
@@ -35,6 +37,7 @@ def create_app(test_config=None):
     if test_config:
         application.config.update(test_config)
     application.json.ensure_ascii = False
+    application.jinja_env.globals.update(template_globals())
     store = Store(application.config["DATABASE"], application.config["SEED_PATH"], application.config["PROJECT_ROOT"])
     application.extensions["store"] = store
     application.extensions["csrf_token"] = secrets.token_urlsafe(32)
@@ -84,7 +87,7 @@ def create_app(test_config=None):
         if error.code == 413 and request.path == "/api/script-images":
             return jsonify(error="正文图片须为不超过 12 MB 的 PNG、JPEG 或 WebP。", code="invalid_image"), 413
         if error.code == 413 and request.path.startswith("/api/script-packages/"):
-            return jsonify(error="单篇剧本 ZIP 须在 512 MB 内（插图单张 12 MB；音视频 200 MB）。", code="script_package_too_large"), 413
+            return jsonify(error="单篇条目 ZIP 须在 512 MB 内（插图单张 12 MB；音视频 200 MB）。", code="script_package_too_large"), 413
         messages = {404: "页面或资源不存在。", 413: "文件超过上传限制（音视频 200 MB；备份解压总量 512 MB）。", 400: "请求格式无效。", 405: "不支持此请求方法。"}
         return jsonify(error=messages.get(error.code, "请求无法完成。"), code="http_error"), error.code
 
@@ -113,7 +116,7 @@ def create_app(test_config=None):
         data = bootstrap()
         script = next((item for item in data["scripts"] if item["id"] == script_id), None)
         if not script:
-            raise DomainError("剧本不存在。", 404, "not_found")
+            raise DomainError("条目不存在。", 404, "not_found")
         return render_template("reader.html", bootstrap=data, script=script, script_id=script_id, page="reader")
 
     @application.get("/script/<script_id>/media")
@@ -121,7 +124,7 @@ def create_app(test_config=None):
         data = bootstrap()
         script = next((item for item in data["scripts"] if item["id"] == script_id), None)
         if not script:
-            raise DomainError("剧本不存在。", 404, "not_found")
+            raise DomainError("条目不存在。", 404, "not_found")
         return render_template("media_editor.html", bootstrap=data, script=script, script_id=script_id, page="media-editor")
 
     @application.get("/control")
@@ -140,7 +143,7 @@ def create_app(test_config=None):
 
     @application.get("/api/health")
     def health():
-        return jsonify(ok=True, app="xiwa-workbench", version="0.1.0", schema_version=1, data_dir=str(store.instance_dir))
+        return jsonify(ok=True, app=APP_ID, version=APP_VERSION, schema_version=1, data_dir=str(store.instance_dir))
 
     @application.get("/api/library")
     def library():
@@ -211,7 +214,7 @@ def create_app(test_config=None):
         request.max_content_length = PACKAGE_MAX_BYTES + 1024 * 1024
         uploaded = request.files.get("file")
         if not uploaded or not uploaded.filename or Path(uploaded.filename).suffix.lower() != ".zip":
-            raise DomainError("请选择由工作台导出的单篇剧本 ZIP 文件。", 400, "invalid_script_package")
+            raise DomainError("请选择由工作台导出的单篇条目 ZIP 文件。", 400, "invalid_script_package")
         return uploaded
 
     @application.post("/api/script-packages/preview")
@@ -336,7 +339,7 @@ def create_app(test_config=None):
     @application.get("/api/backup")
     def backup():
         return send_file(io.BytesIO(store.backup()), mimetype="application/zip", as_attachment=True,
-                         download_name="xiwa-backup-" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".zip")
+                         download_name=BACKUP_PREFIX + datetime.now().strftime("%Y%m%d-%H%M%S") + ".zip")
 
     @application.post("/api/restore")
     def restore():

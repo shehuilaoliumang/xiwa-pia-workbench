@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "source_file": "喜娃微pia剧场 (1).pptx",
+  "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
   "source_sha256": "86a191a9fdebbe8fa0ecdd4b9cad3bb5c6d59bda9b6a0016bc9ca7a646d72371",
   "scripts": [
     {
       "id": "script-ppt20260930-yunduan",
       "title": "云端之下",
       "category_id": "cat-sweet",
-      "source_category": "甜本",
+      "source_category": "示例分组一",
       "author": "芝士奶盖酒",
       "synopsis": "乘务员与观测员之间的故事",
       "cast_note": "一男一女",
@@ -30,7 +30,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -49,7 +49,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "观测站打字声",
@@ -64,7 +64,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（混响）今日天气较差，注意安全。",
@@ -79,7 +79,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "发送",
@@ -94,7 +94,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：塔台，观测站。雷雨强度有所减弱，预计持续时间缩短至八点四十左右，比之前提前二十分钟结束。",
@@ -109,7 +109,7 @@
           "role": "塔台",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "塔台：收到。",
@@ -124,7 +124,7 @@
           "role": "女声播报",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "女声播报：气象数据已存档，本次观测结束。",
@@ -139,7 +139,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "打字",
@@ -154,7 +154,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（混响）雷雨可能提前结束，如果你们起飞晚，反而可能不用备降。",
@@ -169,7 +169,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "发送",
@@ -188,7 +188,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 18,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "电话音",
@@ -203,7 +203,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -222,7 +222,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：喂",
@@ -237,7 +237,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（急切）你让机长接电话。",
@@ -252,7 +252,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：他正在跟区调通话，现在暂时接不了，你想说什么？",
@@ -267,7 +267,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（深吸一口气）我的预报可能偏保守了，雷雨结束的时间比我报的早二十分钟。如果你们直接去备降场，等加完油再回来，要晚两个多小时，但如果你们在空中减速飞行，争取十五分钟",
@@ -282,7 +282,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（打断）沈望，油量不是你说了算的，机长说够就是够，他说不够就是不够。",
@@ -297,7 +297,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（沉默）",
@@ -312,7 +312,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 19,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：我知道你是为我好，但你在那边，我在这边，有些事情不是你能控制的，其实刚刚那个方案已经是最佳的选择了，轻易改变的话可能——",
@@ -327,7 +327,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -346,7 +346,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（打断）我报错了。",
@@ -361,7 +361,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（愣）什么？",
@@ -376,7 +376,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：我说，我报错了，我报的雷雨结束时间比实际晚了二十分钟。这个偏差导致你们机组做了备降的决定，如果我的预报更准，你们可能会选择在空中等待。",
@@ -391,7 +391,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（轻声）沈望，天气预报本来就不是百分之百准确的。",
@@ -406,7 +406,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：在我这儿，本来应该是的。",
@@ -421,7 +421,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（叹气）沈望，我得先挂了，机长刚决定还是备降，我们要起飞了。",
@@ -436,7 +436,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：……好。",
@@ -451,7 +451,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 20,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（停了一下）你别太自责，真的。",
@@ -466,7 +466,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -485,7 +485,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：好。",
@@ -500,7 +500,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "次日——到达层",
@@ -515,7 +515,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "脚步声停入",
@@ -530,7 +530,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：站多久了？",
@@ -545,7 +545,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：没多久。",
@@ -560,7 +560,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：还因为昨晚的事自责呢？",
@@ -575,7 +575,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：没自责。",
@@ -590,7 +590,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：你没有错，人无完人，数据也不可能永远不出差错。",
@@ -605,7 +605,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 21,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（笑，没接话）走吧，送你回去。",
@@ -620,7 +620,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -639,7 +639,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：我今天在备降场等的时候，跟一个老乘务长聊天，她说她已经飞了十五年，不怕雷雨，也不怕颠簸，本来以为自己天不怕地不怕，但爱人走后，却发现自己怕的是落地以后没有人等。",
@@ -654,7 +654,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：你以前落地以后有人等吗？",
@@ -669,7 +669,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：没有。所以我以为我习惯了。但今天在三亚等的时候，我满脑子都是同一个问题。",
@@ -684,7 +684,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：什么问题？",
@@ -699,7 +699,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：我先问你，你以后还会不会来？",
@@ -714,7 +714,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：会来。",
@@ -729,7 +729,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 22,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：好，你说你会来，所以我想问你一个问题，你回答之前可以先想，也可以不回答，我不会追问。",
@@ -744,7 +744,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -763,7 +763,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：你说。",
@@ -778,7 +778,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：你每次给我发天气的时候，是作为观测员发的，还是作为沈望发的？",
@@ -793,7 +793,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：每次给你发，是因为我是观测员，但观测员的背后还有一个沈望。",
@@ -808,7 +808,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：嗯？怎么说？",
@@ -823,7 +823,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：观测员会极力追求数据的准确，以确保全机组人员的安全，但沈望是在准确数据的背后担心着你的安全，默默记下你的落地时间，他比观测员还要担心你的安危，并且，有且只有你。",
@@ -838,7 +838,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 23,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（笑，感动）怎么突然说这么重的话？",
@@ -853,7 +853,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《云端",
@@ -872,7 +872,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：因为你说过，我永远在划清界限。",
@@ -887,7 +887,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（笑）走吧，送我出去，明天我还来找你。",
@@ -902,7 +902,7 @@
           "role": "沈望",
           "color": "#18605A",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：但是得八点以后……",
@@ -917,7 +917,7 @@
           "role": "邹禾",
           "color": "#E13448",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：我知道，八点前你要做早间观测报告，不能被打扰。",
@@ -932,7 +932,7 @@
           "role": "邹禾",
           "color": "#18605A",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：（随意）你说明天早上会晴吗？",
@@ -947,7 +947,7 @@
           "role": "沈望",
           "color": "#E13448",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：（抬头看了一眼）会。",
@@ -962,7 +962,7 @@
           "role": "邹禾",
           "color": "#18605A",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "邹禾：你确定？",
@@ -977,7 +977,7 @@
           "role": "沈望",
           "color": "#E13448",
           "source_page": 24,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "沈望：我确定，会晴的。",
@@ -991,7 +991,7 @@
       "id": "script-ppt20260930-fuping",
       "title": "浮萍终有归属",
       "category_id": "cat-bitter",
-      "source_category": "苦本",
+      "source_category": "示例分组二",
       "author": "小美同学",
       "synopsis": "妈妈找到曾经遗弃的孩子，但是孩子饱受折磨，心已经死了",
       "cast_note": "两女",
@@ -1012,7 +1012,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 13,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《浮萍终有",
@@ -1031,7 +1031,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 13,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：有天晚上我喝醉了，第二天起来的时候，只觉得浑身难受，可是身边已经没有其他人在，我想报警，又觉得这事太丑陋，我不想让其他人知道。去医院检查了，也没有发现什么不好的病，我就把这件事当做一个秘密，在我的脑海中尘封住。两个多月后我就发现了你的存在，思来想去",
@@ -1050,7 +1050,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 13,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：你出生在冬季，初冬的第一场雪，正巧一起来到这个世界，我就给你取名叫程雪。妈妈，其实真的很爱你。",
@@ -1065,7 +1065,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 13,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：为什么要扔掉我。",
@@ -1080,7 +1080,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 14,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《浮萍终有",
@@ -1099,7 +1099,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 14,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：工作在压着我，父母也在压着我，众人每天都在对我指指点点。这些我都忍着，忍了很久很久。就在那个午后，我仿佛魔怔了，突然就不想忍了，我觉得我好累，要么就试着休息一下吧？于是，我做了这辈子，最令我后悔的一件事。",
@@ -1114,7 +1114,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 14,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：为什么又结婚了，生了她。",
@@ -1129,7 +1129,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 14,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：我丈夫，他是你姥姥介绍的，离异家庭，也带了一个姑娘。他很好，这么些年，出钱出精力和我一起找你，于是我就接纳了他。他现在应该就在你家里等着我们回去呢。",
@@ -1148,7 +1148,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《浮萍终有",
@@ -1167,7 +1167,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：（笑了一下）我，果然是一个孽种。",
@@ -1182,7 +1182,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：（摇头）不，你不是的。",
@@ -1197,7 +1197,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：你们一家三口，其乐融融的就很好啊，我是一个外人罢了（哭）我从一开始，就是不应该存在的。",
@@ -1212,7 +1212,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：（抱着小萍）妈妈很爱你，一直都爱着，这种爱不会因为你妹妹而减少。相反，妈妈会把你当做全世界最珍贵的人，好好的爱你。知道吗？",
@@ -1227,7 +1227,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 15,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：我做不到！我做不到像你说的那样，去拥抱阳光，去好好生活！我害怕，我每天都做噩梦，我又想起被拐走那天大卡车里的小弟弟小妹妹们，我忘不掉，车里都是血！我想起被殴打，我的眼睛被打瞎了，很痛很痛，有的手指头都掉了！我忘不掉……（发抖）我忘不掉！！",
@@ -1242,7 +1242,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 16,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《浮萍终有",
@@ -1261,7 +1261,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 16,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：（心疼）不怕，不怕，以后妈妈都在，妈妈守护着你，那些坏人都会被抓走的，知道吗？",
@@ -1276,7 +1276,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 16,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：我有什么错？为什么是我？为什么要让我一路看着这些血腥而又可怕的东西长大！！我想好好吃顿饭，好好睡一觉，有一个干净的大床！！怎么就那么难啊！！",
@@ -1291,7 +1291,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 16,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：你的所有愿望，以后妈妈全都会满足你的！",
@@ -1306,7 +1306,7 @@
           "role": "王小萍",
           "color": "#FF0000",
           "source_page": 16,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "王小萍：（心死）你每说一句外面的美好，都让我想起我看到的所有丑陋，我们本就在两个不同的世界里，你又怎么会懂我呢？（很温柔 冲着程福涓浅笑）妈妈，下辈子再相见的时候，别再丢下我了。（看向山村）斌斌妈妈对不起你，妈妈先走了。",
@@ -1321,7 +1321,7 @@
           "role": "",
           "color": "#000000",
           "source_page": 17,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "《浮萍终有",
@@ -1340,7 +1340,7 @@
           "role": "",
           "color": "#18605A",
           "source_page": 17,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "（跳下山崖）",
@@ -1355,7 +1355,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 17,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：（大吼）程雪！！！",
@@ -1370,7 +1370,7 @@
           "role": "程福涓",
           "color": "#18605A",
           "source_page": 17,
-          "source_file": "喜娃微pia剧场 (1).pptx",
+          "source_file": "示例内容源-A-更新版-2026-09-30.pptx",
           "runs": [
             {
               "text": "程福涓：（不敢相信 片刻无声 突然大哭起来）小雪！我的女儿啊！！小雪……你怎么可以，怎么可以丢下妈妈呢？妈才刚刚找到你，妈好不容易才找到你啊！（哭片刻）你不喜欢妈妈，妈走就是了，妈妈不逼你了！妈妈才和你待了一会啊，你怎么就，不见了呢？妈妈以后再也看不到你了，再也看不到你了……",

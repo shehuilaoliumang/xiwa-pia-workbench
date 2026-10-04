@@ -19,9 +19,9 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
  const state=async()=> (await context.request.get(base+'/api/state')).json();
  const send=async(p,body,method='POST')=>{const l=await lib();const r=await context.request.fetch(base+p,{method,data:body,headers:{'X-CSRF-Token':l.csrf_token}});assert(r.ok(),await r.text());return r.json()};
  const initial=await lib();
- const category=await send('/api/categories',{name:'层级验收分类',description:'分类介绍与完整剧本列表验证',color:'#775544'});
+ const category=await send('/api/categories',{name:'层级验收分组',description:'分组介绍与完整条目列表验证',color:'#775544'});
  const fixture=[];
- for(let i=0;i<8;i++)fixture.push(await send('/api/scripts',{title:'层级剧本'+(i+1),category_id:category.id,author:'验收作者',synopsis:'第'+(i+1)+'篇的简要内容',cast_note:'两位角色',tags:['测试标签','情感'],blocks:Array.from({length:i===0?65:2},(_,j)=>({kind:'text',role:j%2?'乙':'甲',text:`第${j+1}段：这是用于连续滚动检查的正文。窗外灯光亮着，我们继续讲述这个故事。`.repeat(3)}))}));
+ for(let i=0;i<8;i++)fixture.push(await send('/api/scripts',{title:'层级条目'+(i+1),category_id:category.id,author:'验收作者',synopsis:'第'+(i+1)+'篇的简要内容',cast_note:'两位角色',tags:['测试标签','情感'],blocks:Array.from({length:i===0?65:2},(_,j)=>({kind:'text',role:j%2?'乙':'甲',text:`第${j+1}段：这是用于连续滚动检查的正文。窗外灯光亮着，我们继续讲述这个故事。`.repeat(3)}))}));
  const page=await context.newPage();await page.goto(base+'/');
  await page.locator(`[data-open-category="${category.id}"]`).waitFor();
  assert.equal(await page.locator('.script-card').count(),0,'root catalog should show categories');
@@ -33,7 +33,7 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
  await page.locator('#catalog-back').click();await rootCard.waitFor();
  await fs.mkdir(path.join(root,'.qa','browser'),{recursive:true});
  await page.screenshot({path:path.join(root,'.qa','browser','category-home-desktop.png'),fullPage:true});
- await page.locator('#catalog-search').fill('层级剧本8');await until(async()=> (await page.locator('.script-card').count())===1,'global search');
+ await page.locator('#catalog-search').fill('层级条目8');await until(async()=> (await page.locator('.script-card').count())===1,'global search');
 
  await page.goto(base+'/control');
  const ready=()=>page.waitForFunction(()=>!document.querySelector('#apply-display').disabled);
@@ -70,7 +70,7 @@ const stop=()=>execFileSync(python,['-X','utf8','tools/stop.py','--data-dir',dat
  const maxError=Math.max(...samples.map(s=>s.error));assert(maxError<35,'continuous auto-scroll drift: '+maxError);
  assert(writes.filter(u=>u.endsWith('/api/apply')).length<6,'motion must not make an apply request each frame');
  // Dispatch visibility lifecycle events in a real browser; the independent audience keeps running.
- await page.evaluate(()=>{window.resumeReports=[];window.resumeMonitor=new BroadcastChannel('pia-live-display-v1');window.resumeMonitor.onmessage=e=>{if(e.data?.type==='position-report')window.resumeReports.push(e.data)}});
+ await page.evaluate(()=>{window.resumeReports=[];window.resumeMonitor=new BroadcastChannel('wb-live-display-v1');window.resumeMonitor.onmessage=e=>{if(e.data?.type==='position-report')window.resumeReports.push(e.data)}});
  await frame.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'))});
  const hiddenPosition=await frame.locator('#stage-scroll').evaluate(e=>e.scrollTop);await delay(1000);
  const advanced=await display.locator('#stage-scroll').evaluate(e=>e.scrollTop);assert(advanced>hiddenPosition+8,'audience must continue when preview is hidden');

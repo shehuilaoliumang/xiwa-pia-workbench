@@ -9,8 +9,8 @@ const path = require('node:path');
 const {createHash} = require('node:crypto');
 const {spawn, execFileSync} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const python = process.env.PIA_TEST_PYTHON || path.join(root, 'runtime', 'python.exe');
-const executablePath = process.env.PIA_ELECTRON_PATH || process.env.ELECTRON_PATH || path.join(root, 'desktop', 'runtime', 'electron.exe');
+const python = process.env._TEST_PYTHON || path.join(root, 'runtime', 'python.exe');
+const executablePath = process.env._ELECTRON_PATH || process.env.ELECTRON_PATH || path.join(root, 'desktop', 'runtime', 'electron.exe');
 const base = 'http://127.0.0.1:8935';
 const dataDir = path.join(root, '.qa', 'desktop-display-' + Date.now());
 const output = path.join(root, '.qa', 'desktop');
@@ -38,18 +38,18 @@ async function apply(payload, position = {}) {
   const preview = await api('/api/preview', payload);
   return api('/api/apply', {...payload, preview_token: preview.content_token, ...position});
 }
-const nativeState = () => app.evaluate(() => globalThis.__piaDesktopDiagnostics.getState());
+const nativeState = () => app.evaluate(() => globalThis.__wbDesktopDiagnostics.getState());
 const connectCount = () => result.writes.filter(request => request.path === '/api/display/connect').length;
 const currentPage = target => target.locator('.stage-page.is-current').getAttribute('data-page-index').then(Number);
 const scrollTop = target => target.locator('#stage-scroll').evaluate(element => element.scrollTop);
 const ready = () => controller.waitForFunction(() => !document.querySelector('#apply-display').disabled);
 const ext = action => controller.locator(`[data-preview-external="${action}"]`);
 async function minimize() {
-  await app.evaluate(() => globalThis.__piaDesktopDiagnostics.minimizeDisplay());
+  await app.evaluate(() => globalThis.__wbDesktopDiagnostics.minimizeDisplay());
   await until(async () => (await nativeState()).display?.minimized === true, 'native display minimized');
 }
 async function restore() {
-  await controller.evaluate(() => window.piaDesktop.restoreDisplay());
+  await controller.evaluate(() => window.wbDesktop.restoreDisplay());
   await until(async () => (await nativeState()).display?.minimized === false, 'native display restored');
 }
 async function rafSample() {
@@ -58,7 +58,7 @@ async function rafSample() {
     visibility: document.visibilityState, scroll_top: document.querySelector('#stage-scroll').scrollTop}));
 }
 async function capture(name) {
-  const item = await app.evaluate(() => globalThis.__piaDesktopDiagnostics.captureDisplay());
+  const item = await app.evaluate(() => globalThis.__wbDesktopDiagnostics.captureDisplay());
   const bytes = Buffer.from(item.png_base64, 'base64');
   assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
   assert(item.width > 0 && item.height > 0 && bytes.length > 100);
@@ -72,13 +72,13 @@ function observePage(page) {
 
 async function main() {
   try {
-    assert(fs.existsSync(executablePath), 'Electron runtime missing; set PIA_ELECTRON_PATH to the verified electron.exe.');
+    assert(fs.existsSync(executablePath), 'Electron runtime missing; set _ELECTRON_PATH to the verified electron.exe.');
     let occupied = false; try { await fetch(base + '/api/health'); occupied = true; } catch (_) {}
     assert(!occupied, '8935 is occupied; refusing to reuse another instance.');
     server = spawn(python, ['-X', 'utf8', 'run.py', '--no-browser', '--port', '8935', '--data-dir', dataDir],
       {cwd: root, windowsHide: true, stdio: 'ignore', env: {...process.env, PYTHONUTF8: '1'}});
     await until(async () => { try { const health = await (await fetch(base + '/api/health')).json(); return path.resolve(health.data_dir) === dataDir; } catch (_) { return false; } }, 'isolated Python service', 30000);
-    const category = await api('/api/categories', {name: '桌面最小化验收分类', description: '独立测试资料', color: '#825c40'});
+    const category = await api('/api/categories', {name: '桌面最小化验收分组', description: '独立测试资料', color: '#825c40'});
     const fixture = await api('/api/scripts', {title: '桌面持续展示验收', category_id: category.id, author: '测试资料', synopsis: '检查后台滚动、分页和悬停同步。',
       blocks: Array.from({length: 54}, (_, i) => ({kind: 'text', role: i % 2 ? '乙' : '甲', text: `第${i + 1}段：窗口最小化后，预览与展示仍应保持同一段内容。` + '远处传来熟悉的声音，故事继续向前。'.repeat(5)}))});
     await api('/api/scripts', {title: '桌面目录短篇', category_id: category.id, synopsis: '用于目录层级和摘要验收。', blocks: [{kind: 'text', text: '短篇正文。'}]});
@@ -89,7 +89,7 @@ async function main() {
       argv: process.argv, versions: process.versions, type: process.type, app_path: app.getAppPath(),
       main_module: process.mainModule?.filename || null,
       require_main: typeof require === 'function' ? require.main?.filename || null : null,
-      diagnostics: Boolean(globalThis.__piaDesktopDiagnostics), windows: BrowserWindow.getAllWindows().length,
+      diagnostics: Boolean(globalThis.__wbDesktopDiagnostics), windows: BrowserWindow.getAllWindows().length,
       background_switches: Object.fromEntries(['disable-background-timer-throttling', 'disable-backgrounding-occluded-windows', 'disable-renderer-backgrounding'].map(flag => [flag, app.commandLine.hasSwitch(flag)]))
     }));
     assert(Object.values(result.main_process.background_switches).every(value => value === false), 'QA must not enable tool-supplied background throttle bypass flags');
@@ -114,17 +114,17 @@ async function main() {
     });
     controller = await app.firstWindow();
     await controller.waitForURL(base + '/control');
-    assert(await controller.evaluate(() => window.piaDesktop?.isDesktop));
+    assert(await controller.evaluate(() => window.wbDesktop?.isDesktop));
     result.renderer_user_agent = await controller.evaluate(() => navigator.userAgent);
     assert(/^[\x20-\x7e]+$/.test(result.renderer_user_agent), 'Electron renderer User-Agent must be ASCII');
-    await controller.evaluate(() => localStorage.setItem('pia-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'})));
+    await controller.evaluate(() => localStorage.setItem('wb-preview-preferences', JSON.stringify({placement: 'outside', feedback: 'confirm'})));
     await controller.goto(base + '/control?script=' + fixture.id); await ready();
     const frame = controller.frames().find(item => item.url().includes('/display?preview=1')); assert(frame);
     await controller.locator('#preview-toolbar-placement').selectOption('outside');
     await controller.locator('#layout-body-mode').selectOption('pages'); await ready();
     await controller.locator('#apply-display').click();
     await until(async () => (await state()).snapshot?.scripts?.[0]?.id === fixture.id, 'first applied page');
-    await controller.evaluate(() => window.piaDesktop.openDisplay());
+    await controller.evaluate(() => window.wbDesktop.openDisplay());
     await until(() => Boolean(app.windows().find(page => page.url() === base + '/display')), 'native audience window');
     display = app.windows().find(page => page.url() === base + '/display');
     await display.locator('.stage-page.is-current').waitFor();
@@ -226,7 +226,7 @@ async function main() {
     await api('/api/command', {action: 'speed', speed: 100}); await api('/api/command', {action: 'play'});
     await until(async () => await scrollTop(display) > 10, 'autonomous scroll before cover');
     const cover = await app.evaluate(async ({BrowserWindow}) => {
-      const state = globalThis.__piaDesktopDiagnostics.getState();
+      const state = globalThis.__wbDesktopDiagnostics.getState();
       const window = new BrowserWindow({...state.display.bounds, frame: false, show: false, alwaysOnTop: true, skipTaskbar: true,
         backgroundColor: '#26332b', webPreferences: {sandbox: true, contextIsolation: true, nodeIntegration: false}});
       globalThis.__desktopQaCover = window;
@@ -284,12 +284,12 @@ async function main() {
     await controller.locator('#layout-media-caption').selectOption('auto');
     await controller.locator('#layout-media-caption-layout').selectOption('pages'); await ready();
     const mediaFrame = controller.frames().find(item => item.url().includes('/display?preview=1'));
-    await mediaFrame.locator('video.pia-media-element').waitFor();
+    await mediaFrame.locator('video.wb-media-element').waitFor();
     await controller.locator('#apply-display').click();
     await until(async () => (await state()).snapshot?.scripts?.[0]?.id === mediaFixture.id, 'video applied');
-    await display.locator('video.pia-media-element').waitFor();
-    await display.waitForFunction(() => {const video = document.querySelector('video.pia-media-element'); return video?.readyState >= 2 && video.videoWidth === 320;});
-    const mediaStatus = target => target.locator('video.pia-media-element').evaluate(video => ({position: video.currentTime, paused: video.paused,
+    await display.locator('video.wb-media-element').waitFor();
+    await display.waitForFunction(() => {const video = document.querySelector('video.wb-media-element'); return video?.readyState >= 2 && video.videoWidth === 320;});
+    const mediaStatus = target => target.locator('video.wb-media-element').evaluate(video => ({position: video.currentTime, paused: video.paused,
       width: video.videoWidth, height: video.videoHeight, ready_state: video.readyState}));
     const cuePause = (at, cue, label) => until(async () => {
       const status = await mediaStatus(display), live = await state();
@@ -299,15 +299,15 @@ async function main() {
     const mediaCapturesBefore = result.captures.length;
     await controller.locator('.live-details').evaluate(element => element.open = true);
     await controller.locator('#live-play').click(); await cuePause(1, 'desktop-cue-1', 'minimized video reaches first pause point');
-    assert((await display.locator('.pia-media-caption-scroll').textContent()).includes('第一组台词'));
+    assert((await display.locator('.wb-media-caption-scroll').textContent()).includes('第一组台词'));
     const cue1 = await mediaStatus(display);
     await controller.locator('#live-play').click(); await cuePause(2.4, 'desktop-cue-2', 'manual continue reaches second video pause point');
-    assert((await display.locator('.pia-media-caption-scroll').textContent()).includes('第二组台词'));
+    assert((await display.locator('.wb-media-caption-scroll').textContent()).includes('第二组台词'));
     const cue2 = await mediaStatus(display);
     await controller.locator('#preview-feedback-mode').selectOption('realtime'); await ready();
     await until(async () => (await state()).snapshot?.layout.body_mode === 'media', 'video realtime binding');
-    await mediaFrame.locator('.pia-media-player').hover();
-    const seek = mediaFrame.locator('.pia-media-progress');
+    await mediaFrame.locator('.wb-media-player').hover();
+    const seek = mediaFrame.locator('.wb-media-progress');
     await seek.fill('3.2'); await seek.dispatchEvent('input'); await seek.dispatchEvent('change');
     await until(async () => {const media = await mediaStatus(display); return media.paused && Math.abs(media.position - 3.2) < .16;}, 'minimized video follows preview seek');
     assert((await nativeState()).display.minimized);

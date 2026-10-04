@@ -4,8 +4,25 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const http = require('node:http');
-const VERSION = '0.1.0';
-const CHANNELS = Object.freeze({open: 'pia-desktop:open-display', restore: 'pia-desktop:restore-display', state: 'pia-desktop:window-state'});
+const TEMPLATE_CONFIG = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+})();
+const CFG = {
+  appId: TEMPLATE_CONFIG?.app?.app_id || 'content-workbench',
+  appName: TEMPLATE_CONFIG?.app?.name || '内容管理工作台',
+  shortName: TEMPLATE_CONFIG?.app?.short_name || '工作台',
+  version: TEMPLATE_CONFIG?.app?.version || '0.1.0',
+  windowTitle: TEMPLATE_CONFIG?.app?.window_title || '内容管理工作台 · 桌面版',
+  displayTitle: TEMPLATE_CONFIG?.app?.display_window_title || '内容管理 · 展示窗口',
+  instanceKey: TEMPLATE_CONFIG?.desktop?.single_instance_key || 'content-workbench.desktop.started',
+  userAgentBrand: TEMPLATE_CONFIG?.desktop?.user_agent_brand || 'ContentWorkbench',
+};
+const VERSION = CFG.version;
+const CHANNELS = Object.freeze({open: 'wb-desktop:open-display', restore: 'wb-desktop:restore-display', state: 'wb-desktop:window-state'});
 
 function parseArgs(argv) {
   const values = {};
@@ -76,7 +93,7 @@ function requestHealth(options, timeoutMs = 1200) {
         try {
           if (response.statusCode !== 200) throw new Error('Local service is not ready');
           const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-          if (result.app !== 'xiwa-workbench' || typeof result.data_dir !== 'string' ||
+          if (result.app !== CFG.appId || typeof result.data_dir !== 'string' ||
               directoryKey(result.data_dir) !== directoryKey(options.dataDir)) throw new Error('Local service does not match this data directory');
           finish(null, {app: result.app, data_dir: result.data_dir});
         } catch (error) { finish(error); }
@@ -91,7 +108,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
   const options = parseArgs(argv);
   const {app, BrowserWindow, ipcMain, session, screen} = require('electron');
   fs.mkdirSync(options.userData, {recursive: true});
-  app.setName('喜娃微PIA工作台');
+  app.setName(CFG.appName);
   app.setPath('userData', options.userData);
   app.setPath('sessionData', options.userData);
   if (!app.requestSingleInstanceLock({data_dir: options.dataDir, url: options.mainUrl})) { app.quit(); return null; }
@@ -108,7 +125,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
     return {session: sessionHandle, preload, sandbox: true, contextIsolation: true, nodeIntegration: false,
       nodeIntegrationInWorker: false, nodeIntegrationInSubFrames: false, webviewTag: false,
       webSecurity: true, allowRunningInsecureContent: false, navigateOnDragDrop: false,
-      backgroundThrottling: false, additionalArguments: ['--pia-desktop-origin=' + encodeURIComponent(options.origin)]};
+      backgroundThrottling: false, additionalArguments: ['--wb-desktop-origin=' + encodeURIComponent(options.origin)]};
   }
 
   function describe(win) {
@@ -135,7 +152,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
     const wc = win.webContents, windowId = win.id;
     win.removeMenu();
     wc.setBackgroundThrottling(false);
-    const fixedTitle = role === 'display' ? '喜娃微PIA · 独立展示' : '喜娃微PIA工作台 · 桌面版';
+    const fixedTitle = role === 'display' ? CFG.displayTitle : CFG.windowTitle;
     win.setTitle(fixedTitle);
     wc.on('page-title-updated', event => { event.preventDefault(); win.setTitle(fixedTitle); });
     for (const eventName of ['will-navigate', 'will-frame-navigate', 'will-redirect']) {
@@ -156,7 +173,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
 
   function displayOptions() {
     const area = screen.getPrimaryDisplay().workAreaSize;
-    return {title: '喜娃微PIA · 独立展示', width: Math.min(620, area.width), height: Math.min(960, area.height),
+    return {title: CFG.displayTitle, width: Math.min(620, area.width), height: Math.min(960, area.height),
       minWidth: 320, minHeight: 320, show: !options.noShow, autoHideMenuBar: true,
       backgroundColor: '#f7f1e8', webPreferences: preferences()};
   }
@@ -166,7 +183,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
       const blank = details.url === 'about:blank';
       let displayUrl = false;
       if (safeUrl(details.url)) { const target = new URL(details.url); displayUrl = target.pathname === '/display' && !target.search && !target.hash; }
-      if (details.frameName !== 'pia-display' || (!blank && !displayUrl) || details.postBody) return {action: 'deny'};
+      if (details.frameName !== 'wb-display' || (!blank && !displayUrl) || details.postBody) return {action: 'deny'};
       if (alive(displayWindow)) { restore(displayWindow); return {action: 'deny'}; }
       return {action: 'allow', outlivesOpener: true, overrideBrowserWindowOptions: displayOptions(),
         createWindow: popupOptions => {
@@ -183,7 +200,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
     if (!alive(mainWindow) || !safeUrl(mainWindow.webContents.getURL())) throw new Error('The control window is not ready');
     // A fixed, argument-free operation preserves the same named popup as the browser-mode button.
     // No caller-supplied JavaScript or URL is executed.
-    await mainWindow.webContents.executeJavaScript("window.open('/display', 'pia-display') !== null", true);
+    await mainWindow.webContents.executeJavaScript("window.open('/display', 'wb-display') !== null", true);
     if (!alive(displayWindow)) throw new Error('The display window could not be opened');
     restore(displayWindow);
     return describe(displayWindow);
@@ -241,13 +258,13 @@ async function startDesktop(argv = process.argv.slice(1)) {
         width: size.width, height: size.height, minimized: win.isMinimized(), captured_at: Date.now()};
     }
     // Available only in the trusted main process, never through renderer IPC.
-    globalThis.__piaDesktopDiagnostics = Object.freeze({getState, openDisplay, restoreDisplay, captureDisplay, startFrameMonitor, stopFrameMonitor,
+    globalThis.__wbDesktopDiagnostics = Object.freeze({getState, openDisplay, restoreDisplay, captureDisplay, startFrameMonitor, stopFrameMonitor,
       minimizeDisplay: () => { const win = needDisplay(); win.minimize(); return describe(win); }});
   }
 
   function createMainWindow() {
     const area = screen.getPrimaryDisplay().workAreaSize;
-    mainWindow = new BrowserWindow({title: '喜娃微PIA工作台 · 桌面版', width: Math.min(1500, area.width),
+    mainWindow = new BrowserWindow({title: CFG.windowTitle, width: Math.min(1500, area.width),
       height: Math.min(1000, area.height), minWidth: 390, minHeight: 500, show: !options.noShow,
       autoHideMenuBar: true, backgroundColor: '#f7f1e8', webPreferences: preferences()});
     protect(mainWindow, 'main');
@@ -316,7 +333,7 @@ async function startDesktop(argv = process.argv.slice(1)) {
   app.on('will-quit', () => {
     closing = true; clearInterval(healthTimer);
     for (const name of Object.values(CHANNELS)) ipcMain.removeHandler(name);
-    delete globalThis.__piaDesktopDiagnostics;
+    delete globalThis.__wbDesktopDiagnostics;
   });
   await app.whenReady();
   let serviceReady = false;
@@ -326,9 +343,9 @@ async function startDesktop(argv = process.argv.slice(1)) {
   }
   if (!serviceReady || closing) { endDesktop('Local service is unavailable; no desktop window was opened.'); return null; }
   knownServicePid = servicePid(options);
-  sessionHandle = session.fromPartition('persist:pia-workbench');
+  sessionHandle = session.fromPartition('persist:wb-workbench');
   // HTTP User-Agent is ASCII; keep Chromium/OS tokens while normalizing the localized app brand.
-  sessionHandle.setUserAgent(sessionHandle.getUserAgent().replace(/[^\x20-\x7E]+/g, 'XiWa'));
+  sessionHandle.setUserAgent(sessionHandle.getUserAgent().replace(/[^\x20-\x7E]+/g, CFG.userAgentBrand));
   // This session is shared by both owned windows and isolated by the configured userData directory.
   sessionHandle.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   sessionHandle.setPermissionCheckHandler(() => false);
@@ -350,7 +367,7 @@ module.exports = {parseArgs, sameOriginUrl, directoryKey, requestHealth, service
 // Electron and automation loaders can import the application entry without assigning require.main.
 // Ordinary Node imports still expose helpers only, without requiring Electron or touching userData.
 const electronMainProcess = Boolean(process.versions.electron && process.type === 'browser');
-const startupKey = Symbol.for('xiwa-pia.desktop.started');
+const startupKey = Symbol.for(CFG.instanceKey);
 if ((require.main === module || electronMainProcess) && !globalThis[startupKey]) {
   globalThis[startupKey] = true;
   startDesktop().catch(error => {
