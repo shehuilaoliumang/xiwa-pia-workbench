@@ -1,0 +1,34 @@
+const { chromium } = require('playwright-core');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+const base = 'http://127.0.0.1:8878';
+(async () => {
+  const box = (tag, payload) => Buffer.concat([Buffer.from((8 + payload.length).toString(16).padStart(8, '0'), 'hex'), tag, payload]);
+  const mp4 = Buffer.concat([box(Buffer.from('ftyp'), Buffer.concat([Buffer.from('isom'), Buffer.alloc(4)])),
+                             box(Buffer.from('moov'), Buffer.alloc(0)), box(Buffer.from('mdat'), Buffer.from('demo-video-bytes'))]);
+  const mp4Path = path.join(os.tmpdir(), 'block-demo.mp4');
+  await fs.writeFile(mp4Path, mp4);
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  page.on('console', m => console.log('CONSOLE[' + m.type() + ']', m.text().slice(0, 300)));
+  page.on('pageerror', e => console.log('PAGEERROR', String(e).slice(0, 500)));
+  page.on('response', r => { if (r.url().includes('/api/script-media')) console.log('RESP', r.status(), r.url()); });
+  await page.goto(base + '/manage');
+  await page.locator('[data-edit-script]').first().waitFor();
+  await page.locator('[data-edit-script]').first().click();
+  await page.locator('#script-dialog[open]').waitFor();
+  await page.locator('#body-editor-details').click();
+  await page.locator('#add-media-block').click();
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.locator('#script-media-file').evaluate(el => el.click());
+  const chooser = await chooserPromise;
+  console.log('chooser got');
+  await chooser.setFiles(mp4Path);
+  await page.waitForTimeout(3000);
+  console.log('status:', await page.locator('#script-media-status').textContent().catch(e => 'ERR ' + e.message));
+  console.log('image status:', await page.locator('#script-image-status').textContent().catch(e => 'ERR'));
+  console.log('rows:', await page.locator('.body-editor-row').count());
+  await page.screenshot({ path: path.resolve('.qa/block-media/debug-upload.png') });
+  await browser.close();
+})().catch(e => { console.error('FATAL', e); process.exit(1); });

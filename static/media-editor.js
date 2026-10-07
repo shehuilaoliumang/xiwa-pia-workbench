@@ -36,9 +36,11 @@
   function updateControls() {
     const media=hasMedia(),cue=currentCue();
     root.setAttribute('aria-busy',String(busy));
+    const fileChosen=Boolean($('#media-upload-file').files.length);
+    const destBlock=fileChosen&&document.querySelector('input[name="media-dest"]:checked')?.value==='block';
     $('#media-upload-file').disabled=busy;
-    $('#media-upload').disabled=busy||!$('#media-upload-file').files.length;
-    $('#media-upload').textContent=media?'替换并关联':'上传并关联';
+    $('#media-upload').disabled=busy||!fileChosen;
+    $('#media-upload').textContent=destBlock?'上传并插入到正文':(media?'替换并关联':'上传并关联');
     $('#media-remove').hidden=!media;$('#media-remove').disabled=busy;
     $('#media-mark-cue').disabled=busy||!media;
     $('#media-save-cues').disabled=busy||!media;
@@ -51,6 +53,26 @@
     $('#media-save-help').textContent=dirty?'离开页面会丢失这些修改。确认后点击“保存全部时间点”。':'勾选与编辑只保留在当前页面，点击保存后生效。';
     $('#media-cue-count').textContent=`${cues.length} 个`;
     $('#media-cue-list').querySelectorAll('button').forEach(button=>button.disabled=busy);
+    $('#media-block-search').disabled=busy;
+    $('#media-clear-selection').disabled=busy||!cue;
+  }
+  function renderUploadDest() {
+    const file=$('#media-upload-file').files[0];
+    $('#media-upload-dest').hidden=!file;
+    if(!file){$('#media-upload-status').textContent='请选择本地文件。';return;}
+    const target=$('#media-block-target');target.innerHTML='<option value="">追加到正文末尾</option>';
+    (script.blocks||[]).forEach((block,index)=>{
+      if(block.kind!=='text')return;
+      const option=document.createElement('option');option.value=block.id;
+      option.textContent=`第 ${index+1} 段 · ${(block.role?block.role+'：':'')+(block.text||'').replace(/\s+/g,' ').slice(0,32)}`;
+      target.append(option);
+    });
+    const destBlock=document.querySelector('input[name="media-dest"]:checked')?.value==='block';
+    $('#media-block-target-wrap').hidden=!destBlock;
+    $('#media-upload-status').textContent=destBlock
+      ?`已选择：${file.name}。选择要插入的段落位置，点击“上传并插入到正文”。`
+      :`已选择：${file.name}。点击“${hasMedia()?'替换并关联':'上传并关联'}”开始上传。`;
+    updateControls();
   }
   async function api(path,body,method='POST',retried=false) {
     const headers={'X-CSRF-Token':csrf},options={method,credentials:'same-origin',cache:'no-store',headers};
@@ -83,6 +105,20 @@
     $('#media-script-title').textContent=script.title+' · 音视频配本';
     renderCues();renderCueForm();updateControls();
   }
+  function moveBlock(blockId,direction) {
+    perform(async()=>{
+      const item=await api('/api/scripts/'+encodeURIComponent(scriptId)+'/blocks/'+blockId+'/move',{direction:direction},'POST');
+      acceptScript(item);
+    });
+  }
+  function removeBlock(blockId) {
+    perform(async()=>{
+      const ok=await confirmAction('删除音视频段落','确定要删除这个音视频段落吗？该操作会同步移除它在时间点中的引用。','删除');
+      if(!ok)return;
+      const item=await api('/api/scripts/'+encodeURIComponent(scriptId)+'/blocks/'+blockId,undefined,'DELETE');
+      acceptScript(item);
+    });
+  }
   function updateClock() {
     $('#media-current-time').textContent=formatTime(Number.isFinite(player?.currentTime)?player.currentTime:0);
     $('#media-duration').textContent=duration()==null?'总时长待载入':'总时长 '+formatTime(duration());
@@ -96,11 +132,11 @@
       $('#media-file-kind').textContent='尚未关联';$('#media-file-name').textContent='支持 MP4、WebM、MP3、WAV、M4A、OGG，单个文件不超过 200 MB。';updateClock();return;
     }
     const path=safeMedia(script.media.path);if(!path){error('媒体路径无效，请重新关联本地文件。');return;}
-    player=create(script.media.kind==='video'?'video':'audio');player.id='media-player';player.controls=true;player.preload='metadata';player.setAttribute('playsinline','');player.src=path;player.setAttribute('aria-label','配本音视频播放器');wrap.append(player);
+    player=create(script.media.kind==='video'?'video':'audio');player.id='media-player';player.controls=true;player.preload=script.media.kind==='video'?'metadata':'auto';player.setAttribute('playsinline','');player.src=path;player.setAttribute('aria-label','配本音视频播放器');wrap.append(player);
     $('#media-file-kind').textContent=script.media.kind==='video'?'视频':'音频';
     $('#media-file-name').textContent=script.media.name+(Number.isFinite(script.media.size)?` · ${(script.media.size/1048576).toFixed(1)} MB`:'');
     const currentPlayer=player;
-    currentPlayer.addEventListener('loadedmetadata',()=>{if(player!==currentPlayer)return;if(Number.isFinite(currentPlayer.duration)&&currentPlayer.duration>0)detectedDuration=currentPlayer.duration;updateClock();validateActiveTime();});
+    currentPlayer.addEventListener('loadedmetadata',()=>{if(player!==currentPlayer)return;if(Number.isFinite(currentPlayer.duration)&&currentPlayer.duration>0)detectedDuration=currentPlayer.duration;updateClock();validateActiveTime();if(script.media.kind==='video'){try{if(currentPlayer.currentTime===0&&Number.isFinite(currentPlayer.duration)&&currentPlayer.duration>0)currentPlayer.currentTime=Math.min(0.01,Math.max(0,currentPlayer.duration-0.01));}catch(_){}}});
     currentPlayer.addEventListener('durationchange',()=>{if(player!==currentPlayer)return;if(Number.isFinite(currentPlayer.duration)&&currentPlayer.duration>0)detectedDuration=currentPlayer.duration;updateClock();});
     currentPlayer.addEventListener('timeupdate',()=>{if(player===currentPlayer)updateClock()});currentPlayer.addEventListener('seeked',()=>{if(player===currentPlayer)updateClock()});
     currentPlayer.addEventListener('error',()=>{if(player===currentPlayer)error('浏览器暂时无法播放这个文件。可以更换为浏览器支持的编码，已保存的时间点仍会保留。');});updateClock();
@@ -144,8 +180,68 @@
     const group=create('div');group.append(create('span','media-block-label',`第 ${index+1} 段 · ${block.kind==='image'?'图片':block.role||'正文'}`));
     if(block.kind==='image'){
       const path=safeMedia(block.image_path);if(path){const img=create('img');img.src=path;img.alt='剧本插图';img.loading='lazy';group.append(img)}else group.append(create('p','muted','这张插图暂时无法显示。'));
+    }else if(block.kind==='video'||block.kind==='audio'){
+      const src=safeMedia(block.media_path);
+      const media=create('div','media-block-media'+(block.kind==='video'?' is-video':''));
+      media.setAttribute('role','button');media.tabIndex=0;media.title='点击播放';media.setAttribute('aria-label','播放'+ (block.media_name||'该音视频'));
+      if(block.kind==='video'&&src){
+        // 视频段落：直接渲染首帧画面预览（预加载，不点开也能看到画面）
+        const thumb=create('video','media-block-thumb');thumb.muted=true;thumb.playsInline=true;thumb.preload='metadata';thumb.src=src;
+        thumb.setAttribute('aria-hidden','true');
+        thumb.addEventListener('loadedmetadata',()=>{try{if(thumb.currentTime===0&&Number.isFinite(thumb.duration)&&thumb.duration>0)thumb.currentTime=Math.min(0.01,Math.max(0,thumb.duration-0.01));}catch(_){}});
+        media.append(thumb);
+      }else{
+        media.append(create('span','media-block-media-icon',block.kind==='video'?'🎬':'♫'));
+      }
+      const meta=create('span','media-block-media-meta',block.media_name||(block.kind==='video'?'视频段落':'音频段落'));
+      if(Number.isFinite(block.media_duration)&&block.media_duration>0)meta.textContent+=' · '+formatTime(block.media_duration);
+      if(src)meta.textContent+=' · 点击播放';
+      media.append(meta);
+      // 基础操作：上移 / 下移 / 删除（独立按钮，不触发播放）
+      if(src){
+        const ops=create('span','media-block-ops');
+        const up=create('button','media-block-op');up.type='button';up.title='上移';up.setAttribute('aria-label','上移段落');up.innerHTML='<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 2.5L15 11H1z" fill="currentColor"/></svg>';
+        const down=create('button','media-block-op');down.type='button';down.title='下移';down.setAttribute('aria-label','下移段落');down.innerHTML='<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 13.5L1 5h14z" fill="currentColor"/></svg>';
+        const del=create('button','media-block-op is-danger','删');del.type='button';del.title='删除该音视频段落';del.setAttribute('aria-label','删除该音视频段落');
+        const stop=(event)=>{event.preventDefault();event.stopPropagation();};
+        up.addEventListener('click',(event)=>{stop(event);moveBlock(block.id,'up');});
+        down.addEventListener('click',(event)=>{stop(event);moveBlock(block.id,'down');});
+        del.addEventListener('click',(event)=>{stop(event);removeBlock(block.id);});
+        ops.append(up,down,del);media.append(ops);
+      }
+      group.append(media);
+      if(src){
+        const wrap=create('div','media-block-player-wrap');wrap.hidden=true;
+        if(block.kind==='video'){
+          const video=create('video');video.controls=true;video.preload='metadata';video.playsInline=true;video.src=src;
+          video.addEventListener('loadedmetadata',()=>{try{if(video.currentTime===0&&Number.isFinite(video.duration)&&video.duration>0)video.currentTime=Math.min(0.01,Math.max(0,video.duration-0.01));}catch(_){}});
+          wrap.append(video);
+          const play=()=>{wrap.hidden=false;video.play().catch(()=>{});};
+          media.addEventListener('click',(event)=>{event.preventDefault();play();});
+          media.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();play();}});
+        }else{
+          const audio=create('audio');audio.controls=true;audio.preload='auto';audio.src=src;
+          wrap.append(audio);
+          const play=()=>{wrap.hidden=false;audio.play().catch(()=>{});};
+          media.addEventListener('click',(event)=>{event.preventDefault();play();});
+          media.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();play();}});
+        }
+        group.append(wrap);
+      }
     }else{const body=create('div','media-block-text');if(summary)body.dataset.blockSummary='';appendBlockText(body,block);group.append(body)}
     return group;
+  }
+  function refreshScriptBlocks() {
+    // 重新拉取剧本资料，仅更新正文段落与配本状态，保留未保存的时间点编辑
+    return api('/api/library', undefined, 'GET').then((data)=>{
+      const next=(data.scripts||[]).find(item=>item.id===scriptId);
+      if(!next)return;
+      const mediaChanged=JSON.stringify(next.media)!==JSON.stringify(script?.media);
+      script=next;
+      if(mediaChanged){savedCues=clone(script.media?.cues||[]);cues=clone(savedCues);timeInputs.clear();dirty=false;}
+      activeId=cues.some(cue=>cue.id===activeId)?activeId:cues[0]?.id||null;
+      renderPlayer();renderCues();renderCueForm();updateControls();
+    });
   }
   function renderChoices() {
     const list=$('#media-block-choices');list.replaceChildren();const cue=currentCue(),query=$('#media-block-search').value.trim().toLocaleLowerCase();
@@ -167,11 +263,32 @@
     const cue=currentCue();$('#media-cue-time').value=cue?(timeInputs.get(cue.id)??formatTime(cue.at)):'';$('#media-cue-label').value=cue?.label||'';
     validateActiveTime();renderChoices();renderSelection();updateControls();
   }
-  $('#media-upload-file').addEventListener('change',()=>{const file=$('#media-upload-file').files[0];$('#media-upload-status').textContent=file?`已选择：${file.name}。点击“${hasMedia()?'替换并关联':'上传并关联'}”开始上传。`:'请选择本地文件。';updateControls()});
+  $('#media-upload-file').addEventListener('change',renderUploadDest);
+  document.querySelectorAll('input[name="media-dest"]').forEach(radio=>radio.addEventListener('change',renderUploadDest));
   $('#media-upload').addEventListener('click',async()=>{
     const file=$('#media-upload-file').files[0];if(!file||busy)return;
+    const destBlock=document.querySelector('input[name="media-dest"]:checked')?.value==='block';
+    if(destBlock){
+      await perform(async()=>{
+        player?.pause();$('#media-upload-status').textContent='正在上传并插入正文，请稍候…';
+        const form=new FormData();form.append('file',file);
+        const after=$('#media-block-target').value||'';
+        if(after)form.append('after_block_id',after);
+        try{
+          const result=await api('/api/scripts/'+encodeURIComponent(scriptId)+'/blocks/media',form);
+          const targetIndex=(script.blocks||[]).findIndex(b=>b.id===after);
+          $('#media-upload-file').value='';renderUploadDest();
+          $('#media-upload-status').textContent=`已插入正文${after?`第 ${targetIndex+1} 段后`:''}。段落列表已更新，可勾选该媒体段落参与时间点。`;
+          await refreshScriptBlocks();
+        }catch(err){
+          $('#media-upload-status').textContent='插入未确认成功，请查看提示后重试。';
+          throw err;
+        }
+      });
+      return;
+    }
     if(hasMedia()&&!await confirmAction('替换当前音视频？','替换后，已保存的时间点会清空。'+(dirty?'当前未保存的修改也会丢失。':'')+'请确认新文件后继续。','替换并清空时间点'))return;
-    await perform(async()=>{player?.pause();$('#media-upload-status').textContent='正在上传并保存在本机，请稍候…';const form=new FormData();form.append('file',file);try{acceptScript(await api('/api/scripts/'+encodeURIComponent(scriptId)+'/media',form))}catch(err){$('#media-upload-status').textContent='上传未确认成功，请查看提示后重试。当前页面保留了原配本。';throw err}$('#media-upload-file').value='';renderPlayer();$('#media-upload-status').textContent='关联完成。拖动进度条找到位置，再标记对应台词。';});
+    await perform(async()=>{player?.pause();$('#media-upload-status').textContent='正在上传并保存在本机，请稍候…';const form=new FormData();form.append('file',file);try{acceptScript(await api('/api/scripts/'+encodeURIComponent(scriptId)+'/media',form))}catch(err){$('#media-upload-status').textContent='上传未确认成功，请查看提示后重试。当前页面保留了原配本。';throw err}$('#media-upload-file').value='';renderUploadDest();renderPlayer();$('#media-upload-status').textContent='关联完成。拖动进度条找到位置，再标记对应台词。';});
   });
   $('#media-remove').addEventListener('click',async()=>{
     if(busy||!hasMedia()||!await confirmAction('解除音视频关联？','当前音视频关联与时间点将移除。'+(dirty?'未保存的修改也会丢失。':''),'解除关联'))return;
@@ -206,6 +323,7 @@
     $('#media-save-state').textContent='全部时间点已保存';$('#media-upload-status').textContent='配本已保存，可前往播控台预览。';
   }));
   window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+  window.addEventListener('ai-media-inserted',()=>{if(!busy)perform(()=>refreshScriptBlocks());});
   document.addEventListener('click',async event=>{
     const link=event.target.closest('a[href]');if(!dirty||!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||link.target==='_blank')return;
     const url=new URL(link.href,location.href);if(url.origin!==location.origin||url.href===location.href)return;

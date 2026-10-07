@@ -36,12 +36,18 @@ class MockAdapter:
     name = "mock"
     display = "模拟平台（测试）"
     models = {"mock-v1": "模拟模型 v1"}
+    image_models = {"mock-v1": "模拟形象图（测试）"}
+    audio_models = {"mock-audio-v1": "模拟音乐（测试）"}
+    voice_models = {"mock-voice-v1": "模拟配音（测试）"}
 
     def __init__(self, media_dir: Path, output_dir: Path, model: str = "mock-v1"):
         self.media_dir = media_dir
         self.output_dir = output_dir
         self.model = model or "mock-v1"
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def test_connection(self) -> dict:
+        return {"ok": True, "message": "模拟平台始终可用，用于未配置真实密钥时跑通流程。"}
 
     def _mock_delay(self, seconds: float = 2.0):
         # 模拟生成耗时；保持可中断（不设超长等待）
@@ -78,6 +84,43 @@ class MockAdapter:
             )
         source = templates[0]
         target = self.output_dir / f"mock_video_{uuid.uuid4().hex}.mp4"
+        with source.open("rb") as src, target.open("wb") as dst:
+            while chunk := src.read(1024 * 1024):
+                dst.write(chunk)
+        return target
+
+    def generate_audio(self, prompt: str, ratio: str = "", role_name: str = "", progress=None) -> Path:
+        """模拟音乐生成：从 media 目录复制一个音频模板（mp3/wav），无模板则报错引导。"""
+        self._mock_delay(1.8)
+        templates = []
+        for ext in ("*.mp3", "*.wav", "*.m4a", "*.ogg"):
+            templates.extend(sorted(self.media_dir.glob(ext)))
+        if not templates:
+            raise AiError(
+                "模拟平台需要一个音频模板：请先手动为任意剧本关联一个音频（MP3/WAV 等），再重试音乐生成。",
+                409, "mock_template_missing",
+            )
+        source = templates[0]
+        target = self.output_dir / f"mock_audio_{uuid.uuid4().hex}{source.suffix.lower()}"
+        with source.open("rb") as src, target.open("wb") as dst:
+            while chunk := src.read(1024 * 1024):
+                dst.write(chunk)
+        return target
+
+    def generate_voice(self, text: str, voice_type: str = "", ratio: str = "",
+                       role_name: str = "", progress=None) -> Path:
+        """模拟配音生成：同样复制音频模板，产物名带 mock_voice 前缀（进入 voice 独立目录）。"""
+        self._mock_delay(1.5)
+        templates = []
+        for ext in ("*.mp3", "*.wav", "*.m4a", "*.ogg"):
+            templates.extend(sorted(self.media_dir.glob(ext)))
+        if not templates:
+            raise AiError(
+                "模拟平台需要一个音频模板：请先手动为任意剧本关联一个音频（MP3/WAV 等），再重试配音生成。",
+                409, "mock_template_missing",
+            )
+        source = templates[0]
+        target = self.output_dir / f"mock_voice_{uuid.uuid4().hex}{source.suffix.lower()}"
         with source.open("rb") as src, target.open("wb") as dst:
             while chunk := src.read(1024 * 1024):
                 dst.write(chunk)

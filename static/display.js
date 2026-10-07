@@ -3,6 +3,8 @@
 (() => {
   const preview = new URLSearchParams(location.search).get('preview') === '1';
   const editorPreview = preview && new URLSearchParams(location.search).get('editor') === '1';
+  // 独立展示窗口（非预览）媒体控件常显：主播在观众屏直接操作时按钮始终可见、反馈明确
+  if (!preview) document.body.classList.add('display-controls-visible');
   const bootstrap = JSON.parse(document.getElementById('bootstrap').textContent);
   const viewport = document.getElementById('display-viewport');
   const stage = document.getElementById('stage');
@@ -409,7 +411,7 @@
       pages.forEach(page => page.querySelectorAll('[data-anchor]').forEach(node => {
         const anchor = node.dataset.anchor; markAnchor(node, anchor);
         makePreviewBlockInteractive(node, {id:anchor, text:node.querySelector('.block-text')?.textContent || node.textContent,
-          kind:node.matches('figure') ? 'image' : 'text'});
+          kind:node.matches('.video-block') ? 'video' : node.matches('.audio-block') ? 'audio' : node.matches('figure') ? 'image' : 'text'});
       }));
       setCurrentPage(0);
     } catch (error) {
@@ -739,6 +741,53 @@
     return figure;
   }
 
+  function renderMediaBlock(block) {
+    const figure = element('figure', 'image-block media-block ' + (block.kind === 'video' ? 'video-block' : 'audio-block'));
+    markAnchor(figure, block.id);
+    const path = safeMedia(block.media_path);
+    if (path) {
+      if (block.kind === 'video') {
+        // 视频：直接显示预加载首帧画面的播放器
+        const video = document.createElement('video');
+        video.controls = true;
+        video.preload = 'metadata';
+        video.playsInline = true;
+        video.src = path;
+        video.dataset.mediaPlayer = '1';
+        video.addEventListener('loadedmetadata', () => {
+          try { if (video.currentTime === 0 && Number.isFinite(video.duration) && video.duration > 0) video.currentTime = Math.min(0.01, Math.max(0, video.duration - 0.01)); } catch (_) {}
+        });
+        figure.append(video);
+      } else {
+        const card = element('button', 'media-card');
+        card.type = 'button';
+        card.append(element('span', 'media-card-icon', '♪'));
+        const info = element('span', 'media-card-info');
+        info.append(element('strong', '', block.media_name || '音频'));
+        info.append(element('small', '', '音频 · 点击播放'));
+        card.append(info, element('span', 'media-card-hint', '播放'));
+        const player = document.createElement('audio');
+        player.controls = true;
+        player.preload = 'auto';
+        player.src = path;
+        player.hidden = true;
+        card.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          card.hidden = true;
+          player.hidden = false;
+          player.play().catch(() => {});
+        });
+        figure.append(card, player);
+      }
+    } else {
+      figure.append(element('p', 'image-unavailable', '这段音视频暂时无法显示。'));
+    }
+    figure.append(element('figcaption', '', block.kind === 'video' ? '短视频' : '音频'));
+    makePreviewBlockInteractive(figure, block);
+    return figure;
+  }
+
   function renderScript(snapshot, categoryMap) {
     const scripts = Array.isArray(snapshot.scripts) ? snapshot.scripts : [];
     if (!scripts.length) {
@@ -754,7 +803,7 @@
       content.append(heading);
       const body = element('article', 'stage-body');
       for (const block of Array.isArray(script.blocks) ? script.blocks : []) {
-        body.append(block.kind === 'image' ? renderImageBlock(block) : renderTextBlock(block));
+        body.append(block.kind === 'image' ? renderImageBlock(block) : (block.kind === 'video' || block.kind === 'audio') ? renderMediaBlock(block) : renderTextBlock(block));
       }
       content.append(body);
     });
@@ -1174,7 +1223,7 @@
     node.classList.add('preview-selectable-block');
     node.tabIndex = 0;
     node.setAttribute('role', 'button');
-    const label = block.kind === 'image' ? '剧本插图' : text(block.text).trim().slice(0, 38);
+    const label = block.kind === 'image' ? '剧本插图' : block.kind === 'video' ? '短视频' : block.kind === 'audio' ? '音频' : text(block.text).trim().slice(0, 38);
     node.setAttribute('aria-label', '定位到：' + label);
     node.addEventListener('click', () => selectPreviewAnchor(block.id, nodePageIndex(node)));
     node.addEventListener('keydown', event => {
@@ -1767,6 +1816,19 @@
   document.fonts?.addEventListener?.('loadingdone', refreshPagination);
   new ResizeObserver(fitStage).observe(viewport);
   window.addEventListener('resize', fitStage);
+  // 媒体卡片事件委托：分页模式下块被 cloneNode 复制（不携带事件监听），委托可保证点击播放始终有效
+  document.addEventListener('click', (event) => {
+    const card = event.target && event.target.closest ? event.target.closest('.media-card') : null;
+    if (!card) return;
+    const figure = card.closest('figure.media-block');
+    const player = figure && figure.querySelector('audio, video');
+    if (!player) return;
+    event.preventDefault();
+    event.stopPropagation();
+    card.hidden = true;
+    player.hidden = false;
+    player.play().catch(() => {});
+  });
   scroll.addEventListener('wheel', manualIntent, {passive: true});
   scroll.addEventListener('touchstart', manualIntent, {passive: true});
   scroll.addEventListener('pointerdown', manualIntent, {passive: true});

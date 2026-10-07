@@ -106,6 +106,29 @@ class AiGeneratorTests(unittest.TestCase):
                                     headers={"X-CSRF-Token": self.token})
         self.assertEqual(response.status_code, 400)
 
+    # ---------- 一键测试连接 ----------
+
+    def test_test_connection_mock_ok(self):
+        result = self.json("POST", "/api/ai/test", {"platform": "mock"})
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["platform"], "mock")
+
+    def test_test_connection_byte_ali_missing_key_guidance(self):
+        # 未配置密钥时返回引导信息（不抛 5xx），帮助用户理解下一步
+        for platform in ("byte", "ali"):
+            result = self.json("POST", "/api/ai/test", {"platform": platform})
+            self.assertFalse(result["ok"])
+            self.assertIn("API Key", result["message"])
+
+    def test_status_exposes_platform_models(self):
+        status = self.json("GET", "/api/ai/status")
+        self.assertIn("platforms", status)
+        self.assertIn("byte", status["platforms"])
+        self.assertIn("seedance-2.0-pro", status["platforms"]["byte"]["models"])
+        self.assertIn("seedream-4.0", status["platforms"]["byte"]["image_models"])
+        self.assertIn("ali", status["platforms"])
+        self.assertIn("wanx2.1-imageplus", status["platforms"]["ali"]["image_models"])
+
     # ---------- 角色库 ----------
 
     def test_character_crud_and_uses(self):
@@ -139,7 +162,7 @@ class AiGeneratorTests(unittest.TestCase):
         media_file = self.root / "instance" / "media" / Path(card["image_file"]).name
         self.assertTrue(media_file.is_file())
 
-    # ---------- mock 生视频自动挂载 ----------
+    # ---------- mock 生视频自动插入段落 ----------
 
     def test_mock_video_task_auto_attach(self):
         character = self.json("POST", "/api/ai/characters", {"name": "甲", "description": "温柔的女主角"})
@@ -151,11 +174,19 @@ class AiGeneratorTests(unittest.TestCase):
         self.assertEqual(finished["status"], "succeeded", finished)
         library = self.client.get("/api/library").get_json()
         script = next(item for item in library["scripts"] if item["id"] == "script-a")
-        self.assertTrue(script.get("media"), "AI 视频应自动挂载到剧本媒体位")
-        self.assertEqual(script["media"]["cues"][0]["block_ids"], ["para-1"])
-        self.assertEqual(script["media"]["cues"][0]["at"], 0)
-        media_file = self.root / "instance" / "media" / Path(script["media"]["path"]).name
+        video_blocks = [b for b in script["blocks"] if b["kind"] == "video"]
+        self.assertTrue(video_blocks, "AI 视频应作为视频段落插入正文")
+        self.assertEqual(video_blocks[0]["source_file"], "AI 生成")
+        self.assertTrue(video_blocks[0]["media_path"].startswith("/media/"))
+        # 插入位置：紧跟在目标段落 para-1 之后
+        index = next(i for i, b in enumerate(script["blocks"]) if b["id"] == "para-1")
+        self.assertEqual(script["blocks"][index + 1]["kind"], "video")
+        self.assertEqual(script["blocks"][index + 1]["id"], video_blocks[0]["id"])
+        media_file = self.root / "instance" / "media" / Path(video_blocks[0]["media_path"]).name
         self.assertTrue(media_file.is_file())
+        # 剧本级配本媒体不被 AI 覆盖（仍为夹具预置的 sample.mp4）
+        self.assertEqual(script["media"]["name"], "sample.mp4")
+        self.assertEqual(script["media"]["cues"], [])
 
     # ---------- 开关与失败 ----------
 

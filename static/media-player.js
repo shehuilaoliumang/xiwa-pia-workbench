@@ -148,6 +148,10 @@
       this._on(this.media, 'loadedmetadata', () => {
         if (this._pendingPosition !== null) { const position = this._pendingPosition; this._pendingPosition = null; this._seekElement(position); }
         this._error = ''; this._refreshUI();
+        // 视频类型：预解码首帧画面，无需点击播放即可显示画面
+        if (this.root.dataset.mediaKind === 'video' && !this.playing && !this._pendingPosition && Number.isFinite(this.media.duration) && this.media.duration > 0 && this.media.currentTime === 0) {
+          try { this.media.currentTime = Math.min(0.01, Math.max(0, this.media.duration - 0.01)); } catch (_) {}
+        }
       });
       this._on(this.media, 'durationchange', () => this._refreshProgress());
       this._on(this.media, 'canplay', () => { if (!this._error) this._refreshUI(); });

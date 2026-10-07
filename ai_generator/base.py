@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import re
 import secrets
 import sqlite3
 import threading
@@ -22,14 +23,37 @@ DB_FILENAME = "ai_generator.sqlite3"
 OUTPUT_DIRNAME = "ai_output"
 SCHEMA_VERSION = "1"
 
+# 生成结果真实格式识别：不依赖扩展名，按文件头判断（供应商可能 jpeg 内容配 png 后缀）
+_IMAGE_MAGIC = (
+    (b"\x89PNG\r\n\x1a\n", ".png"),
+    (b"\xff\xd8\xff", ".jpg"),
+    (b"RIFF", ".webp"),  # RIFF....WEBP
+    (b"GIF87a", ".gif"),
+    (b"GIF89a", ".gif"),
+    (b"BM", ".bmp"),
+)
+
+
+def detect_image_ext(raw: bytes) -> str:
+    """按真实文件头返回图片扩展名（.png/.jpg/.webp/.gif/.bmp）；无法识别返回 .png。"""
+    for magic, ext in _IMAGE_MAGIC:
+        if magic == b"RIFF":
+            if raw[:4] == magic and raw[8:12] == b"WEBP":
+                return ext
+        elif raw.startswith(magic):
+            return ext
+    return ".png"
+
 DEFAULT_CONFIG = {
     "enabled": False,
     "default_ratio": "9:16",
     "default_duration": 10,
     "platforms": {
         "mock": {"model": "mock-v1", "api_key": "", "endpoint": ""},
-        "byte": {"model": "seedance-1.0-pro", "api_key": "", "endpoint": "https://ark.cn-beijing.volces.com/api/v3/"},
-        "ali": {"model": "wanx2.1-t2v-turbo", "api_key": "", "endpoint": "https://dashscope.aliyuncs.com/api/v1/"},
+        "byte": {"model": "seedance-2.0-pro", "api_key": "", "endpoint": "https://ark.cn-beijing.volces.com/api/v3/",
+                 "tts_api_key": ""},
+        "ali": {"model": "wanx2.1-t2v-turbo", "api_key": "", "endpoint": "https://dashscope.aliyuncs.com/api/v1/",
+                "workspace_id": ""},
     },
 }
 
@@ -43,6 +67,73 @@ def utcnow() -> str:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{secrets.token_hex(8)}"
+
+
+def _error_fields(text: str) -> tuple[str, str]:
+    """从平台报错文本里尽力提取 code 与英文 message；取不到就返回空。"""
+    match = re.search(r"\{.*\}", str(text or ""), re.S)
+    if not match:
+        return "", ""
+    try:
+        payload = json.loads(match.group(0))
+    except (ValueError, RecursionError):
+        return "", ""
+    error = payload.get("error") if isinstance(payload.get("error"), dict) else payload
+    code = str(error.get("code") or "")
+    message = str(error.get("message") or "")
+    return code, message
+
+
+def friendly_error(message: str) -> str:
+    """把平台英文/JSON 报错翻译成外行人友好的中文；无法识别时原样返回。"""
+    text = str(message or "")
+    if not text:
+        return text
+    code, raw_message = _error_fields(text)
+    lower = " ".join((code, raw_message, text)).lower()
+    model = re.search(r"已尝试模型[:：]\s*([^\s）)]+)", text)
+    model_note = f"（模型：{model.group(1)}）" if model else ""
+    head = text.split("：", 1)[0] if "：" in text else text.split(":", 1)[0]
+
+    if "accountoverdue" in lower or "overdue balance" in lower:
+        return (f"{head} · 账户欠费\n"
+                "你的火山引擎账户有逾期未结清的账单，平台已暂停生成服务。\n"
+                "请登录火山方舟控制台 → 费用中心，结清账单后再重试。"
+                f"{model_note}")
+    if "invalidendpointormodel" in lower or "modelnotopen" in lower or "not activated" in lower or "does not exist" in lower:
+        return (f"{head} · 模型未开通\n"
+                "这个模型在你的账号里还没有开通（或已下线）。\n"
+                "请登录火山方舟控制台 → 「开通管理」，开通对应模型后重试；"
+                "也可以回到「AI 生成设置」刷新模型列表，只保留已开通的模型。"
+                f"{model_note}")
+    if "setlimitexceeded" in lower or "usage limit" in lower:
+        return (f"{head} · 用量已达上限\n"
+                "该模型在你账号上的免费/安全体验额度已经用完，服务被暂停。\n"
+                "请到火山方舟控制台 → 模型开通页，调整或关闭「安全体验模式」后重试。"
+                f"{model_note}")
+    if "signaturedoesnotmatch" in lower or "signature" in lower and "401" in text:
+        return (f"{head} · 密钥校验失败\n"
+                "AccessKey / SecretKey 签名对不上，请检查 AI 设置里的密钥是否正确、"
+                "是否有遗漏或复制错字符。")
+    if "missingparameter" in lower and "content" in lower:
+        return (f"{head} · 缺少生成内容\n"
+                "请求缺少画面描述内容，请填写剧情描述后再生成。"
+                f"{model_note}")
+    if "does not support content generation" in lower:
+        return (f"{head} · 模型不支持此任务\n"
+                "这个模型不支持当前类型的生成（例如用图像模型生成视频）。\n"
+                "请在「AI 生成设置」中把视频/图像模型分别换成支持的模型。"
+                f"{model_note}")
+    if "url error" in lower or "please check url" in lower:
+        return (f"{head} · 服务未开通或地址有误\n"
+                "阿里百炼返回地址错误，通常是该模型尚未开通或服务地址变化。\n"
+                "请到阿里百炼控制台确认已开通对应模型服务，并在设置里刷新模型。"
+                f"{model_note}")
+    if "invalidapikey" in lower or "unauthorized" in lower or "authentication" in lower:
+        return (f"{head} · 密钥无效\n"
+                "API 密钥校验失败，请检查 AI 设置里的密钥是否正确、是否已过期。")
+    # 未识别：保留原始报错，但去掉过长的 Request id 以便阅读
+    return text
 
 
 class AiError(Exception):
@@ -121,6 +212,11 @@ def initialize_database(database: Path) -> None:
             """
         )
         connection.execute("INSERT OR REPLACE INTO meta VALUES('schema_version',?)", (SCHEMA_VERSION,))
+        # 配音任务的音色字段（老库无此列时补充）
+        try:
+            connection.execute("ALTER TABLE ai_tasks ADD COLUMN voice_type TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # 列已存在
 
 
 def load_config(database: Path) -> dict:
@@ -155,7 +251,11 @@ def save_config(database: Path, payload: dict) -> dict:
                 raise AiError(f"平台 {name} 不受支持。", 400, "unknown_platform")
             if not isinstance(values, dict):
                 raise AiError("平台配置格式无效。", 400, "invalid_platform")
-            current["platforms"][name].update({k: str(values[k]) for k in ("model", "api_key", "endpoint") if k in values})
+            current["platforms"][name].update({k: str(values[k]) for k in ("model", "image_model", "audio_model", "voice_model", "api_key", "endpoint", "ak", "sk", "tts_api_key", "workspace_id") if k in values})
+            if isinstance(values.get("models"), dict) and values["models"]:
+                current["platforms"][name]["models"] = values["models"]
+            if isinstance(values.get("unavailable_models"), list):
+                current["platforms"][name]["unavailable_models"] = [str(m) for m in values["unavailable_models"]]
     with db_scope(database) as connection:
         connection.execute(
             "INSERT INTO ai_config(key,data) VALUES('main',?) ON CONFLICT(key) DO UPDATE SET data=excluded.data",

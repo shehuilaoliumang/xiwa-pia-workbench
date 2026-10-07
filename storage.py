@@ -482,8 +482,8 @@ def normalize_script(data, existing=None, source_import=False):
         seen.add(block_id)
         old = old_blocks.get(block_id, {})
         kind = block.get("kind", "text")
-        if not isinstance(kind, str) or kind not in {"text", "image"}:
-            raise DomainError("正文只支持文字和图片段落。")
+        if not isinstance(kind, str) or kind not in {"text", "image", "video", "audio"}:
+            raise DomainError("正文只支持文字、图片和音视频段落。")
         source_block = block if source_import else old
         page = source_block.get("source_page")
         item = {"id": block_id, "kind": kind,
@@ -496,6 +496,17 @@ def normalize_script(data, existing=None, source_import=False):
             item["image_path"] = asset_path(block.get("image_path", ""))
             if not item["image_path"]:
                 raise DomainError("图片段落缺少本地图片路径。")
+        if kind in ("video", "audio"):
+            item["media_path"] = media_path(block.get("media_path", ""))
+            if not item["media_path"]:
+                raise DomainError("音视频段落缺少本地媒体路径。")
+            expected_kind = MEDIA_FORMATS[PurePosixPath(item["media_path"]).suffix][0]
+            if expected_kind != kind:
+                raise DomainError("音视频段落的媒体类型与段落类型不一致。")
+            item["media_name"] = text(block.get("media_name", ""), "媒体名称", 255, True)
+            item["media_size"] = number(block.get("media_size", 0), "媒体大小", 1, MEDIA_MAX_BYTES, True) if block.get("media_size") is not None else None
+            item["media_sha256"] = block.get("media_sha256") or PurePosixPath(item["media_path"]).stem
+            item["media_duration"] = media_duration(block.get("media_duration"))
         if "original_text" in source_block:
             item["original_text"] = text(source_block["original_text"], "来源原文", 200000)
         elif source_import:
@@ -549,8 +560,8 @@ def resources(value):
     found = set()
     if isinstance(value, dict):
         for key, child in value.items():
-            if key in {"background", "image_path", "path"} and child:
-                found.add(resource_path(child) if key == "path" else asset_path(child))
+            if key in {"background", "image_path", "media_path", "path"} and child:
+                found.add(resource_path(child) if key in {"path", "media_path"} else asset_path(child))
             else:
                 found.update(resources(child))
     elif isinstance(value, list):
@@ -561,7 +572,7 @@ def resources(value):
 
 def replace_resources(value, mapping):
     if isinstance(value, dict):
-        return {key: mapping.get(child, child) if key in {"background", "image_path", "path"} and isinstance(child, str)
+        return {key: mapping.get(child, child) if key in {"background", "image_path", "media_path", "path"} and isinstance(child, str)
                 else replace_resources(child, mapping) for key, child in value.items()}
     if isinstance(value, list):
         return [replace_resources(child, mapping) for child in value]
@@ -846,6 +857,47 @@ class Store:
         with self.transaction() as connection:
             return self._background_entries(connection)
 
+    def upload_block_media(self, stream, filename):
+        """Store a draft paragraph media (video/audio) without changing documents."""
+        name = text((filename or "").replace("\\", "/").rsplit("/", 1)[-1], "媒体名称", 255, True)
+        extension = PurePosixPath(name).suffix.lower()
+        if extension not in MEDIA_FORMATS:
+            raise DomainError("仅支持 MP4、WebM、MP3、WAV、M4A 和 OGG 音视频。", 400, "invalid_media")
+        temporary = self.media_dir / (".media-upload-" + uuid.uuid4().hex)
+        destination, created = None, False
+        try:
+            digest, size = hashlib.sha256(), 0
+            with temporary.open("xb") as output:
+                while chunk := stream.read(min(1024 * 1024, MEDIA_MAX_BYTES - size + 1)):
+                    size += len(chunk)
+                    if size > MEDIA_MAX_BYTES:
+                        raise DomainError("媒体文件超过 200 MB，请压缩后再上传。", 413, "media_too_large")
+                    digest.update(chunk)
+                    output.write(chunk)
+            with temporary.open("rb") as source:
+                kind = validate_media_stream(source, extension, size)
+            checksum = digest.hexdigest()
+            destination = self.media_dir / (checksum + extension)
+            with self.lock:
+                try:
+                    if destination.exists():
+                        with destination.open("rb") as existing:
+                            if destination.stat().st_size != size or hashlib.file_digest(existing, "sha256").hexdigest() != checksum:
+                                raise DomainError("已有同名媒体校验失败，请重试。", 409, "invalid_media")
+                    else:
+                        temporary.rename(destination)
+                        created = True
+                except Exception:
+                    if created:
+                        destination.unlink(missing_ok=True)
+                    raise
+            return {"path": "/media/" + destination.name, "kind": kind, "name": name,
+                    "size": size, "sha256": checksum, "duration": None}
+        except OSError as error:
+            raise DomainError("媒体保存失败，请检查存储空间后重试。", 503, "resource_write_failed") from error
+        finally:
+            temporary.unlink(missing_ok=True)
+
     def upload_script_image(self, stream, filename):
         """Store a draft image without changing documents, history or live state."""
         try:
@@ -1033,6 +1085,30 @@ class Store:
             self._script(connection, item)
             return item
 
+    def delete_script(self, item_id):
+        with self.transaction(write=True) as connection:
+            item = self._get(connection, "scripts", item_id)
+            if item.get("visible", True):
+                raise DomainError("请先隐藏剧本后再删除，避免误删。", 409, "script_not_hidden")
+            own = resources(item)
+            # 先移除该剧本自己的历史记录，避免自引用导致专属媒体无法清理
+            connection.execute("DELETE FROM history WHERE script_id=?", (item_id,))
+            referenced = set()
+            for row in connection.execute("SELECT data FROM scripts WHERE id<>?", (item_id,)):
+                referenced |= resources(json.loads(row[0]))
+            for row in connection.execute("SELECT data FROM history"):
+                referenced |= resources(json.loads(row[0]))
+            referenced |= resources(self._setting(connection, "state", empty_state()))
+            connection.execute("DELETE FROM scripts WHERE id=?", (item_id,))
+            removed = []
+            for path in sorted(own):
+                if path not in referenced:
+                    file = self.resource_file(path)
+                    if file.is_file():
+                        file.unlink(missing_ok=True)
+                        removed.append(path)
+            return {"ok": True, "removed": removed}
+
     def upload_script_media(self, item_id, stream, filename):
         name = text((filename or "").replace("\\", "/").rsplit("/", 1)[-1], "媒体名称", 255, True)
         extension = PurePosixPath(name).suffix.lower()
@@ -1090,6 +1166,87 @@ class Store:
                 self._record_history(connection, previous)
                 self._script(connection, item)
             # Historical records and frozen live snapshots retain their files.
+            return item
+
+    def insert_block_media(self, item_id, after_block_id, media, source="AI 生成"):
+        """Insert a video/audio paragraph block right after the target block (AI auto-attach or local upload)."""
+        media = dict(media)
+        media["path"] = media_path(media.get("path"))
+        media["kind"] = MEDIA_FORMATS[PurePosixPath(media["path"]).suffix][0]
+        media["name"] = text(media.get("name", ""), "媒体名称", 255, True)
+        media["size"] = number(media.get("size", 0), "媒体大小", 1, MEDIA_MAX_BYTES, True)
+        media["sha256"] = media.get("sha256") or PurePosixPath(media["path"]).stem
+        media["duration"] = media_duration(media.get("duration"))
+        with self.transaction(write=True) as connection:
+            previous = self._get(connection, "scripts", item_id)
+            item = copy.deepcopy(previous)
+            blocks = item.get("blocks", [])
+            if after_block_id:
+                index = next((i for i, block in enumerate(blocks) if block["id"] == after_block_id), None)
+                if index is None:
+                    raise DomainError("目标段落已不存在，无法插入音视频。", 409, "media_block_missing")
+            else:
+                index = len(blocks) - 1  # 追加到正文末尾
+            block = {"id": "block-" + uuid.uuid4().hex, "kind": media["kind"], "text": "", "role": "",
+                     "color": "#343b37", "source_page": None, "source_file": source,
+                     "media_path": media["path"], "media_name": media["name"], "media_size": media["size"],
+                     "media_sha256": media["sha256"], "media_duration": media["duration"]}
+            blocks.insert(index + 1, block)
+            item = normalize_script(item, previous)
+            for normalized in item["blocks"]:
+                if normalized["id"] == block["id"]:
+                    normalized["source_file"] = source
+            self._assert_assets(item)
+            self._record_history(connection, previous)
+            self._script(connection, item)
+            return item
+
+    def delete_block_media(self, item_id, block_id):
+        """删除指定音视频段落（video/audio），并清理时间点中的引用。"""
+        with self.transaction(write=True) as connection:
+            previous = self._get(connection, "scripts", item_id)
+            item = copy.deepcopy(previous)
+            blocks = item.get("blocks", [])
+            target = next((b for b in blocks if b["id"] == block_id), None)
+            if target is None:
+                raise DomainError("该段落已不存在。", 404, "block_missing")
+            if target["kind"] not in ("video", "audio"):
+                raise DomainError("仅可删除音视频段落。", 409, "block_not_media")
+            blocks[:] = [b for b in blocks if b["id"] != block_id]
+            # 清理时间点中对本段落的引用；引用清空的时间点一并移除
+            media = item.get("media")
+            if media:
+                for cue in media.get("cues", []):
+                    cue["block_ids"] = [bid for bid in cue.get("block_ids", []) if bid != block_id]
+                media["cues"] = [cue for cue in media.get("cues", []) if cue.get("block_ids")]
+            item = normalize_script(item, previous)
+            self._assert_assets(item)
+            self._record_history(connection, previous)
+            self._script(connection, item)
+            return item
+
+    def move_block(self, item_id, block_id, direction):
+        """上移/下移指定音视频段落在正文中的位置。direction: -1 上移 / +1 下移。"""
+        if direction not in (-1, 1):
+            raise DomainError("移动方向无效。", 400, "invalid_direction")
+        with self.transaction(write=True) as connection:
+            previous = self._get(connection, "scripts", item_id)
+            item = copy.deepcopy(previous)
+            blocks = item.get("blocks", [])
+            index = next((i for i, b in enumerate(blocks) if b["id"] == block_id), None)
+            if index is None:
+                raise DomainError("该段落已不存在。", 404, "block_missing")
+            target = blocks[index]
+            if target["kind"] not in ("video", "audio"):
+                raise DomainError("仅可调整音视频段落的位置。", 409, "block_not_media")
+            swap = index + direction
+            if swap < 0 or swap >= len(blocks):
+                raise DomainError("已在边缘，无法继续移动。", 409, "block_at_edge")
+            blocks[index], blocks[swap] = blocks[swap], blocks[index]
+            item = normalize_script(item, previous)
+            self._assert_assets(item)
+            self._record_history(connection, previous)
+            self._script(connection, item)
             return item
 
     def save_media_cues(self, item_id, data):

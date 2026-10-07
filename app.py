@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import HTTPException
 
-from storage import DomainError, Store, MEDIA_FORMATS, BACKGROUND_MAX_BYTES
+from storage import DomainError, Store, MEDIA_FORMATS, MEDIA_MAX_BYTES, BACKGROUND_MAX_BYTES
 from import_parser import parse_text, parse_upload
 from script_package import export_package, preview_package, import_package, PACKAGE_MAX_BYTES
 from script_merge import preview_backup, import_backup
@@ -195,6 +195,14 @@ def create_app(test_config=None):
             raise DomainError("请选择要添加到正文的图片。", 400, "invalid_image")
         return jsonify(store.upload_script_image(uploaded.stream, uploaded.filename)), 201
 
+    @application.post("/api/script-media")
+    def upload_block_media():
+        request.max_content_length = MEDIA_MAX_BYTES + 1024 * 1024
+        uploaded = request.files.get("file")
+        if not uploaded or not uploaded.filename:
+            raise DomainError("请选择要添加到正文的音视频。", 400, "invalid_media")
+        return jsonify(store.upload_block_media(uploaded.stream, uploaded.filename)), 201
+
     @application.post("/api/scripts")
     def create_script():
         return jsonify(store.save_script(body())), 201
@@ -202,6 +210,10 @@ def create_app(test_config=None):
     @application.patch("/api/scripts/<item_id>")
     def update_script(item_id):
         return jsonify(store.save_script(body(), item_id))
+
+    @application.delete("/api/scripts/<item_id>")
+    def delete_script(item_id):
+        return jsonify(store.delete_script(item_id))
 
     @application.get("/api/scripts/<item_id>/export")
     def export_script_package(item_id):
@@ -252,9 +264,31 @@ def create_app(test_config=None):
             raise DomainError("请选择要关联的本地音视频文件。")
         return jsonify(store.upload_script_media(item_id, uploaded.stream, uploaded.filename)), 201
 
+    @application.post("/api/scripts/<item_id>/blocks/media")
+    def insert_script_block_media(item_id):
+        request.max_content_length = 201 * 1024 * 1024
+        uploaded = request.files.get("file")
+        if not uploaded or not uploaded.filename:
+            raise DomainError("请选择要插入正文的音视频文件。")
+        asset = store.upload_block_media(uploaded.stream, uploaded.filename)
+        after = request.form.get("after_block_id") or None
+        return jsonify(store.insert_block_media(item_id, after, asset, source="用户新增")), 201
+
     @application.delete("/api/scripts/<item_id>/media")
     def delete_script_media(item_id):
         return jsonify(store.delete_script_media(item_id))
+
+    @application.delete("/api/scripts/<item_id>/blocks/<block_id>")
+    def delete_script_block_media(item_id, block_id):
+        return jsonify(store.delete_block_media(item_id, block_id))
+
+    @application.post("/api/scripts/<item_id>/blocks/<block_id>/move")
+    def move_script_block_media(item_id, block_id):
+        direction = body().get("direction")
+        step = 1 if direction == "down" else (-1 if direction == "up" else 0)
+        if step == 0:
+            raise DomainError("移动方向无效。", 400, "invalid_direction")
+        return jsonify(store.move_block(item_id, block_id, step))
 
     @application.put("/api/scripts/<item_id>/media/cues")
     def save_media_cues(item_id):

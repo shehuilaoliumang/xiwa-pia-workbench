@@ -35,7 +35,8 @@ MIMES = {**IMAGE_MIMES, **{ext: value[1] for ext, value in MEDIA_FORMATS.items()
 ASSET_RE = re.compile(r"assets/[0-9a-f]{64}\.(?:png|jpg|jpeg|webp|mp4|webm|mp3|wav|m4a|ogg)\Z")
 SCRIPT_FIELDS = {"id", "title", "author", "synopsis", "cast_note", "notes", "category_id", "visible", "tags",
                  "source_category", "source_pages", "blocks", "media", "role_colors"}
-BLOCK_FIELDS = {"id", "kind", "text", "role", "color", "source_page", "source_file", "original_text", "runs", "image_path"}
+BLOCK_FIELDS = {"id", "kind", "text", "role", "color", "source_page", "source_file", "original_text", "runs",
+                "image_path", "media_path", "media_name", "media_size", "media_sha256", "media_duration"}
 
 
 def invalid(message="请使用工作台导出的单篇剧本 ZIP；全库备份请到备份恢复页面操作。", status=400, code="invalid_script_package"):
@@ -102,6 +103,10 @@ def _normalize(value):
         identifier(block["id"], "段落 ID")
         if block.get("kind") != "image" and "image_path" in block:
             raise invalid("文字段落不能附带未使用的图片资源。")
+        if block.get("kind") not in ("video", "audio") and "media_path" in block:
+            raise invalid("非音视频段落不能附带未使用的媒体资源。")
+        if block.get("kind") in ("video", "audio") and "media_path" not in block:
+            raise invalid("音视频段落缺少媒体资源。")
         if "runs" in block:
             if not isinstance(block["runs"], list):
                 raise invalid("正文颜色片段格式无效。")

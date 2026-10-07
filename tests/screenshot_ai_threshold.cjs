@@ -1,0 +1,22 @@
+const { chromium } = require("playwright-core");
+(async () => {
+  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto("http://127.0.0.1:8878/manage", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1200);
+  const tab = page.locator("#tab-ai, [data-tab='ai'], .tabs button").first();
+  await tab.click();
+  await page.waitForTimeout(500);
+  const openBtn = page.locator("#open-ai-settings, #ai-open-settings, button:has-text('AI 生成设置')").first();
+  await openBtn.click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: "C:\\Users\\Lu\\Documents\\ChatGPT\\选本网页\\.qa\\ai-threshold\\01-ai-settings-guide.png" });
+  await page.evaluate(() => document.getElementById("ai-settings-dialog").close());
+  await page.waitForTimeout(300);
+  const charBtn = page.locator("#open-ai-characters, #ai-open-characters, button:has-text('角色形象库')").first();
+  await charBtn.click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: "C:\\Users\\Lu\\Documents\\ChatGPT\\选本网页\\.qa\\ai-threshold\\02-character-image-platform.png" });
+  await browser.close();
+  console.log("DONE");
+})().catch((e) => { console.error(e); process.exit(1); });

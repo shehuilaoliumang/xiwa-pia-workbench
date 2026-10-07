@@ -75,10 +75,10 @@
   }
   function renderRoles(){
     if(!current)return;
-    const names=[...new Set([...Object.keys(current.role_colors||{}),...current.blocks.filter(b=>b.kind!=='image').map(b=>String(b.role||'').trim()).filter(Boolean)])];
+    const names=[...new Set([...Object.keys(current.role_colors||{}),...current.blocks.filter(b=>b.kind==='text').map(b=>String(b.role||'').trim()).filter(Boolean)])];
     $('#editor-role-count').textContent='· '+names.length+' 个';
     const rows=names.map(name=>{
-      const matches=current.blocks.filter(b=>b.kind!=='image'&&String(b.role||'').trim()===name),configured=Object.hasOwn(current.role_colors||{},name),defaultColor=editor.roleColor(name);
+      const matches=current.blocks.filter(b=>b.kind==='text'&&String(b.role||'').trim()===name),configured=Object.hasOwn(current.role_colors||{},name),defaultColor=editor.roleColor(name);
       const exceptions=matches.filter(b=>(b.color||'').toLowerCase()!==defaultColor.toLowerCase()).length;
       const row=document.createElement('div');row.className='editor-role-row';
       const info=text('div','editor-role-info','');info.append(text('strong','',name),text('small','muted',matches.length+' 句 · '+(configured?'已设置默认色':'沿用正文首色')+(exceptions?' · '+exceptions+' 句使用不同颜色':'')));
@@ -150,7 +150,7 @@
     try{
       if(clear){editor.removeRoleColor(clear.dataset.roleClear);return;}
       if(!unify||editor.isBusy())return;
-      const name=unify.dataset.roleUnify,scriptId=current.script_id,count=current.blocks.filter(b=>b.kind!=='image'&&String(b.role||'').trim()===name).length;
+      const name=unify.dataset.roleUnify,scriptId=current.script_id,count=current.blocks.filter(b=>b.kind==='text'&&String(b.role||'').trim()===name).length;
       if(!count){$('#editor-role-status').textContent='此角色尚无台词，新增句子选用后会继承默认色。';return;}
       if(!await editor.confirm('统一 '+name+' 的 '+count+' 句台词颜色？','将按默认色更新本角色所有句子，包括单句特殊色和原有多色片段。仅作用于草稿，可撤销；保存后才正式生效。',{label:'统一这 '+count+' 句'}))return;
       if(!dialog.open||current.script_id!==scriptId||editor.isBusy())return;
@@ -165,10 +165,10 @@
       if(stable(old[field]??(field==='role_colors'?{}:''))!==stable(now[field]??(field==='role_colors'?{}:''))){const row=text('div','editor-version-field','');row.append(text('strong','',label),text('pre','',typeof old[field]==='object'?JSON.stringify(old[field]||{}):String(old[field]??'')),text('pre','',typeof now[field]==='object'?JSON.stringify(now[field]||{}):String(now[field]??'')));changes.push(row);}
     }
     const oldBlocks=old.blocks||[],newBlocks=now.blocks||[],oldBy=new Map(oldBlocks.map(b=>[b.id,b])),newBy=new Map(newBlocks.map(b=>[b.id,b]));
-    const blockSignature=block=>stable(block.kind==='image'?{kind:'image',image_path:block.image_path}:{kind:'text',role:block.role||'',text:block.text||'',color:block.color||'',runs:block.runs||[]});
+    const blockSignature=block=>stable(block.kind==='image'?{kind:'image',image_path:block.image_path}:block.kind==='video'||block.kind==='audio'?{kind:block.kind,media_path:block.media_path}:{kind:'text',role:block.role||'',text:block.text||'',color:block.color||'',runs:block.runs||[]});
     const added=newBlocks.filter(b=>!oldBy.has(b.id)),removed=oldBlocks.filter(b=>!newBy.has(b.id)),modified=newBlocks.filter(b=>oldBy.has(b.id)&&blockSignature(b)!==blockSignature(oldBy.get(b.id)));
     panel.append(text('p','help','正文：新增 '+added.length+' 段，移除 '+removed.length+' 段，修改 '+modified.length+' 段。'+(stable(oldBlocks.map(b=>b.id))!==stable(newBlocks.map(b=>b.id))?'段落顺序或数量有变化。':'')));
-    function blockText(block){return block.kind==='image'?'[图片] '+block.image_path:(block.role?'【'+block.role+'】 ':'')+(block.text||'')+'\n配色：'+(block.color||'未指定')+(block.runs?.length?'\n原文片段：\n'+block.runs.map(run=>'「'+(run.text||'')+'」 '+(run.color||'未指定')).join('\n'):'');}
+    function blockText(block){return block.kind==='image'?'[图片] '+block.image_path:block.kind==='video'||block.kind==='audio'?'['+(block.kind==='video'?'视频':'音频')+'] '+(block.media_name||block.media_path):(block.role?'【'+block.role+'】 ':'')+(block.text||'')+'\n配色：'+(block.color||'未指定')+(block.runs?.length?'\n原文片段：\n'+block.runs.map(run=>'「'+(run.text||'')+'」 '+(run.color||'未指定')).join('\n'):'');}
     for(const b of [...removed,...added,...modified]){const row=text('div','editor-version-field','');row.append(text('strong','',!newBy.has(b.id)?'移除段落':!oldBy.has(b.id)?'新增段落':'段落修改'),text('pre','',oldBy.has(b.id)?blockText(oldBy.get(b.id)):'（无）'),text('pre','',newBy.has(b.id)?blockText(newBy.get(b.id)):'（无）'));changes.push(row);}
     if(!changes.length)panel.append(text('p','help','资料字段和正文与当前草稿相同。音视频设置会以所选历史版本为准。'));else panel.append(...changes);
     const button=text('button','button secondary','恢复此已保存版本');button.type='button';button.id='editor-history-restore';button.addEventListener('click',restoreVersion);panel.append(button);controls();

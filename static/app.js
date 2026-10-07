@@ -114,6 +114,7 @@
 
   function appendBlock(container, block, stage = false) {
     if (block.kind === 'image') { const src = media(block.image_path); if (!src) return; const figure = document.createElement('figure'); figure.className = 'image-block'; figure.id = block.id; const img = new Image(); img.src = src; img.alt = '剧本插图'; const caption = document.createElement('figcaption'); caption.textContent = '剧本插图'; figure.append(img,caption); container.append(figure); return; }
+    if (block.kind === 'video' || block.kind === 'audio') { const src = media(block.media_path); if (!src) return; const figure = document.createElement('figure'); figure.className = 'media-block ' + block.kind + '-block'; figure.id = block.id; if (block.kind === 'video') { const video = document.createElement('video'); video.controls = true; video.preload = 'metadata'; video.playsInline = true; video.src = src; video.dataset.mediaPlayer = '1'; video.addEventListener('loadedmetadata', () => { try { if (video.currentTime === 0 && Number.isFinite(video.duration) && video.duration > 0) video.currentTime = Math.min(0.01, Math.max(0, video.duration - 0.01)); } catch (_) {} }); figure.append(video); } else { const card = document.createElement('button'); card.type = 'button'; card.className = 'media-card'; const icon = document.createElement('span'); icon.className = 'media-card-icon'; icon.textContent = '♪'; const info = document.createElement('span'); info.className = 'media-card-info'; const name = document.createElement('strong'); name.textContent = block.media_name || '音频'; const meta = document.createElement('small'); meta.textContent = '音频 · 点击播放'; info.append(name, meta); const hint = document.createElement('span'); hint.className = 'media-card-hint'; hint.textContent = '播放'; card.append(icon, info, hint); const player = document.createElement('audio'); player.controls = true; player.preload = 'auto'; player.src = src; player.hidden = true; player.dataset.mediaPlayer = '1'; figure.append(card, player); card.addEventListener('click', () => { card.hidden = true; player.hidden = false; player.play().catch(() => {}); }); } const caption = document.createElement('figcaption'); caption.textContent = block.kind === 'video' ? '短视频' : '音频'; figure.append(caption); container.append(figure); return; }
     const el = document.createElement('div'); el.id = block.id; el.className = 'text-block'; if (block.role) { el.classList.add('role-line'); const label=document.createElement('span'); label.className='role-label'; label.textContent=block.role; el.append(label); }
     el.style.setProperty('--role-color', color(block.color, '#4b443a'));
     const paragraph=document.createElement('div'); paragraph.className='block-text';
@@ -545,6 +546,14 @@
         if(!lastPreview||data.snapshot_id!==lastPreview.id||!validPreviewAnchor(data.anchor)||typeof data.playing!=='boolean'||!['render','interaction'].includes(data.reason))return;
         previewPositions.set(data.snapshot_id,{anchor:data.anchor,playing:data.playing,page_index:Number.isInteger(data.page_index)?data.page_index:null,media_state:data.media_state});
         if(data.reason==='interaction'&&verifiedPayload)noteRealtimeIntent();
+        // 双向：预览里的媒体交互（播放/暂停/进度/台词切换）实时指挥展示窗口——
+        // 前提是预览内容已经上屏（实时绑定中，或此前手动应用过同一快照）；
+        // 尚未上屏时保持「逐步应用」语义，避免草稿被意外整体上屏。
+        if(data.reason==='interaction'&&data.media_state&&previewReady()&&(activePreviewBinding()||liveState?.snapshot?.id===lastPreview.id)){
+          const job=makeApplyJob(data.anchor,data.playing===true,true,false);
+          if(job){queuedApply=job;pendingRealtimeIntent=false;void drainApplyQueue();}
+          return;
+        }
         queueLatestRealtime();return;
       }
       if(data.type==='pia-preview-tools'){
@@ -627,7 +636,14 @@
     liveChannel?.addEventListener('message',task(async event=>{
       const data=event.data;
       if(data?.type==='display-health'){receiveDisplayHealth(data);return;}
-      if(data?.type==='state'&&data.state?.snapshot?.id===liveState?.snapshot?.id&&Number.isSafeInteger(data.state.revision)){renderLive(data.state);return;}
+      if(data?.type==='state'&&data.state?.snapshot?.id===liveState?.snapshot?.id&&Number.isSafeInteger(data.state.revision)){renderLive(data.state);
+        // 双向：展示窗口（观众屏）内的媒体操作会广播 state，预览模块同步跟随，
+        // 让控播台预览始终反映观众屏当前播放位置（remote 更新不会回传，无循环）。
+        // 仅当预览内容已上屏（同一快照）时转发，避免把展示状态套到不匹配的草稿预览上。
+        if(data.state.media_state&&previewReady()&&frameReady&&liveState?.snapshot?.id===lastPreview.id){
+          $('#preview-frame').contentWindow.postMessage({type:'pia-preview-follow-command',snapshot_id:lastPreview.id,action:'media',anchor:data.state.anchor??null,page_index:data.state.page_index??null,media_state:data.state.media_state,playing:data.state.playing,speed:data.state.speed},location.origin);
+        }
+        return;}
       if(!data||!['page-report','page-status'].includes(data.type)||data.snapshot_id!==liveState?.snapshot?.id||data.revision!==liveState.revision||!Number.isInteger(data.page_index)||!Number.isInteger(data.page_count)||data.page_index<0||data.page_index>=data.page_count||data.page_count>100000)return;
       if(data.type==='page-status'){livePageInfo=data;renderLivePages();return;}
       if(!pendingPageRequest||data.request_id!==pendingPageRequest.request_id||data.snapshot_id!==pendingPageRequest.snapshot_id||data.revision!==pendingPageRequest.revision)return;
@@ -692,7 +708,7 @@
   function renderManagedScripts() {
     const q=$('#manage-script-search').value.toLowerCase().trim(),cat=$('#manage-category-filter').value,filter=$('#manage-visible-filter').value;
     const scripts=library.scripts.filter(s=>(!q||[s.title,s.author,s.synopsis,s.cast_note].join(' ').toLowerCase().includes(q))&&(!cat||s.category_id===cat)&&(!filter||(filter==='visible')===visible(s.visible)));
-    $('#manage-script-list').innerHTML=scripts.length?scripts.map(s=>`<article class="manage-script-row"><div><h3><a href="/script/${encodeURIComponent(s.id)}">${esc(s.title)}</a></h3><p>${esc(s.author||'作者 / 来源未提供')}</p></div><div class="script-meta"><p>${esc(category(s.category_id)?.name||'未分类')}</p><p>${esc(str(s.cast_note).slice(0,65))}</p></div><span class="visibility${visible(s.visible)?'':' hidden-state'}">${visible(s.visible)?'● 显示中':'○ 已隐藏'}</span><div class="button-row"><a class="button secondary" href="/script/${encodeURIComponent(s.id)}/media">音视频</a><button class="button secondary" data-edit-script="${esc(s.id)}">编辑</button><a class="button secondary" href="/api/scripts/${encodeURIComponent(s.id)}/export" download data-export-script="${esc(s.id)}" aria-label="导出 ${esc(s.title)}">导出</a><button class="button secondary" data-toggle-script="${esc(s.id)}">${visible(s.visible)?'隐藏':'恢复显示'}</button></div></article>`).join(''):empty('暂无符合条件的剧本','可调整筛选，或新增剧本。');
+    $('#manage-script-list').innerHTML=scripts.length?scripts.map(s=>`<article class="manage-script-row"><div><h3><a href="/script/${encodeURIComponent(s.id)}">${esc(s.title)}</a></h3><p>${esc(s.author||'作者 / 来源未提供')}</p></div><div class="script-meta"><p>${esc(category(s.category_id)?.name||'未分类')}</p><p>${esc(str(s.cast_note).slice(0,65))}</p></div><span class="visibility${visible(s.visible)?'':' hidden-state'}">${visible(s.visible)?'● 显示中':'○ 已隐藏'}</span><div class="button-row"><a class="button secondary" href="/script/${encodeURIComponent(s.id)}/media">音视频</a><button class="button secondary" data-edit-script="${esc(s.id)}">编辑</button><a class="button secondary" href="/api/scripts/${encodeURIComponent(s.id)}/export" download data-export-script="${esc(s.id)}" aria-label="导出 ${esc(s.title)}">导出</a><button class="button secondary" data-toggle-script="${esc(s.id)}">${visible(s.visible)?'隐藏':'恢复显示'}</button>${visible(s.visible)?'':`<button class="button secondary danger" data-delete-script="${esc(s.id)}">删除</button>`}</div></article>`).join(''):empty('暂无符合条件的剧本','可调整筛选，或新增剧本。');
   }
   function renderManagedCategories() {
     const q=$('#manage-category-search').value.toLowerCase().trim(),cats=library.categories.filter(c=>!q||c.name.toLowerCase().includes(q));
@@ -734,6 +750,7 @@
     const busy=editorBusy();
     $('#body-editor').setAttribute('aria-busy',String(busy));
     $('#add-image-block').disabled=busy;
+    $('#add-media-block').disabled=busy;
     $('#open-import-editor').disabled=busy;
     $('#script-form button[type="submit"]').disabled=busy;
     $('#add-block').disabled=busy;
@@ -742,11 +759,14 @@
       const i=editingBlocks.findIndex(b=>b.id===button.dataset.blockMove),to=i+Number(button.dataset.delta);
       button.disabled=busy||to<0||to>=editingBlocks.length;
     });
-    $$('.body-editor-row [data-remove-block],.body-editor-row [data-replace-image],.body-editor-row [data-add-image-after]').forEach(button=>button.disabled=busy);
+    $$('.body-editor-row [data-remove-block],.body-editor-row [data-replace-image],.body-editor-row [data-add-image-after],.body-editor-row [data-replace-media],.body-editor-row [data-add-media-after]').forEach(button=>button.disabled=busy);
     editorEvent('busy');
   }
   function imageStatus(message,error=false){
     const status=$('#script-image-status');status.textContent=message;status.classList.toggle('error',error);
+  }
+  function mediaStatus(message,error=false){
+    const status=$('#script-media-status');status.textContent=message;status.classList.toggle('error',error);
   }
   function focusEditorBlock(id){
     const row=$$('.body-editor-row').find(node=>node.dataset.blockId===id);
@@ -789,9 +809,47 @@
       if(imageUploadRequest===request){imageUploadRequest=null;updateImageControls();}
     }
   }
+  let mediaUploadRequest=null, mediaPick=null;
+  function mediaUploadActive(){return mediaUploadRequest?.session===editorSession;}
+  function pickScriptMedia(mode='append',blockId=null){
+    if(editorBusy())return;
+    mediaPick={session:editorSession,mode,blockId};
+    const input=$('#script-media-file');input.value='';input.click();
+  }
+  async function uploadScriptMedia(file,pick){
+    if(!file||!pick||pick.session!==editorSession||!$('#script-dialog').open)return;
+    if(file.size>200*1024*1024){mediaStatus('单个音视频不能超过 200 MB，请压缩后重试。',true);return;}
+    if(!/\.(mp4|webm|mp3|wav|m4a|ogg)$/i.test(file.name)){mediaStatus('请选择 MP4、WebM、MP3、WAV、M4A 或 OGG 音视频。',true);return;}
+    const request={...pick};mediaUploadRequest=request;updateImageControls();mediaStatus('正在上传并检查音视频…');
+    try{
+      const form=new FormData();form.append('file',file);
+      const asset=await api('/api/script-media',form);
+      if(request.session!==editorSession||!$('#script-dialog').open)return;
+      if(!media(asset.path))throw new Error('音视频上传结果无效，请重新选择。');
+      let block;
+      if(request.mode==='replace'){
+        block=editingBlocks.find(b=>b.id===request.blockId&&(b.kind==='video'||b.kind==='audio'));
+        if(!block)throw new Error('原音视频段落已移除，请重新添加。');
+        block.kind=asset.kind;block.media_path=asset.path;block.media_name=asset.name;block.media_size=asset.size;block.media_sha256=asset.sha256;block.media_duration=asset.duration;
+      }else{
+        block={id:'block-'+crypto.randomUUID(),kind:asset.kind,media_path:asset.path,media_name:asset.name,media_size:asset.size,media_sha256:asset.sha256,media_duration:asset.duration,source_page:null,source_file:''};
+        if(request.mode==='after'){
+          const index=editingBlocks.findIndex(b=>b.id===request.blockId);
+          if(index<0)throw new Error('原段落已移除，请重新选择插入位置。');
+          editingBlocks.splice(index+1,0,block);
+        }else editingBlocks.push(block);
+      }
+      $('#body-editor-details').open=true;renderBlockEditor();focusEditorBlock(block.id);editorChanged('media');
+      mediaStatus((request.mode==='replace'?'音视频已替换':'音视频已加入草稿')+'，点击“保存剧本”后生效。');
+    }catch(err){
+      if(request.session===editorSession&&$('#script-dialog').open)mediaStatus('音视频未添加：'+err.message,true);
+    }finally{
+      if(mediaUploadRequest===request){mediaUploadRequest=null;updateImageControls();}
+    }
+  }
   function renderBlockEditor() {
     $('#edit-block-count').textContent=`· ${editingBlocks.length} 段`;
-    $('#body-editor').innerHTML=editingBlocks.map((b,i)=>`<div class="body-editor-row" data-block-index="${i}" data-block-id="${esc(b.id)}"><div class="body-editor-heading"><span>段落 ${i+1} · ${b.kind==='image'?'图片':'文字'}</span><div class="body-editor-row-actions"><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="-1" aria-label="上移第 ${i+1} 段">↑ 上移</button><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="1" aria-label="下移第 ${i+1} 段">↓ 下移</button><button type="button" class="icon-button" data-remove-block="${i}" aria-label="移除第 ${i+1} 段">移除</button></div></div>${b.kind==='image'?`<button type="button" class="script-image-thumbnail" data-preview-script-image="${esc(b.id)}" aria-label="查看第 ${i+1} 段图片大图"><img src="${esc(media(b.image_path))}" alt="剧本插图"><span>点击查看大图</span></button><div class="body-image-actions"><button type="button" class="button secondary small" data-replace-image="${esc(b.id)}">替换图片</button></div>`:`<div class="body-editor-fields"><input data-block-role="${i}" list="script-role-options" autocomplete="off" value="${esc(b.role||'')}" placeholder="角色标签（可空）" aria-label="第 ${i+1} 段角色"><input data-block-color="${i}" type="color" value="${color(b.color,'#4b443a')}" aria-label="第 ${i+1} 段配色"></div><textarea data-block-text="${i}" rows="${Math.min(8,Math.max(2,Math.ceil((b.text||'').length/70)))}" aria-label="第 ${i+1} 段正文">${esc(b.text||'')}</textarea>`}<button type="button" class="body-insert-image" data-add-image-after="${esc(b.id)}">＋ 在此段后添加图片</button></div>`).join('');updateRoleOptions();updateImageControls();
+    $('#body-editor').innerHTML=editingBlocks.map((b,i)=>`<div class="body-editor-row" data-block-index="${i}" data-block-id="${esc(b.id)}"><div class="body-editor-heading"><span>段落 ${i+1} · ${b.kind==='image'?'图片':b.kind==='video'?'视频':b.kind==='audio'?'音频':'文字'}</span><div class="body-editor-row-actions"><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="-1" aria-label="上移第 ${i+1} 段">↑ 上移</button><button type="button" class="icon-button" data-block-move="${esc(b.id)}" data-delta="1" aria-label="下移第 ${i+1} 段">↓ 下移</button><button type="button" class="icon-button" data-remove-block="${i}" aria-label="移除第 ${i+1} 段">移除</button></div></div>${b.kind==='image'?`<button type="button" class="script-image-thumbnail" data-preview-script-image="${esc(b.id)}" aria-label="查看第 ${i+1} 段图片大图"><img src="${esc(media(b.image_path))}" alt="剧本插图"><span>点击查看大图</span></button><div class="body-image-actions"><button type="button" class="button secondary small" data-replace-image="${esc(b.id)}">替换图片</button></div>`:b.kind==='video'||b.kind==='audio'?`<div class="script-media-card"><span class="script-media-icon">${b.kind==='video'?'▶':'♪'}</span><div class="script-media-info"><strong>${esc(b.media_name||(b.kind==='video'?'视频':'音频')+' 段落')}</strong><p>${b.kind==='video'?'视频':'音频'}${b.media_size?' · '+Math.max(1,Math.round(b.media_size/1048576))+' MB':''}</p></div><button type="button" class="button secondary small" data-replace-media="${esc(b.id)}">替换</button></div>`:`<div class="body-editor-fields"><input data-block-role="${i}" list="script-role-options" autocomplete="off" value="${esc(b.role||'')}" placeholder="角色标签（可空）" aria-label="第 ${i+1} 段角色"><input data-block-color="${i}" type="color" value="${color(b.color,'#4b443a')}" aria-label="第 ${i+1} 段配色"></div><textarea data-block-text="${i}" rows="${Math.min(8,Math.max(2,Math.ceil((b.text||'').length/70)))}" aria-label="第 ${i+1} 段正文">${esc(b.text||'')}</textarea>`}<button type="button" class="body-insert-image" data-add-image-after="${esc(b.id)}">＋ 在此段后添加图片</button><button type="button" class="body-insert-media" data-add-media-after="${esc(b.id)}">＋ 在此段后添加音视频</button></div>`).join('');updateRoleOptions();updateImageControls();
   }
   function openScript(id) {
     if(editorBusy()){toast('正在处理当前草稿，请稍后切换剧本。',true);return;}
@@ -843,7 +901,23 @@
         $('#body-editor-details').open=true;renderBlockEditor();editorChanged('import');toast('内容已填入草稿，检查后点击保存剧本。');
       }
     };
-    $$('[data-tab]').forEach(button=>button.addEventListener('click',()=>{$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));['scripts','categories','backgrounds','backup'].forEach(id=>{$('#manage-'+id).hidden=id!==button.dataset.tab;});}));
+    $$('[data-tab]').forEach(button=>button.addEventListener('click',()=>{$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));['scripts','categories','backgrounds','backup','ai'].forEach(id=>{$('#manage-'+id).hidden=id!==button.dataset.tab;});}));
+    $('#tab-ai').addEventListener('click',()=>refreshAiPanelStatus());
+    async function refreshAiPanelStatus(){
+      const status=$('#ai-panel-status');if(!status)return;
+      status.textContent='正在读取 AI 状态…';
+      try{
+        const config=await (await fetch('/api/ai/config')).json();
+        const chars=await (await fetch('/api/ai/characters')).json();
+        const tasks=await (await fetch('/api/ai/tasks')).json();
+        const roles=(chars.characters||[]).length;
+        const queue=(tasks.tasks||[]).filter(t=>['pending','running','queued','waiting'].includes(t.status)).length;
+        const cfg=config.config||{};
+        const enabled=cfg.enabled?'已启用':'未启用';
+        const keyed=Object.keys(cfg.platforms||{}).filter(k=>(cfg.platforms[k]||{}).api_key).length;
+        status.textContent=`AI 生成${enabled} · ${keyed?keyed+' 个平台已配密钥':'未配置平台密钥'} · 角色形象 ${roles} 个 · 排队任务 ${queue} 个`;
+      }catch(err){status.textContent='AI 状态读取失败：'+err.message;}
+    }
     $('#tab-backgrounds').addEventListener('click',task(()=>refreshBackgrounds()));
     $('#category-background').addEventListener('change',showCategoryBackground);
     $('#background-upload-form').addEventListener('submit',async event=>{
@@ -866,19 +940,26 @@
       const editCat=e.target.closest('[data-edit-category]');if(editCat)openCategory(editCat.dataset.editCategory);
       const edit=e.target.closest('[data-edit-script]');if(edit)openScript(edit.dataset.editScript);
       const toggle=e.target.closest('[data-toggle-script]');if(toggle){const s=byId(toggle.dataset.toggleScript);await api('/api/scripts/'+encodeURIComponent(s.id),{visible:!visible(s.visible)},'PATCH');await refreshLibrary();toast(visible(s.visible)?'剧本已隐藏，可随时恢复。':'剧本已恢复显示。');}
+      const del=e.target.closest('[data-delete-script]');if(del){const s=byId(del.dataset.deleteScript);const confirmed=await confirmAction('删除剧本“'+s.title+'”？','删除后不可恢复：正文、配本与仅该剧本使用的媒体文件都会一并移除。只有已隐藏的剧本可以删除，请再次确认。',{label:'确认删除'});if(confirmed!==null){await api('/api/scripts/'+encodeURIComponent(s.id),undefined,'DELETE');await refreshLibrary();toast('剧本已删除。');}}
       const remove=e.target.closest('[data-delete-category]');if(remove){const c=category(remove.dataset.deleteCategory),count=library.scripts.filter(s=>s.category_id===c.id).length;const target=await confirmAction('删除“'+c.name+'”？',count?`这个分类中有 ${count} 篇剧本（含隐藏）。请选择承接分类，剧本会先转移，不会被删除。`:'这是一个空分类，删除后可重新创建。已上屏画面保持不变。',{label:'确认删除',choices:count?library.categories.filter(x=>x.id!==c.id&&visible(x.visible)).map(x=>({value:x.id,label:x.name})):null});if(target!==null){await api('/api/categories/'+encodeURIComponent(c.id),{target_id:typeof target==='string'?target:'uncategorized'},'DELETE');await refreshLibrary();toast('分类已删除，关联剧本已保留。');}}
       const move=e.target.closest('[data-category-move]');if(move){const ids=library.categories.map(c=>c.id),i=ids.indexOf(move.dataset.categoryMove),j=i+Number(move.dataset.delta);if(j>=0&&j<ids.length){[ids[i],ids[j]]=[ids[j],ids[i]];await reorderCategories(ids);}}
       const removeBlock=e.target.closest('[data-remove-block]');if(removeBlock&&!removeBlock.disabled){const session=editorSession,blockId=editingBlocks[Number(removeBlock.dataset.removeBlock)]?.id;if(await confirmAction('移除正文段落？','移除仅在保存剧本后生效。原始 PPT 证据不会改变。',{label:'移除此段'})){const index=editingBlocks.findIndex(b=>b.id===blockId);if(session===editorSession&&index>=0&&!editorBusy()){editingBlocks.splice(index,1);renderBlockEditor();editorChanged('remove');}}}
     }));
     $('#category-form').addEventListener('submit',async e=>{e.preventDefault();const id=$('#category-id').value,data={name:$('#category-name').value.trim(),description:$('#category-description-input').value,color:$('#category-color').value,background:$('#category-background').value,visible:$('#category-visible').checked};try{await api('/api/categories'+(id?'/'+encodeURIComponent(id):''),data,id?'PATCH':'POST');$('#category-dialog').close();await refreshLibrary();toast('分类已保存；当前上屏内容保持不变。');}catch(err){$('#category-error').textContent=err.message;}});
     click('#add-image-block',()=>pickScriptImage());
+    click('#add-media-block',()=>pickScriptMedia());
     $('#script-image-file').addEventListener('change',()=>{
       const pick=imagePick;imagePick=null;
       const file=$('#script-image-file').files[0];$('#script-image-file').value='';
       if(!imageUploadActive())uploadScriptImage(file,pick);
     });
+    $('#script-media-file').addEventListener('change',()=>{
+      const pick=mediaPick;mediaPick=null;
+      const file=$('#script-media-file').files[0];$('#script-media-file').value='';
+      if(!mediaUploadActive())uploadScriptMedia(file,pick);
+    });
     $('#script-dialog').addEventListener('close',()=>{
-      editorEvent('close');editorSession=crypto.randomUUID();imagePick=null;
+      editorEvent('close');editorSession=crypto.randomUUID();imagePick=null;mediaPick=null;
       $('#script-image-preview-dialog').close();updateImageControls();
     });
     $('#script-dialog').addEventListener('cancel',event=>{if(editorBusy()){event.preventDefault();toast('操作正在进行，请完成后再关闭草稿。',true);}});
@@ -887,7 +968,9 @@
       if(preview){const block=editingBlocks.find(b=>b.id===preview.dataset.previewScriptImage);if(block){$('#script-image-preview').src=media(block.image_path);$('#script-image-preview-dialog').showModal();}return;}
       if(editorBusy())return;
       const replace=event.target.closest('[data-replace-image]');if(replace){pickScriptImage('replace',replace.dataset.replaceImage);return;}
+      const replaceMedia=event.target.closest('[data-replace-media]');if(replaceMedia){pickScriptMedia('replace',replaceMedia.dataset.replaceMedia);return;}
       const insert=event.target.closest('[data-add-image-after]');if(insert){pickScriptImage('after',insert.dataset.addImageAfter);return;}
+      const insertMedia=event.target.closest('[data-add-media-after]');if(insertMedia){pickScriptMedia('after',insertMedia.dataset.addMediaAfter);return;}
       const move=event.target.closest('[data-block-move]');
       if(move&&!move.disabled){const i=editingBlocks.findIndex(b=>b.id===move.dataset.blockMove),j=i+Number(move.dataset.delta);if(i>=0&&j>=0&&j<editingBlocks.length){[editingBlocks[i],editingBlocks[j]]=[editingBlocks[j],editingBlocks[i]];renderBlockEditor();focusEditorBlock(move.dataset.blockMove);editorChanged('move');}}
     });

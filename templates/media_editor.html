@@ -4,6 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='media-editor.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='ai.css') }}">
+<script src="{{ url_for('static', filename='pia-confirm.js') }}" defer></script>
 <script src="{{ url_for('static', filename='media-editor.js') }}" defer></script>
 <script src="{{ url_for('static', filename='ai-media.js') }}" defer></script>
 <div id="media-editor" data-script-id="{{ script_id }}">
@@ -17,9 +18,16 @@
         <div id="media-player-wrap" class="media-player-wrap"><div class="media-player-empty"><span>♫</span><strong>先选择一段音频或视频</strong><p>文件会保存在本机。拖动播放器进度条，找到要配台词的位置。</p></div></div>
         <p id="media-file-name" class="media-file-name">支持选择本地音频或视频文件。</p>
         <label class="field media-upload-field">选择文件<input id="media-upload-file" type="file" accept="audio/*,video/*,.mp4,.webm,.mp3,.wav,.ogg,.m4a"></label>
+        <div id="media-upload-dest" class="media-upload-dest" hidden>
+          <div class="media-dest-options" role="radiogroup" aria-label="上传后放到哪里">
+            <label><input type="radio" name="media-dest" value="script" checked>关联整本配本（从头到尾走本）</label>
+            <label><input type="radio" name="media-dest" value="block">插入到正文段落</label>
+          </div>
+          <label id="media-block-target-wrap" class="field" hidden>插入到哪个段落后<select id="media-block-target"><option value="">追加到正文末尾</option></select></label>
+        </div>
         <div class="media-upload-actions"><button id="media-upload" class="button secondary" type="button" disabled>上传并关联</button><button id="media-remove" class="button secondary" type="button" hidden>解除关联</button></div>
         <p id="media-upload-status" class="help" role="status" aria-live="polite">上传后可开始标记时间。</p>
-        <div class="media-ai-row"><span class="media-ai-badge">AI 生成</span><p class="help">为某个正文段落生成一段符合剧情的视频，完成后自动挂入本剧本媒体位并标记 0 秒时间点。</p><button id="media-ai-generate" class="button primary" type="button">AI 生成视频</button></div>
+        <div class="media-ai-row"><span class="media-ai-badge">AI 生成</span><p class="help">为某个正文段落生成视频、图片、背景音乐或配音，完成后自动插入到该正文段落后方；也可从已生成产物中挑选插入。</p><button id="media-ai-generate" class="button primary" type="button">AI 生成</button><button id="media-ai-pick" class="button secondary" type="button">插入已生成音视频</button></div>
         <div class="media-mark-row"><div><span class="media-small-label">当前位置</span><output id="media-current-time">00:00.000</output><span id="media-duration" class="media-small-label">总时长待载入</span></div><button id="media-mark-cue" class="button primary" type="button" disabled>暂停并标记当前时间</button></div>
       </section>
       <section class="panel media-cues-panel" aria-labelledby="media-cues-title">
@@ -35,9 +43,9 @@
       <fieldset id="media-cue-fields" disabled>
         <div class="media-cue-fields-grid"><label class="field">时间（分:秒或秒数）<input id="media-cue-time" type="text" placeholder="例如 01:23.500 或 83.5" autocomplete="off"></label><label class="field">时间点名称（可选）<input id="media-cue-label" type="text" maxlength="200" placeholder="例如：第一次停顿"></label></div>
         <p id="media-time-error" class="media-field-error" role="status" hidden></p>
-        <div class="media-select-toolbar"><label class="field">查找台词<input id="media-block-search" type="search" placeholder="按角色或正文查找"></label><button id="media-clear-selection" class="button secondary" type="button">清空本点选择</button></div>
-        <div id="media-block-choices" class="media-block-choices" aria-label="勾选此时间点对应的台词或图片"></div>
       </fieldset>
+      <div class="media-select-toolbar"><label class="field">查找台词<input id="media-block-search" type="search" placeholder="按角色或正文查找"></label><button id="media-clear-selection" class="button secondary" type="button">清空本点选择</button></div>
+      <div id="media-block-choices" class="media-block-choices" aria-label="勾选此时间点对应的台词或图片"></div>
       <section class="media-selection-preview" aria-labelledby="media-preview-title"><h3 id="media-preview-title">所选内容预览</h3><div id="media-selected-preview"><p class="muted">选择时间点后，勾选对应的文字或图片段落。</p></div></section>
     </section>
   </div>
@@ -48,22 +56,47 @@
 <dialog id="media-confirm-dialog" class="dialog media-confirm-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="media-confirm-title">确认操作</h2></div><p id="media-confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel">取消</button><button id="media-confirm-yes" class="button primary" value="confirm">确认</button></div></form></dialog>
 <dialog id="ai-video-dialog" class="dialog ai-video-dialog" aria-labelledby="ai-video-heading">
   <form id="ai-video-form">
-    <div class="dialog-heading"><div><span class="eyebrow">AI MULTIMEDIA</span><h2 id="ai-video-heading">AI 生成视频</h2></div><button type="button" class="icon-button" data-ai-close aria-label="关闭 AI 生成">×</button></div>
-    <p class="help">把一段剧情文字交给生成服务，产出视频后自动挂入本剧本媒体位。生成需要联网与密钥，未配置时可用“模拟平台”先试流程。</p>
+    <div class="dialog-heading"><div><span class="eyebrow">AI MULTIMEDIA</span><h2 id="ai-video-heading">AI 生成</h2></div><button type="button" class="icon-button" data-ai-close aria-label="关闭 AI 生成">×</button></div>
+    <div class="ai-type-tabs" role="tablist" aria-label="生成类型">
+      <button type="button" class="ai-type-tab is-active" data-ai-type="video" role="tab">视频</button>
+      <button type="button" class="ai-type-tab" data-ai-type="image" role="tab">图片</button>
+      <button type="button" class="ai-type-tab" data-ai-type="audio" role="tab">音乐</button>
+      <button type="button" class="ai-type-tab" data-ai-type="voice" role="tab">配音</button>
+    </div>
+    <p id="ai-video-help" class="help">把一段剧情文字交给生成服务，产出后自动插入到该正文段落后方。生成需要联网与密钥，未配置时可用“模拟平台”先试流程。</p>
     <label class="field">目标段落<select id="ai-video-block" required></select></label>
-    <label class="field">参考角色（可选，有形象图时自动用于图生视频保持形象一致）<select id="ai-video-character"><option value="">不指定</option></select></label>
+    <label id="ai-character-row" class="field">参考角色（可选，有形象图时自动用于保持形象一致）<select id="ai-video-character"><option value="">不指定</option></select></label>
     <div class="ai-form-grid">
       <label class="field">生成平台<select id="ai-video-platform" required></select></label>
-      <label class="field">画面比例<select id="ai-video-ratio" required></select></label>
-      <label class="field">时长<select id="ai-video-duration" required></select></label>
+      <label class="field">生成模型<select id="ai-video-model" required></select></label>
+      <label id="ai-ratio-row" class="field">画面比例<select id="ai-video-ratio" required></select></label>
+      <label id="ai-duration-row" class="field">时长<select id="ai-video-duration" required></select></label>
     </div>
-    <label class="field">剧情描述<textarea id="ai-video-prompt" rows="4" maxlength="2000" placeholder="描述画面内容与氛围；留空时使用所选段落的原文"></textarea></label>
+    <label id="ai-voice-type-row" class="field" hidden>音色（可选，留空用平台默认音色）<input id="ai-voice-type" type="text" maxlength="64" placeholder="例如 zh_female_wanqu…"></label>
+    <label id="ai-prompt-row" class="field"><span id="ai-prompt-label">剧情描述</span><textarea id="ai-video-prompt" rows="4" maxlength="2000" placeholder="描述画面内容与氛围；留空时使用所选段落的原文"></textarea></label>
     <p id="ai-video-error" class="form-error" role="alert"></p>
     <div class="dialog-actions"><button type="button" class="button secondary" data-ai-close>取消</button><button type="submit" class="button primary">开始生成并排队</button></div>
   </form>
 </dialog>
+<dialog id="ai-pick-dialog" class="dialog ai-pick-dialog" aria-labelledby="ai-pick-heading">
+  <div class="dialog-heading"><div><span class="eyebrow">AI OUTPUT</span><h2 id="ai-pick-heading">插入已生成的 AI 音视频</h2></div><button type="button" class="icon-button" data-ai-pick-close aria-label="关闭">×</button></div>
+  <p class="help">浏览本机已生成的 AI 产物，选择后插入到指定正文段落后方。未关联任务的产物也可在此手动上本。</p>
+  <div class="ai-pick-layout">
+    <div class="ai-pick-list-wrap">
+      <div id="ai-pick-tabs" class="ai-pick-tabs" role="tablist" aria-label="产物分类"></div>
+      <p id="ai-pick-empty" class="muted">正在读取已生成产物…</p>
+      <div id="ai-pick-list" class="ai-pick-list" role="listbox" aria-label="已生成产物"></div>
+    </div>
+    <div class="ai-pick-side">
+      <label class="field">插入到哪个段落后<select id="ai-pick-block"></select></label>
+      <div id="ai-pick-preview" class="ai-pick-preview"><p class="muted">选择左侧产物后预览。</p></div>
+      <p id="ai-pick-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-ai-pick-close>取消</button><button id="ai-pick-insert" class="button primary" type="button" disabled>插入到正文</button></div>
+    </div>
+  </div>
+</dialog>
 <div id="ai-task-float" class="ai-task-float" hidden aria-live="polite">
-  <div class="ai-task-float-head"><strong>AI 生成队列</strong><span id="ai-task-float-count" class="status-tag">0</span><button id="ai-task-float-toggle" type="button" class="icon-button" aria-label="收起/展开">–</button></div>
+  <div class="ai-task-float-head"><strong>AI 生成队列</strong><span id="ai-task-float-count" class="status-tag">0</span><button id="ai-task-float-clear" type="button" class="icon-button ai-clear-btn" title="清除已完成/失败/已取消的任务" aria-label="清除已完成任务">清除</button><button id="ai-task-float-toggle" type="button" class="icon-button" aria-label="收起/展开">▾</button></div>
   <div id="ai-task-float-body"></div>
 </div>
 {% endblock %}

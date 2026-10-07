@@ -23,12 +23,34 @@
 
 .ai-form-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 自适应：字段多少与窗口宽度变化时自动重排 */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
 @media (max-width: 720px) {
   .ai-form-grid { grid-template-columns: 1fr; }
 }
+
+/* AI 生成类型切换（视频/图片/音乐/配音） */
+.ai-type-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.ai-type-tab {
+  padding: 7px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #ece5db);
+  background: #fff;
+  color: #6b6250;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.ai-type-tab:hover { border-color: #c8b4e0; background: #faf6ff; }
+.ai-type-tab.is-active { border-color: #6b5bff; background: #6b5bff; color: #fff; font-weight: 600; }
 
 /* 任务队列浮层（右下角） */
 .ai-task-float {
@@ -55,13 +77,30 @@
   color: #fff;
 }
 .ai-task-float-head strong { font-size: 14px; }
+.ai-task-float-head .ai-clear-btn {
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, .2);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.ai-task-float-head .ai-clear-btn:hover { background: rgba(255, 255, 255, .32); }
 .ai-task-float-head .status-tag {
   background: rgba(255, 255, 255, .22);
   color: #fff;
 }
 .ai-task-float-head .icon-button {
-  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 6px;
 }
 #ai-task-float-body {
   overflow-y: auto;
@@ -128,6 +167,30 @@
   gap: 8px;
   margin-top: 7px;
 }
+.ai-task-item-actions .task-retry-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  min-width: 80px;
+  padding: 6px 13px;
+  border: 1px solid #e2ded6;
+  border-radius: 8px;
+  background: #fff;
+  color: #4a443c;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.ai-task-item-actions .task-retry-button:hover {
+  background: #f6f2ec;
+  border-color: #c9c2b4;
+  color: #1f1c18;
+}
+.ai-task-item-actions .task-retry-button:active { background: #ece6db; }
+.ai-task-item-actions .task-retry-button svg { flex: 0 0 auto; }
 .ai-task-empty {
   font-size: 13px;
   color: #8d8374;
@@ -144,6 +207,69 @@
 }
 .ai-manage-toolbar .help { flex: 1 1 260px; }
 .ai-manage-actions { display: flex; gap: 8px; }
+
+/* AI 生成设置 —— 平台密钥块与获取引导 */
+.ai-platform-block {
+  border: 1px solid var(--border, #ece5db);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fdfaf4;
+  min-width: 0;
+}
+.ai-platform-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.ai-platform-head strong { font-size: 0.98em; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.ai-platform-head .button { flex-shrink: 0; }
+.ai-platform-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.ai-key-guide {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border, #ece5db);
+  padding-top: 8px;
+}
+.ai-key-guide summary { cursor: pointer; font-weight: 600; }
+.ai-key-guide ol { margin: 8px 0 0; padding-left: 20px; }
+.ai-key-guide li { margin: 4px 0; line-height: 1.5; }
+.ai-key-guide code {
+  background: #f1ece2;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+.ai-test-status { margin-top: 6px; }
+.ai-test-status:not([hidden]) { display: block; }
+.ai-character-image-platform { margin: 0 0 8px; max-width: 260px; }
+
+/* AI 生成第 5 tab 面板 */
+.ai-panel { display: block; }
+.ai-panel[hidden] { display: none; }
+.ai-panel-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+.ai-panel-card {
+  border: 1px solid var(--border, #ece5db);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fdfaf4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ai-panel-card-title {
+  font-weight: 600;
+  font-size: 1.02em;
+}
+.ai-panel-card .muted { margin: 0; }
+#ai-panel-status { margin-top: 4px; }
 
 .ai-character-form {
   border: 1px solid var(--border, #ece5db);
@@ -235,15 +361,121 @@
   -webkit-box-orient: vertical;
 }
 .ai-characters-dialog { width: min(640px, 92vw); }
-.ai-settings-dialog { width: min(520px, 92vw); }
+.ai-settings-dialog { width: min(700px, 94vw); }
+.pia-confirm-dialog { width: min(400px, 92vw); }
 .ai-platform-fields {
   border: 1px solid var(--border, #ece5db);
   border-radius: 10px;
   margin-top: 10px;
   padding: 10px 12px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  /* 自适应：窄屏自动单列；宽屏并排；新增平台块无需改布局 */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
 }
 .ai-platform-fields legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
 .ai-platform-fields .help { grid-column: 1 / -1; margin: 0; }
+
+/* 插入已生成 AI 音视频 —— 对话框 */
+.ai-pick-dialog { width: min(860px, 94vw); }
+.ai-pick-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 12px;
+}
+@media (max-width: 720px) { .ai-pick-layout { grid-template-columns: 1fr; } }
+.ai-pick-list-wrap { min-height: 220px; max-height: 380px; overflow: auto; }
+.ai-pick-list { display: flex; flex-direction: column; gap: 6px; }
+.ai-pick-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #ece5db);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.ai-pick-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.ai-pick-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #ece5db);
+  background: #fff;
+  color: #6b6250;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.ai-pick-tab:hover { border-color: #c8b4e0; background: #faf6ff; }
+.ai-pick-tab.is-active { border-color: #6b5bff; background: #6b5bff; color: #fff; font-weight: 600; }
+.ai-pick-tab-count {
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0ebe2;
+  color: #8d8374;
+}
+.ai-pick-tab.is-active .ai-pick-tab-count { background: rgba(255, 255, 255, .22); color: #fff; }
+.ai-pick-tab-hint {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f0ebe2;
+  color: #b9b1a3;
+}
+.ai-pick-tab.is-active .ai-pick-tab-hint { background: rgba(255, 255, 255, .22); color: #fff; }
+.ai-pick-item:hover { border-color: #c8b4e0; background: #faf6ff; }
+.ai-pick-item.is-selected { border-color: #6b5bff; background: #f3f0ff; box-shadow: 0 0 0 1px #6b5bff; }
+.ai-pick-kind {
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #eee7ff;
+  color: #5a4bc0;
+  font-weight: 600;
+  text-align: center;
+}
+.ai-pick-item.is-image .ai-pick-kind { background: #ffece3; color: #b05a2a; }
+.ai-pick-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-pick-prompt { grid-column: 2 / -1; font-size: 11px; color: #8d7a5e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-pick-prompt.is-empty { color: #b9b1a3; font-style: italic; }
+.ai-pick-meta { font-size: 11px; color: #8d8374; white-space: nowrap; }
+.ai-pick-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ai-pick-preview {
+  border: 1px dashed #d8cdb9;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 140px;
+  background: #fdfbf6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: auto;
+}
+.ai-pick-preview video,
+.ai-pick-preview audio,
+.ai-pick-preview img { border-radius: 6px; }
+.ai-pick-preview p { margin: 0; text-align: center; }

@@ -23,3 +23,14 @@ tools/exe-build/dist/
 tools/__pycache__/
 tools/exe-build/__pycache__/
 tools/exe-build/work/
+
+# 完整数据实例（含剧本库、AI 密钥配置库、媒体与浏览器缓存）——绝非源码，禁止入库。
+/演示数据16篇/
+*.sqlite3
+*.sqlite3-journal
+server.json
+server.lock
+desktop-user-data/
+
+# 测试临时输出（验证结果快照），不随源码提交。
+tests/*.txt
