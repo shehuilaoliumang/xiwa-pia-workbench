@@ -1,6 +1,6 @@
 # AI 多媒体生成中心（实验功能）
 
-> 状态：实验分支 `feature/ai-video`，mock 平台全流程已验收（视频/图片/音乐/配音四通道）；接入真实平台需按下方密钥说明配置。
+> 状态：实验分支 `feature/ai-video`，四通道（视频/图片/音乐/配音）mock 全流程已验收；**阿里真实生成已闭环验证**（qwen-image 图片、qwen3-tts 配音、wanx 视频均实际生成成功并落盘归档），字节需按下方密钥说明开通模型。
 > 回退基线：`git checkout main`（main 分支未包含本功能），或删除 `ai_generator/` 包与 `instance/ai_generator.sqlite3`。
 
 ## 功能
@@ -57,8 +57,10 @@
   - 配音：豆包语音独立服务，控制台获取**豆包语音 API Key**（与方舟 Key 不通用），填到“豆包语音 API Key”；模型 `seed-audio-1.0`。
   - 可选：填 AccessKey/SecretKey 后点“测试开通状态”，自动只显示已开通模型（避免 404）。
 - **阿里（ali）**：
-  - 视频/图片：百炼/DashScope 创建 API Key（`sk-…`），填到“API Key”。
-  - 音乐/配音：另需百炼控制台“工作空间”的**业务空间 ID**（WorkspaceId），音乐模型 `fun-music-v1`（limited preview 需在模型广场申请）、配音模型 `qwen-audio-3.1-tts-next`（备用 `qwen-audio-3.0-tts-plus`）。
+  - 视频/图片/配音：百炼/DashScope 创建 API Key（`sk-…`），填到“API Key”，**同一 Key 直连**（视频 `wanx` 系列、图片 `qwen-image`/`wan2.7-image` 系列、配音 `qwen3-tts` 系列均已实测可用）。
+  - “开通状态”按钮：一键查百炼已开通模型（免费）。图片/配音可静态确认（已开通模型直接列出）；视频与音乐百炼未开放列表查询，只能实际生成验证。
+  - 音乐：另需百炼控制台“工作空间”的**业务空间 ID**（WorkspaceId），模型 `fun-music-v1`（limited preview 需在模型广场申请）。
+  - 兼容性说明：qwen-image 走多模态生成端点、qwen3-tts 走多模态 TTS（均无需业务空间 ID）；视频/万相图片走 DashScope 异步任务（`X-DashScope-Async`）并按比例自动换算像素尺寸。
 - **模拟平台（mock）**：无需密钥，用于无 key 联调；音乐/配音的 mock 通道需要 `instance/media/` 中已有音频模板文件。
 - 真实生成走 HTTP 轮询（提交 → 轮询 → 下载），失败会写明原因（前端自动翻译为通俗中文）；未配置密钥时任务直接失败并提示配置路径。
 - 注意：生成服务需要联网；CSP 保持 `connect-src 'self'`，浏览器不直连外网，外呼由服务端代理。

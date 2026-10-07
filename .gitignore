@@ -34,3 +34,11 @@ desktop-user-data/
 
 # 测试临时输出（验证结果快照），不随源码提交。
 tests/*.txt
+
+tests/_*.py
+
+# 本地说明文档备份与自检截图、打包中间物（非交付产物）。
+/_backup/
+/_shots/
+/build/
+/dist/

@@ -39,6 +39,21 @@ def _byte_activated(pcfg: dict, force: bool = False):
     return names, True
 
 
+def _ali_tts_models(api_key: str) -> list:
+    """用阿里 API Key 查询百炼兼容模型列表，返回其中已开通的配音（TTS）模型名。"""
+    from . import ali
+    try:
+        listed = ali.AliAdapter(Path(".")).list_all_models(api_key)
+    except Exception:  # noqa: BLE001
+        return []
+    voice = []
+    for name in listed:
+        lower = name.lower()
+        if ("qwen3-tts" in lower or "qwen-tts" in lower or "qwen-audio-" in lower and "tts" in lower):
+            voice.append(name)
+    return sorted(voice)
+
+
 def _filter_models_by_activation(info: dict, pcfg: dict, force: bool = False):
     """配置了 AK/SK 时，用「已开通」名单过滤 models/image_models（治本：权威过滤）。"""
     names, configured = _byte_activated(pcfg, force)
@@ -241,6 +256,37 @@ def create_ai_blueprint(store, instance_path: Path, enabled_default: bool = True
                            message="查询成功：当前账号未开通任何基础模型，请到「开通管理」开通。")
         return jsonify(ok=True, activated=names, count=len(names),
                        message=f"查询成功：已开通 {len(names)} 个基础模型。")
+
+    @blueprint.post("/api/ai/ali/activations")
+    def ali_activations():
+        """一键测试阿里「开通状态」：用 API Key 查百炼模型列表（免费）。
+        图片/配音模型可直接静态确认；视频（wanx）与音乐（fun-music）百炼未开放
+        列表查询，只能以实际生成为准。"""
+        payload = body()
+        key = str(payload.get("api_key") or "").strip()
+        if not key:
+            saved_pcfg = (base.load_config(database).get("platforms", {}).get("ali") or {})
+            key = key or str(saved_pcfg.get("api_key") or "").strip()
+        if not key:
+            raise AiError("请先填写阿里 API Key。", 400, "invalid_credentials")
+        from . import ali
+        try:
+            listed = ali.AliAdapter(Path(".")).list_models(key)
+        except Exception as error:  # noqa: BLE001
+            return jsonify(ok=False, error="查询失败：" + base.friendly_error(str(error)))
+        if not listed:
+            return jsonify(ok=False, error="查询失败：请检查 API Key 是否正确，或网络是否可达阿里百炼。")
+        image = sorted((listed.get("image") or {}).keys())
+        # 配音模型不在 list_models 的 video/image 分类里，单独从兼容列表提取
+        voice = _ali_tts_models(key)
+        return jsonify(
+            ok=True,
+            image_models=image, image_count=len(image),
+            voice_models=voice, voice_count=len(voice),
+            video_note="视频（万相 wanx 系列）：百炼未开放模型列表查询，无法静态确认，请以实际生成为准（约 1-2 元/次）。",
+            music_note="音乐（Fun-Music）：需在设置中填写「业务空间 ID」后实际生成验证。",
+            message=f"开通状态检查完成：图片生成已开通 {len(image)} 个模型；配音已开通 {len(voice)} 个模型。",
+        )
 
     # ---------- 角色库 ----------
 

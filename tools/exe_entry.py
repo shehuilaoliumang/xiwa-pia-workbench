@@ -31,6 +31,30 @@ EXE_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).re
 LOG_FILE = None  # assigned once the data directory is known
 
 
+def _port_available(port):
+    """Return True only when a local service can actually be served on port.
+
+    A plain bind() test is unreliable on Windows: SO_REUSEADDR lets a second
+    bind() "succeed" while incoming connections still go to the earlier
+    listener. So we first try connecting (a live listener answers) and then
+    bind without reusing the address.
+    """
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.3):
+            return False  # someone is already serving on this port
+    except OSError:
+        pass
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        probe.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+    finally:
+        probe.close()
+
+
 def log(message):
     line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}"
     try:
@@ -150,6 +174,9 @@ def main():
 
     server = None
     for port in range(args.port, args.port + 10):
+        if not _port_available(port):
+            log(f"端口 {port} 已被其他程序占用，尝试下一个。")
+            continue
         try:
             server = create_server(app, host="127.0.0.1", port=port, threads=6)
             break

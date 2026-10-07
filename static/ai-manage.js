@@ -133,6 +133,30 @@
   document.getElementById("ai-ali-refresh").addEventListener("click", function () {
     refreshPlatformModels("ali", "ai-ali-model", "ai-ali-test-status", "ai-ali-refresh");
   });
+  document.getElementById("ai-ali-activations").addEventListener("click", function () {
+    var button = document.getElementById("ai-ali-activations");
+    var status = document.getElementById("ai-ali-test-status");
+    if (!button || !status) { return; }
+    button.disabled = true;
+    status.textContent = "正在查询阿里百炼开通状态…";
+    api("/api/ai/ali/activations", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then(function (result) {
+        if (!result.ok) { status.textContent = "✗ " + (result.error || result.message || "查询失败"); return; }
+        var lines = [];
+        lines.push("✓ " + (result.message || "开通状态检查完成"));
+        lines.push("图片生成（已开通 " + result.image_count + " 个）：" + ((result.image_models || []).slice(0, 6).join("、") || "—") + ((result.image_count || 0) > 6 ? " 等" : ""));
+        lines.push("配音（已开通 " + result.voice_count + " 个）：" + ((result.voice_models || []).slice(0, 5).join("、") || "—") + ((result.voice_count || 0) > 5 ? " 等" : ""));
+        lines.push("视频：" + (result.video_note || "无法静态确认，请以实际生成为准。"));
+        lines.push("音乐：" + (result.music_note || "需业务空间 ID，实际生成验证。"));
+        status.textContent = lines.join("\n");
+        status.hidden = false;
+      })
+      .catch(function (error) {
+        status.textContent = "开通状态查询失败：" + error.message;
+        status.hidden = false;
+      })
+      .finally(function () { button.disabled = false; });
+  });
 
   function fillDurationOptions(selected) {
     var select = document.getElementById("ai-default-duration");

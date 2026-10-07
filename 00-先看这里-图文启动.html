@@ -2,61 +2,183 @@
 <html lang="zh-CN">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>先看这里：3步启动喜娃微 PIA 工作台</title>
+<title>喜娃微PIA 工作台 · 新手图文说明书</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2357654f'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='%23fff'%3E喜%3C/text%3E%3C/svg%3E">
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f1eb;color:#252a27;font-family:"Microsoft YaHei",sans-serif;line-height:1.8}main{max-width:1000px;margin:auto;padding:42px 28px 64px}h1{font-size:38px;line-height:1.35;margin:12px 0 18px}h2{font-size:26px;margin:0 0 12px}h3{font-size:20px;margin-bottom:8px}p,li{font-size:17px}.intro{font-size:19px;max-width:760px}.meta{color:#606a62;font-size:15px}.step{background:white;border:1px solid #ddd8ce;border-radius:15px;padding:26px 30px;margin:24px 0}.number{display:inline-grid;place-items:center;width:40px;height:40px;margin-right:12px;border-radius:50%;background:#57654f;color:white;font-size:24px}.filename{font-weight:bold;color:#334b30}code{font:inherit;background:#eceee7;padding:2px 7px;border-radius:4px;overflow-wrap:anywhere}.note{border-left:4px solid #a37b3f;padding:8px 16px;background:#faf6ec}a{color:#355236;font-weight:bold}img{max-width:100%;height:auto;border:1px solid #e3dfd6;border-radius:8px;display:block;margin:18px auto 8px}.preview{width:100%;max-width:580px}figcaption{font-size:14px;color:#656c63}figure{margin:22px 0}details{border-top:1px solid #dedad2;padding:14px 0}summary{font-size:18px;font-weight:bold;cursor:pointer}footer{font-size:14px;color:#646b64;border-top:1px solid #d4d0c6;padding-top:20px;margin-top:30px}@media(max-width:600px){main{padding:24px 15px}h1{font-size:29px}.step{padding:22px 18px}h2{font-size:22px}.number{width:32px;height:32px;font-size:20px}}@media print{body{background:white}main{padding:0}.step{break-inside:avoid}details{display:block}a{color:inherit}}
+*{box-sizing:border-box}body{margin:0;background:#f4f1eb;color:#252a27;font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.8}main{max-width:1000px;margin:auto;padding:42px 28px 64px}h1{font-size:36px;line-height:1.35;margin:12px 0 16px}h2{font-size:25px;margin:0 0 12px}h3{font-size:19px;margin:0 0 8px}p,li{font-size:16.5px}.intro{font-size:18px;max-width:780px}.meta{color:#606a62;font-size:15px}.step{background:white;border:1px solid #ddd8ce;border-radius:15px;padding:24px 30px;margin:22px 0}.number{display:inline-grid;place-items:center;width:38px;height:38px;margin-right:12px;border-radius:50%;background:#57654f;color:white;font-size:22px;flex:none}.step h2{display:flex;align-items:center}code{font:inherit;background:#eceee7;padding:2px 7px;border-radius:4px;overflow-wrap:anywhere}.filename{font-weight:bold;color:#334b30}.note{border-left:4px solid #a37b3f;padding:8px 16px;background:#faf6ec;margin:14px 0;font-size:15.5px}.good{border-left:4px solid #57654f;padding:8px 16px;background:#f0f4ec;margin:14px 0;font-size:15.5px}a{color:#355236;font-weight:bold}img{max-width:100%;height:auto;border:1px solid #e3dfd6;border-radius:8px;display:block;margin:18px auto 8px}.preview{width:100%;max-width:580px}figcaption{font-size:14px;color:#656c63;text-align:center}figure{margin:22px 0}details{border-top:1px solid #dedad2;padding:14px 0}summary{font-size:17px;font-weight:bold;cursor:pointer}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:700px){.grid2{grid-template-columns:1fr}}footer{font-size:14px;color:#646b64;border-top:1px solid #d4d0c6;padding-top:20px;margin-top:30px}.toc{background:white;border:1px solid #ddd8ce;border-radius:15px;padding:20px 30px;margin:20px 0}.toc a{text-decoration:none;color:#355236}.toc li{margin:4px 0}@media print{body{background:white}main{padding:0}.step{break-inside:avoid}details{display:block}a{color:inherit}}
 </style>
 <main>
-<p class="meta">喜娃微 PIA 选本与直播工作台 · 零基础启动说明</p>
-<h1>先解压，再双击。<br>3 步打开你的工作台。</h1>
-<p class="intro">程序已自带运行环境。<strong>不用安装 Python、Node.js 或 OBS，不用打开 Codex，日常使用不用联网。</strong>适用 Windows 10 / 11 的 64 位电脑，完整交付包已附带桌面展示组件。</p>
-<section class="step">
-<h2><span class="number">1</span>先把压缩包解压出来</h2>
-<ol>
-<li>找到收到的 ZIP 压缩包，<strong>右键 → 全部提取 / 全部解压缩</strong>。</li>
-<li>解压到桌面、“文档”或 D 盘的普通文件夹，等待完成。</li>
-<li>打开解压后的文件夹，直到看到 <span class="filename">启动工作台.cmd</span>，同一层还有 <code>desktop</code>、<code>runtime</code>、<code>instance</code>、<code>docs</code> 等文件夹。</li>
+<p class="meta">喜娃微PIA 选本与直播工作台 · 0.2.2 AI 四通道版 · 新手图文说明书</p>
+<h1>把故事交给声音。<br>新手也能 5 分钟上手。</h1>
+<p class="intro">这是一套<strong>本地剧本工作台</strong>：收集和整理剧本、编辑台词、给段落配图片与音视频、用 AI 生成多媒体内容，并把内容推到直播画面。它由两个工具组成：<strong>主播端管理系统</strong>（你自己用，功能最全）和<strong>粉丝编辑器</strong>（发给粉丝，让他们只改剧本、不碰你的系统）。所有资料只保存在本机，<strong>不联网、不外传</strong>。</p>
+
+<div class="toc">
+<p style="margin:0 0 6px;font-weight:bold">本说明书目录（点一下直接跳转）</p>
+<ol style="margin:0;padding-left:22px">
+<li><a href="#start">解压与启动（3 步）</a></li>
+<li><a href="#ui">认识界面</a></li>
+<li><a href="#new">新建与编辑剧本</a></li>
+<li><a href="#media">段落里插入图片和音视频</a></li>
+<li><a href="#ai">AI 多媒体生成（视频 / 图片 / 音乐 / 配音）</a></li>
+<li><a href="#keys">AI 密钥设置（最难的 5 分钟，看这里）</a></li>
+<li><a href="#import">导入与导出（粉丝协作流程）</a></li>
+<li><a href="#broadcast">播控与展示（把内容推给观众）</a></li>
+<li><a href="#backup">备份与恢复</a></li>
+<li><a href="#faq">常见问题与报错怎么看</a></li>
 </ol>
-<p class="note"><strong>不要在压缩包里面直接启动。</strong>保留整个文件夹，不要只把启动文件拖到桌面。以后继续用这次解压出的文件夹，不要反复解压旧包覆盖新资料。</p>
-<p>有些电脑会隐藏“.cmd”，只显示“启动工作台”，这是正常的。</p>
-</section>
-<section class="step">
-<h2><span class="number">2</span>双击“启动工作台”</h2>
-<p>在刚才的文件夹里双击 <span class="filename">启动工作台.cmd</span>。</p>
-<p>会出现一个黑色文字窗口，然后桌面工作台会自动打开；缺少桌面组件时使用浏览器版。<strong>黑色窗口请一直保留，可以最小化。</strong></p>
-<p>需要原来的界面时，双击“浏览器模式.cmd”。播控与展示请在同一桌面应用中操作，或都在同一浏览器中操作，不要混用。桌面版从顶部“选本工作台”进入目录。</p>
-<p>浏览器没有自动打开时，在浏览器最上方的地址栏输入：</p>
-<p><code>http://127.0.0.1:8765/</code></p>
-<p>如果黑色窗口显示了不同的网址，使用它显示的完整地址。网址只在运行工作台的这台电脑上使用，不要输进网页搜索框。</p>
-</section>
-<section class="step">
-<h2><span class="number">3</span>选本 → 预览 → 应用</h2>
+</div>
+
+<!-- ===== 1 启动 ===== -->
+<section class="step" id="start">
+<h2><span class="number">1</span>解压与启动（3 步）</h2>
 <ol>
-<li>可直接在播控台准备内容，也可点顶部“选本工作台”，按分类选择剧本。</li>
-<li>点 <strong>“送至播控预览”</strong>。</li>
-<li>把“操作反馈”选为 <strong>“逐步应用”</strong>，先检查内容、横竖屏和字号。</li>
-<li>点 <strong>“打开独立展示窗口”</strong>。这是给观众看的窗口。</li>
-<li>回播控台点 <strong>“应用到展示”</strong>，观众窗口才更新。</li>
+<li><strong>解压</strong>：把交付包解压到桌面或“文档”里的普通文件夹。<strong>不要在压缩包里直接启动。</strong></li>
+<li><strong>启动</strong>：打开「主播端管理系统」→ 0.2.2 文件夹，双击 <span class="filename">喜娃微PIA工作台.exe</span>。第一次运行会释放桌面组件，等待约 1 分钟；以后每次都是秒开。桌面窗口没出现时，用浏览器打开：<code>http://127.0.0.1:8765/</code></li>
+<li><strong>关闭</strong>：直接关掉桌面窗口即可，资料会自动保存。也可以在窗口里按 Ctrl+C。</li>
 </ol>
-<figure><img src="docs/guide-assets/03-reader.png" alt="剧本阅读页：编号2指向送至播控预览按钮"><figcaption>阅读页中，编号 ② 是“送至播控预览”。</figcaption></figure>
-<figure><img class="preview" src="docs/guide-assets/05-preview.png" alt="交互预览：编号2为操作反馈，编号3为应用到展示"><figcaption>预览中，编号 ② 选“逐步应用”，编号 ③ 将内容应用给观众。图示为基础操作，新版另有同步档位选项。</figcaption></figure>
-<p>桌面版在抖音直播伴侣窗口采集中选择“喜娃微PIA · 独立展示”。当前用户初步反馈最小化同步似乎已恢复。换电脑后，开播前先在伴侣预览试一次翻页、滚动和最小化；如果停帧，恢复展示窗口并核对采集目标。</p>
-<p class="note">初次使用先保留“逐步应用”。切到“实时同步”时，当前已就绪预览就会同步出去，后面的操作也会同步。工作台负责展示内容，不会自动替你开启抖音直播。</p>
+<p class="note"><strong>不用安装任何东西</strong>：不需要 Python、Node.js 或 OBS，日常使用也不用联网。适用 Windows 10 / 11 的 64 位电脑。0.2.1 文件夹是旧版本，保留备用的，功能更少，除非回退否则不用打开。</p>
 </section>
+
+<!-- ===== 2 界面 ===== -->
+<section class="step" id="ui">
+<h2><span class="number">2</span>认识界面</h2>
+<p>打开后默认进入<strong>内容管理</strong>：顶部是导航（选本工作台 / 播控台 / 内容管理），中间一排标签是内容管理的五大块：<strong>剧本资料、分类管理、背景素材、备份与恢复、AI 生成</strong>。</p>
+<figure><img src="docs/guide-assets/guide-01-manage.png" alt="内容管理主界面"><figcaption>① 剧本列表（点「编辑」进编辑器）　② 搜索 / 分类 / 状态筛选　③ 导出单篇 ZIP　④ 隐藏（防误删）　⑤ 五大标签，AI 生成在最右边</figcaption></figure>
+<p><strong>选本工作台</strong>：按分类挑剧本、直接阅读和预览；<strong>播控台</strong>：控制直播画面，把内容推给观众。下面几步先从内容管理开始。</p>
+</section>
+
+<!-- ===== 3 新建与编辑 ===== -->
+<section class="step" id="new">
+<h2><span class="number">3</span>新建与编辑剧本</h2>
+<ol>
+<li>内容管理里点右上角 <strong>＋新增剧本</strong>，填好名称、分类、作者。可以先只填名称。</li>
+<li>点剧本右侧的 <strong>编辑</strong>，进入资料页：简介、标签、备注等在这里补。</li>
+<li>打开剧本正文页（点剧本名），右侧就是<strong>正文编辑区</strong>。直接点任意段落就能改台词。</li>
+<li>想省事？新建后点 <strong>导入正文</strong>：粘贴一大段文字，或上传 <strong>TXT / DOCX</strong>，系统会自动把对话排成台词段落。</li>
+<li>改完记得点 <strong>保存剧本</strong>。右上角显示“与已保存资料一致”就说明存好了。</li>
+</ol>
+<figure><img src="docs/guide-assets/guide-04-editor.png" alt="剧本资料编辑弹窗"><figcaption>资料编辑：名称、分类、作者、简介、标签、备注都在这里。</figcaption></figure>
+<figure><img src="docs/guide-assets/guide-05-script.png" alt="剧本正文编辑页"><figcaption>正文页：点段落改字；右上角「音视频与暂停点」管理段落媒体，「＋加入本场」「送至播控预览」用于直播。</figcaption></figure>
+</section>
+
+<!-- ===== 4 段落媒体 ===== -->
+<section class="step" id="media">
+<h2><span class="number">4</span>音视频配本：给剧本配上声音</h2>
+<p>音视频有两种配法：<strong>整本关联</strong>（一段完整的音频/视频从头配到尾），或<strong>只挂在某一段台词后面</strong>（讲到这句就播）。先看整本关联：在正文页点右上角 <strong>音视频与暂停点</strong>，进入音视频配本页：</p>
+<figure><img src="docs/guide-assets/guide-06-media-panel.png" alt="音视频配本页"><figcaption>音视频配本：① 左侧选音频/视频文件（支持 MP4、WebM、MP3、WAV、M4A、OGG，单个不超过 200MB）　② 右侧把播放进度标成「时间点」，对应到具体台词</figcaption></figure>
+<ul>
+<li><strong>关联音视频</strong>：点「选择文件」上传本地音频/视频，文件保存在本机。拖动播放器进度条找到位置。</li>
+<li><strong>标记时间点</strong>：播到该配台词的位置，点「暂停并标记当前时间」，再选择对应台词，形成「这句台词 → 这段声音」的对应。</li>
+<li><strong>段落级媒体</strong>：给某一段台词单独插图片、视频或音频（含 AI 生成的产物），自动显示在段落后；已经插好的可以调整位置、删除。</li>
+<li><strong>暂停点</strong>：某段台词结束后先停一停（比如等观众笑完），再继续下一段。</li>
+</ul>
+
+<h3>用 AI 生成音视频（不用自己找素材）</h3>
+<p>配本页左栏就有 <strong>AI 生成</strong> 入口：为某个正文段落生成视频、图片、背景音乐或配音，<strong>完成后自动插入到该正文段落后方</strong>；也可以点 <strong>「插入已生成音视频」</strong>，从已经生成好的产物里挑选插入。</p>
+<figure><img src="docs/guide-assets/guide-07-media-ai.png" alt="配本页 AI 生成入口"><figcaption>音视频配本页左栏：本地「上传并关联」之外，还有「AI 生成」和「插入已生成音视频」两个入口。</figcaption></figure>
+<ol>
+<li>点 <strong>AI 生成</strong>，弹窗顶部选通道：<strong>视频 / 图片 / 音乐 / 配音</strong>。</li>
+<li>选<strong>目标段落</strong>（生成给哪一段台词）；<strong>参考角色</strong>可留空，有角色形象图时选上会自动保持形象一致。</li>
+<li>选<strong>生成平台与模型</strong>（只显示已开通的）、画面比例、时长；<strong>剧情描述</strong>留空时就用所选段落的原文。</li>
+<li>没配密钥也能试：平台选「模拟平台」，流程完整、产物为演示内容。</li>
+<li>生成任务在右下角<strong>队列</strong>排队，完成自动插入段落后，产物同时归档到 <code>instance/ai_output</code>（video / image / audio / voice 分文件夹）。</li>
+</ol>
+<figure><img src="docs/guide-assets/guide-08-ai-modal.png" alt="AI 生成弹窗"><figcaption>AI 生成弹窗：四通道切换，目标段落、参考角色、平台/模型/比例/时长、剧情描述一次配齐。</figcaption></figure>
+<p class="good">插入的媒体和剧本一起保存在本机；导出单篇 ZIP 时可以选择一起带走，主播收到后直接能用。</p>
+</section>
+
+<!-- ===== 5 AI 生成 ===== -->
+<section class="step" id="ai">
+<h2><span class="number">5</span>AI 多媒体生成（视频 / 图片 / 音乐 / 配音）</h2>
+<p>进入 <strong>内容管理 → AI 生成</strong>，就是 AI 多媒体生成中心。它负责两件事：<strong>给正文段落生成短视频或音频并自动插到段落后方</strong>，以及 <strong>维护角色形象卡</strong>（跨剧本保持角色长相一致）。</p>
+<figure><img src="docs/guide-assets/guide-02-ai.png" alt="AI 多媒体生成中心"><figcaption>AI 生成中心：左边是「AI 生成设置」（密钥、模型、默认比例时长），右边是「全局角色形象库」，右下角是生成队列。</figcaption></figure>
+<p>目前有<strong>四个生成通道</strong>，各有各的用途：</p>
+<table style="width:100%;border-collapse:collapse;margin:14px 0" cellspacing="0">
+<colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+<tr style="background:#57654f;color:#fff"><th style="padding:8px 10px;text-align:left">通道</th><th style="padding:8px 10px;text-align:left">生成什么</th><th style="padding:8px 10px;text-align:left">用什么模型（示例）</th></tr>
+<tr style="background:#fff"><td style="padding:8px 10px;border:1px solid #e0dcd2">视频</td><td style="padding:8px 10px;border:1px solid #e0dcd2">给某段剧情配一段短视频画面</td><td style="padding:8px 10px;border:1px solid #e0dcd2">字节 Seedance / 阿里万相</td></tr>
+<tr style="background:#faf9f4"><td style="padding:8px 10px;border:1px solid #e0dcd2">图片</td><td style="padding:8px 10px;border:1px solid #e0dcd2">角色形象卡、剧情插图</td><td style="padding:8px 10px;border:1px solid #e0dcd2">字节 Seedream / 阿里通义万相</td></tr>
+<tr style="background:#fff"><td style="padding:8px 10px;border:1px solid #e0dcd2">背景音乐</td><td style="padding:8px 10px;border:1px solid #e0dcd2">段落背景音乐（纯音乐 / 歌曲）</td><td style="padding:8px 10px;border:1px solid #e0dcd2">阿里 Fun-Music</td></tr>
+<tr style="background:#faf9f4"><td style="padding:8px 10px;border:1px solid #e0dcd2">配音</td><td style="padding:8px 10px;border:1px solid #e0dcd2">角色语音、旁白（独立配音文件夹）</td><td style="padding:8px 10px;border:1px solid #e0dcd2">字节豆包语音 / 阿里 Qwen-TTS</td></tr>
+</table>
+<p>用法：<strong>先在 AI 生成设置里配好密钥（下一步），再到正文段落旁选择生成</strong>。生成任务在右下角队列里排队，完成会有提示，产物自动归档到 <code>instance/ai_output</code>（按 video / image / audio / voice 分文件夹），不用你手动找。</p>
+
+<h3>全局角色形象库：让角色长相保持一致</h3>
+<p>同一个角色在不同剧本里出现，长相想保持一致？用<strong>角色形象卡</strong>。在 AI 生成中心点 <strong>打开角色库</strong>：</p>
+<figure><img src="docs/guide-assets/guide-09-characters.png" alt="全局角色形象库弹窗"><figcaption>角色形象库：新建角色 → 填角色名和形象描述 → 生成或上传形象图，列表会标出每个角色已在哪些剧本应用。</figcaption></figure>
+<ol>
+<li><strong>新建角色</strong>：填「角色名（唯一）」和「形象描述」（发色、服饰、气质等），点「保存角色」。</li>
+<li><strong>形象图</strong>三种来源：点「AI 生成形象图」（选平台和模型，自动识别图片格式）；或「上传形象图」（PNG / JPG / WEBP）；也可以先不配图只保存角色。</li>
+<li>角色列表里每个角色都标注了<strong>已在哪些剧本应用</strong>；点选角色可查看形象图、修改或删除。</li>
+<li>之后生成视频时，在「参考角色」里选这个角色，画面就会<strong>自动沿用它的形象图</strong>，跨剧本保持一致。</li>
+</ol>
+</section>
+
+<!-- ===== 6 密钥 ===== -->
+<section class="step" id="keys">
+<h2><span class="number">6</span>AI 密钥设置（最难的 5 分钟，看这里）</h2>
+<p>AI 生成需要联网调用大厂的模型，所以要填<strong>密钥（API Key）</strong>。别怕，两步：<strong>去平台拿到 Key → 粘贴进来 → 点「测试连接」</strong>。</p>
+<figure><img src="docs/guide-assets/guide-03-ai-settings.png" alt="AI 生成设置弹窗"><figcaption>AI 生成设置：左边字节·豆包，右边阿里·通义万相。每个平台有自己的「测试连接」按钮。</figcaption></figure>
+<ol>
+<li>点 <strong>AI 生成 → 打开设置</strong>。</li>
+<li><strong>没填 Key 也能先试</strong>：选「模拟平台」，流程能完整跑通，只是产物是演示内容。</li>
+<li>要真实生成时，去 <strong>火山方舟（字节）</strong>或 <strong>百炼（阿里）</strong>控制台申请 API Key，粘贴到对应输入框。</li>
+<li>每个平台都有<strong>「测试连接」</strong>按钮：一点就知道 Key 填对没有、哪些模型已开通。通不过就按提示改，不用猜。</li>
+<li>右上角<strong>「刷新模型」</strong>：会自动只显示你已开通的模型，避免选到用不了的。</li>
+</ol>
+<p class="good"><strong>密钥只保存在本机</strong>，不会随剧本导出，也不会发到任何地方。生成失败时界面会直接显示原因（比如“模型未开通”），照着提示去控制台开通对应模型即可。</p>
+</section>
+
+<!-- ===== 7 导入导出 ===== -->
+<section class="step" id="import">
+<h2><span class="number">7</span>导入与导出（和粉丝协作的流程）</h2>
+<p>整个协作是<strong>一个 ZIP 来回转</strong>：</p>
+<ol>
+<li><strong>主播导出</strong>：剧本列表点「导出」，得到一个单篇 ZIP（含台词、图片、音视频和时间点）。</li>
+<li><strong>粉丝编辑</strong>：粉丝用「喜娃剧本粉丝编辑器.exe」打开这个 ZIP，改台词、加图，然后<strong>导出新 ZIP</strong>。</li>
+<li><strong>主播导入</strong>：回内容管理点「导入单篇剧本」选这个 ZIP。系统会先检查与现有剧本的<strong>重复和差异</strong>，再让你选「新增 / 跳过 / 覆盖」，不会把旧数据冲掉。</li>
+</ol>
+<p class="note">换电脑、换版本时也一样：旧版先在「备份与恢复」导出完整备份，新版解压到另一个文件夹后恢复备份。不要用旧压缩包直接覆盖正在使用的资料文件夹。</p>
+</section>
+
+<!-- ===== 8 播控 ===== -->
+<section class="step" id="broadcast">
+<h2><span class="number">8</span>播控与展示（把内容推给观众）</h2>
+<ol>
+<li>在正文页点 <strong>「送至播控预览」</strong>，内容进入播控台的交互预览。</li>
+<li>把「操作反馈」选为 <strong>「逐步应用」</strong>，先自己检查内容、横竖屏和字号。</li>
+<li>点 <strong>「打开独立展示窗口」</strong>：这是给观众看的窗口（可被 OBS / 直播伴侣采集）。</li>
+<li>回播控台点 <strong>「应用到展示」</strong>，观众窗口才真正更新。</li>
+</ol>
+<figure><img class="preview" src="docs/guide-assets/05-preview.png" alt="交互预览"><figcaption>预览面板：② 选“逐步应用”，③ 把内容应用给观众。</figcaption></figure>
+<p class="note">工作台负责展示内容，不会自动替你开启抖音直播；开播前先在直播伴侣里试一次翻页，确认采集的是「喜娃微PIA · 独立展示」窗口。</p>
+</section>
+
+<!-- ===== 9 备份 ===== -->
+<section class="step" id="backup">
+<h2><span class="number">9</span>备份与恢复</h2>
+<p>大量修改前，去 <strong>内容管理 → 备份与恢复</strong> 下载一份完整备份（一个 ZIP）。换电脑、换版本、重装前先备份；要恢复时在同一页面导入备份即可。</p>
+<figure><img class="preview" src="docs/guide-assets/14-backup.png" alt="备份与恢复"><figcaption>内容管理 → 备份与恢复：一键下载完整备份，随时恢复。</figcaption></figure>
+</section>
+
+<!-- ===== 10 FAQ ===== -->
+<section class="step" id="faq">
+<h2><span class="number">10</span>常见问题与报错怎么看</h2>
+<details><summary>双击 exe 没反应 / 网址打不开</summary><p>确认是解压后的文件夹（不是在压缩包里）双击；第一次启动等 1 分钟让桌面组件释放。网址用窗口里显示的完整地址，如 <code>http://127.0.0.1:8765/</code>。程序停止后网址打不开是正常的，重新启动即可。如果弹了错误文字，拍照交给提供程序的人，<strong>保留现有资料</strong>。</p></details>
+<details><summary>提示端口被占用 / 打不开</summary><p>说明已经有一个工作台在运行（重复启动了）。先关闭旧窗口再启动；或按窗口提示用 <code>--port</code> 指定其他端口。</p></details>
+<details><summary>AI 生成报错“模型未开通”或 404</summary><p>这是账号还没开通那个模型，不是软件坏了。报错里会写明是哪个平台、哪个模型（比如 doubao-seedream-3-0-t2i），去对应控制台的「开通管理 / 模型广场」开通后，点「刷新模型」再试。</p></details>
+<details><summary>AI 报错全是英文看不懂</summary><p>核心就看三处：平台名（字节 / 阿里）、错误码（404 是没有该模型、400 是参数问题、401 是密钥不对、429 是额度用尽）、提示里的模型名。把整段报错发给提供程序的人最快。</p></details>
+<details><summary>生成成功但没插到正文</summary><p>生成产物会自动存进 <code>instance/ai_output</code> 对应文件夹；在正文段的「音视频与暂停点」里可以插入或替换已生成的 AI 产物，也可以手动选择要挂在哪一段。</p></details>
+<details><summary>视频打不开或没声音</summary><p>确认文件夹完整；浏览器若提示尚未允许播放，在观众窗口点一下播放。预览默认静音，实时同步时声音由独立展示窗口播放。</p></details>
+<details><summary>隐藏了剧本怎么找回 / 想删除</summary><p>列表右上筛选选“含隐藏”，已隐藏的剧本会显示出来，可取消隐藏；删除按钮在隐藏后才会出现，删除前还有二次确认，避免误删。</p></details>
+<details><summary>换电脑 / 想保留一份资料</summary><p>停止工作台后复制整个文件夹即可；更稳的是用「备份与恢复」导出完整备份 ZIP。</p></details>
+</section>
+
 <section class="step">
-<h2>用完怎样关闭？</h2>
-<p>回到文件夹，双击 <span class="filename">停止工作台.cmd</span>。看到停止完成后，按提示按任意键关闭黑色窗口；桌面窗口将在数秒内自动退出。浏览器模式的网页可手动关闭。</p>
-<p>也可以在最初的黑色窗口里按 <strong>Ctrl+C</strong>。只关闭浏览器网页或桌面窗口，不会停止后台服务。</p>
+<h2>最后一句</h2>
+<p>这套工具的价值是：<strong>剧本、图片、音视频、AI 产物、密钥</strong>——一切都长在你自己的电脑里。文件夹里 <code>docs</code> 还有更详细的图文说明书（Word 版），交付包里的 <code>交付包说明.txt</code> 说明了每个文件夹是什么版本。</p>
 </section>
-<section class="step"><h2>同步档位先用默认 60</h2><p>交互预览提供 30、60、90、120 Hz。旁边显示实际发送／接收次数；这些数字不是抖音直播帧率。较高档位受电脑和显示器影响，音视频时间校准另有独立节奏。</p></section>
-<h2>遇到这些情况，按这里检查</h2>
-<details><summary>网址打不开</summary><p>确认已完整解压并双击启动，黑色窗口仍在运行。使用黑色窗口里显示的完整地址。程序停止后网址打不开是正常现象，下次重新启动即可。</p></details>
-<details><summary>黑色窗口闪一下就消失</summary><p>如果网页已经打开且能用，可能是重复启动，程序复用了原来的工作台。如果网页也打不开，检查是否在压缩包里直接启动、runtime 文件夹是否完整。出现错误文字时，拍下完整提示交给提供程序的人，保留现有资料。</p></details>
-<details><summary>预览改了，观众还没看到</summary><p>逐步应用模式下，需要点击“应用到展示”。这让你能先检查，再把内容发给观众。</p></details>
-<details><summary>视频打不开或没有声音</summary><p>确认保留完整项目文件夹。浏览器若提示尚未允许播放，在观众窗口点击播放，必要时点击“开声音”。预览默认静音；实时同步时声音由独立展示窗口播放。媒体仍无法打开时先用纯正文，保留错误提示交给提供程序的人。</p></details>
-<details><summary>已经有旧版资料 怎样换新版</summary><p>先在旧版“内容管理 → 备份与恢复”导出完整备份。新版解压到另一个文件夹，先停止旧版，再启动新版并恢复备份。不要直接覆盖旧版的 instance 文件夹。新包带的是打包时资料快照，不会自动带上你后来在旧版的编辑。</p></details>
-<details><summary>换电脑或想保留一份资料</summary><p>大量修改前，到“内容管理 → 备份与恢复”下载完整备份。换电脑或移动项目文件夹前先停止工作台，再复制整个文件夹。不要用旧压缩包覆盖正在使用的资料。</p></details>
-<section class="step"><h2>需要更完整的操作图？</h2><p><a href="docs/喜娃微PIA工作台_图文使用说明书.docx">打开新版图文使用说明书（Word）</a></p><p>也可以进入 <code>docs</code> 文件夹，找到“喜娃微PIA工作台_图文使用说明书.docx”。这份网页启动说明不需要 Word，直接用浏览器阅读即可。</p><p><a href="00-先看这里-3步启动.txt">查看纯文字启动说明</a></p></section>
-<footer>本说明随项目离线提供。工作资料保存在本机项目文件夹，后续一直使用同一个文件夹即可。</footer>
+
+<footer>本说明书随项目离线提供。工作资料保存在本机项目文件夹，后续一直使用同一个文件夹即可。</footer>
 </main>
 </html>

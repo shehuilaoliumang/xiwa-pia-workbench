@@ -19,6 +19,19 @@ from typing import Optional
 
 from .base import AiError, detect_image_ext
 
+# 阿里「多模态生成/视频合成」接口的 size 参数格式：宽*高（像素）
+_ALI_SIZES = {
+    "1:1": "1024*1024",
+    "9:16": "720*1280",
+    "16:9": "1280*720",
+    "3:4": "864*1152",
+    "4:3": "1152*864",
+}
+
+
+def _qwen_image_size(ratio: str) -> str:
+    return _ALI_SIZES.get(ratio, "1024*1024")
+
 
 class AliAdapter:
     name = "ali"
@@ -36,9 +49,14 @@ class AliAdapter:
         "fun-music-v1": "Fun-Music 音乐生成（纯音乐/歌曲）",
     }
     voice_models = {
-        "qwen-audio-3.1-tts-next": "Qwen-Audio TTS 语音合成（配音）",
-        "qwen-audio-3.0-tts-plus": "Qwen-Audio 3.0 TTS Plus（配音）",
+        "qwen3-tts-flash": "千问3-TTS 极速版（配音，同一 Key 直连）",
+        "qwen3-tts-vd": "千问3-TTS 高音质（配音，音色丰富）",
+        "qwen3-tts-vc": "千问3-TTS 音色克隆（配音）",
+        "qwen3-tts-instruct-flash": "千问3-TTS 指令控制版（配音）",
+        "qwen-audio-3.1-tts-next": "Qwen-Audio 3.1 TTS（配音，需业务空间 ID）",
+        "qwen-audio-3.0-tts-plus": "Qwen-Audio 3.0 TTS Plus（配音，需业务空间 ID）",
     }
+    voice_default = "qwen3-tts-flash"
 
     def __init__(self, output_dir: Path, model: str = "wanx2.1-t2v-turbo",
                  api_key: str = "", endpoint: str = "https://dashscope.aliyuncs.com/api/v1/",
@@ -51,7 +69,7 @@ class AliAdapter:
         self.endpoint = (endpoint or "https://dashscope.aliyuncs.com/api/v1/").rstrip("/") + "/"
         self.image_model = (image_model or "").strip()
         self.audio_model = (audio_model or "fun-music-v1").strip()
-        self.voice_model = (voice_model or "qwen-audio-3.1-tts-next").strip()
+        self.voice_model = (voice_model or self.voice_default).strip()
         self.workspace_id = (workspace_id or "").strip()
 
     def _require_key(self):
@@ -61,11 +79,14 @@ class AliAdapter:
                 409, "api_key_missing",
             )
 
-    def _request(self, path: str, payload: dict, timeout: int = 30) -> dict:
+    def _request(self, path: str, payload: dict, timeout: int = 30,
+                 extra_headers: Optional[dict] = None) -> dict:
         body = json.dumps(payload).encode("utf-8")
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"}
+        if extra_headers:
+            headers.update(extra_headers)
         request = urllib.request.Request(
-            self.endpoint + path, data=body, method="POST",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
+            self.endpoint + path, data=body, method="POST", headers=headers,
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -77,8 +98,9 @@ class AliAdapter:
             raise AiError(f"阿里平台无法连接：{error}", 502, "provider_unreachable") from error
 
     def _poll_task(self, task_id: str) -> dict:
+        # DashScope 异步任务查询：GET /api/v1/tasks/{task_id}
         request = urllib.request.Request(
-            self.endpoint + f"async-tasks/{task_id}",
+            self.endpoint + f"tasks/{task_id}",
             headers={"Authorization": f"Bearer {self.api_key}"},
         )
         try:
@@ -143,6 +165,23 @@ class AliAdapter:
             return {"ok": False, "message": "无法连接阿里百炼，请检查网络（或代理）后重试。",
                     "detail": str(error)}
 
+    def list_all_models(self, api_key: str = "") -> list:
+        """查询百炼兼容模式全部模型名列表；失败返回空列表。"""
+        key = (api_key or self.api_key or "").strip()
+        if not key:
+            return []
+        compatible = self.endpoint.replace("/api/v1/", "/compatible-mode/v1/")
+        request = urllib.request.Request(
+            compatible + "models",
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception:
+            return []
+        return [str(x.get("id") or "").strip() for x in payload.get("data") or [] if x.get("id")]
+
     def list_models(self, api_key: str = "") -> Optional[dict]:
         """查询百炼账号当前可用模型，返回 {video:{id:label}, image:{id:label}}；失败返回 None（调用方降级内置列表）。"""
         key = (api_key or self.api_key or "").strip()
@@ -177,8 +216,31 @@ class AliAdapter:
         # 角色形象卡：优先使用密钥查询到的真实可用图像模型（与视频共用同一 api_key）
         image_model = self.image_model or (self.model if self.model in self.image_models else "") \
             or next(iter(self.image_models), "wanx2.1-imageplus")
+        lower = image_model.lower()
+        # qwen-image 系列走「多模态生成」接口（同步返回图片 URL），旧 text2image
+        # 端点不接受该系列模型名（会 400「服务未开通或地址有误」）。
+        if "qwen-image" in lower:
+            size = _qwen_image_size(ratio)
+            payload = {
+                "model": image_model,
+                "input": {"messages": [{"role": "user", "content": [{"text": prompt}]}]},
+                "parameters": {"size": size},
+            }
+            result = self._request("services/aigc/multimodal-generation/generation", payload, timeout=120)
+            try:
+                content = result["output"]["choices"][0]["message"]["content"]
+                image_url = next((c["image"] for c in content if c.get("image")), None)
+            except (KeyError, IndexError, TypeError):
+                image_url = None
+            if not image_url:
+                raise AiError("阿里平台未返回图片地址。", 502, "provider_error")
+            if progress is not None:
+                progress(80)
+            return self._download(image_url, ".png")
+        # 万相文生图旧端点（异步任务轮询：X-DashScope-Async）
         payload = {"model": image_model, "input": {"prompt": prompt}, "parameters": {"size": ratio}}
-        result = self._request("services/aigc/text2image/image-synthesis", payload)
+        result = self._request("services/aigc/text2image/image-synthesis", payload,
+                               extra_headers={"X-DashScope-Async": "enable"})
         task_id = (result.get("output", {}).get("task_id") or "").strip()
         if not task_id:
             raise AiError("阿里平台未返回任务 ID。", 502, "provider_error")
@@ -208,9 +270,10 @@ class AliAdapter:
         payload = {
             "model": self.model,
             "input": input_payload,
-            "parameters": {"size": ratio, "duration": duration},
+            "parameters": {"size": _qwen_image_size(ratio), "duration": duration},
         }
-        result = self._request("services/aigc/video-generation/video-synthesis", payload)
+        result = self._request("services/aigc/video-generation/video-synthesis", payload,
+                               extra_headers={"X-DashScope-Async": "enable"})
         task_id = (result.get("output", {}).get("task_id") or "").strip()
         if not task_id:
             raise AiError("阿里平台未返回任务 ID。", 502, "provider_error")
@@ -289,10 +352,30 @@ class AliAdapter:
         return self._download_audio(url)
 
     def generate_voice(self, text: str, voice_type: str = "", ratio: str = "", role_name: str = "", progress=None) -> Path:
-        """文本转语音配音：qwen-audio-3.1-tts-next，同步返回音频地址并下载。"""
+        """文本转语音配音：qwen3-tts 系列走多模态直连（同一 Key，无需业务空间）；
+        qwen-audio-3.x-tts 走百炼 maas 专属端点（需业务空间 ID）。"""
         self._require_key()
+        voice_model = self.voice_model or self.voice_default
+        # 千问3-TTS：非实时语音合成统一走 MultiModalConversation（input.text + input.voice）
+        if "qwen3-tts" in voice_model.lower():
+            payload = {
+                "model": voice_model,
+                "input": {"text": text, "voice": voice_type or "Cherry"},
+            }
+            result = self._request("services/aigc/multimodal-generation/generation", payload, timeout=120)
+            try:
+                audio = (result.get("output") or {}).get("audio") or {}
+                url = audio.get("url") or ""
+            except AttributeError:
+                url = ""
+            if not url:
+                raise AiError("阿里平台未返回配音地址。", 502, "provider_error")
+            if progress is not None:
+                progress(80)
+            return self._download_audio(url)
+        # 旧版 Qwen-Audio TTS：maas 专属端点
         payload = {
-            "model": self.voice_model,
+            "model": voice_model,
             "input": {"text_prompt": text, "format": "wav", "sample_rate": 48000},
         }
         if voice_type:
